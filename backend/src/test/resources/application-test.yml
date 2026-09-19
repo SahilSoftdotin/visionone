@@ -1,0 +1,15 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration
+  kafka:
+    listener:
+      auto-startup: false
+visionone:
+  cors:
+    allowed-origins: http://localhost:5173
+  eventing:
+    relay:
+      enabled: false

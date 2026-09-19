@@ -1,0 +1,17 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
+
+# The instance Gary is shown. Same code, seeded dataset, no dev endpoints.
+visionone:
+  seed:
+    endpoint-enabled: false
+  providers:
+    scheduling: DEMO
+    voice: DEMO
+    advertising: DEMO
+    analytics: DEMO
+
+logging:
+  level:
+    com.visiondigitallab.visionone: INFO

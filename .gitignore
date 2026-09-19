@@ -1,0 +1,29 @@
+# Build output
+backend/build/
+backend/.gradle/
+backend/bin/
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+*.tsbuildinfo
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Local env
+.env
+.env.local
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/

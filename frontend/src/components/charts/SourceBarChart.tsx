@@ -1,0 +1,51 @@
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import type { SourcePerformance } from '@/lib/types';
+
+/**
+ * Leads and booked appointments per channel.
+ *
+ * Colours come from the design tokens, never per-chart literals, so light and dark stay
+ * consistent across every chart in the product.
+ */
+export function SourceBarChart({ sources }: { sources: SourcePerformance[] }) {
+  const data = sources.map((source) => ({
+    name: source.displayName,
+    Leads: source.leads,
+    Booked: source.booked,
+  }));
+
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+            interval={0}
+            angle={-18}
+            textAnchor="end"
+            height={58}
+            stroke="hsl(var(--border))"
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+            stroke="hsl(var(--border))"
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 'var(--radius)',
+              fontSize: 12,
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar dataKey="Leads" fill="hsl(var(--chart-1))" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="Booked" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

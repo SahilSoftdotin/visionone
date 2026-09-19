@@ -1,0 +1,108 @@
+{
+  "realm": "visionone",
+  "displayName": "VisionOne",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "VISION_ADMIN",
+        "description": "Vision Digital Lab internal administrator. Operates the client account."
+      },
+      {
+        "name": "CLIENT_OWNER",
+        "description": "Practice owner. Reads everything; approves content and decides on recommendations."
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "org",
+      "subGroups": [
+        {
+          "name": "thrive",
+          "attributes": { "organization_slug": ["thrive"] }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "visionone-web",
+      "name": "VisionOne SPA",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "/",
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "visionone-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "visionone-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "visionone-api",
+      "name": "VisionOne API",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "username": "sahil",
+      "email": "sahil@visiondigitallab.com",
+      "firstName": "Sahil",
+      "lastName": "Arora",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "vision123", "temporary": false }
+      ],
+      "realmRoles": ["VISION_ADMIN"],
+      "groups": ["/org/thrive"]
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "username": "gary",
+      "email": "gary@thrivelongevitycenter.com",
+      "firstName": "Gary",
+      "lastName": "Adams",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "thrive123", "temporary": false }
+      ],
+      "realmRoles": ["CLIENT_OWNER"],
+      "groups": ["/org/thrive"]
+    }
+  ]
+}

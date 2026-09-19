@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens. Defined once; charts and components read these, never literals. */
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 215 28% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+    --primary: 199 89% 33%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 16% 47%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 199 89% 33%;
+
+    --positive: 152 55% 36%;
+    --caution: 38 92% 42%;
+    --critical: 0 72% 48%;
+
+    --chart-1: 199 89% 38%;
+    --chart-2: 152 55% 40%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 52% 55%;
+    --chart-5: 340 65% 52%;
+    --chart-6: 215 16% 55%;
+
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 215 28% 11%;
+    --foreground: 210 20% 96%;
+    --card: 215 25% 15%;
+    --card-foreground: 210 20% 96%;
+    --primary: 199 85% 55%;
+    --primary-foreground: 215 28% 11%;
+    --muted: 215 22% 20%;
+    --muted-foreground: 215 15% 65%;
+    --border: 215 20% 26%;
+    --input: 215 20% 26%;
+    --ring: 199 85% 55%;
+
+    --positive: 152 50% 50%;
+    --caution: 38 88% 58%;
+    --critical: 0 70% 62%;
+
+    --chart-1: 199 85% 58%;
+    --chart-2: 152 50% 52%;
+    --chart-3: 38 88% 60%;
+    --chart-4: 262 60% 70%;
+    --chart-5: 340 70% 65%;
+    --chart-6: 215 15% 65%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}

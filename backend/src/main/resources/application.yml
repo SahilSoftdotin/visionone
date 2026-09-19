@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: visionone-api
+  datasource:
+    url: ${VISIONONE_DB_URL:jdbc:postgresql://localhost:5432/visionone}
+    username: ${VISIONONE_DB_USER:visionone}
+    password: ${VISIONONE_DB_PASSWORD:visionone}
+    hikari:
+      maximum-pool-size: 10
+      pool-name: visionone-pool
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema. Hibernate only checks it.
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  kafka:
+    bootstrap-servers: ${VISIONONE_KAFKA:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: visionone
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.visiondigitallab.visionone.*
+        spring.json.value.default.type: com.visiondigitallab.visionone.eventing.api.EventEnvelope
+    listener:
+      missing-topics-fatal: false   # The API must start and serve every screen with Kafka down.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${VISIONONE_OIDC_ISSUER:http://localhost:8180/realms/visionone}
+
+server:
+  port: 8080
+  error:
+    include-message: never
+
+visionone:
+  cors:
+    allowed-origins: ${VISIONONE_CORS_ORIGINS:http://localhost:5173}
+  eventing:
+    relay:
+      enabled: true
+      interval-ms: 1000
+      batch-size: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    kafka:
+      enabled: false    # Kafka being down degrades eventing, it does not make VisionOne unhealthy.
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    tags:
+      application: visionone-api
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.visiondigitallab.visionone: INFO
+    org.hibernate.SQL: WARN

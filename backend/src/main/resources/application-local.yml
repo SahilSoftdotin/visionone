@@ -1,0 +1,17 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
+
+# Laptop development. Demo provider adapters, seeding available on request.
+visionone:
+  seed:
+    endpoint-enabled: true
+  providers:
+    scheduling: DEMO
+    voice: DEMO
+    advertising: DEMO
+    analytics: DEMO
+
+logging:
+  level:
+    com.visiondigitallab.visionone: DEBUG
