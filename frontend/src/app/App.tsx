@@ -4,11 +4,13 @@ import { AuthProvider } from 'react-oidc-context';
 import { oidcConfig } from '@/lib/auth';
 import { AuthBootstrap, LoginRoute, RequireAuth } from './AuthGate';
 import { AppShell } from './AppShell';
-import { ComingSoon } from './ComingSoon';
 import { OrganizationRouter } from './OrganizationRouter';
 import { OverviewScreen } from '@/features/overview/OverviewScreen';
 import { GrowthScreen } from '@/features/growth/GrowthScreen';
 import { LeadsScreen } from '@/features/leads/LeadsScreen';
+import { FrontDeskScreen } from '@/features/frontdesk/FrontDeskScreen';
+import { WorkContentScreen } from '@/features/work/WorkContentScreen';
+import { ReportsScreen } from '@/features/reports/ReportsScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,9 +38,9 @@ export function App() {
                   <Route path="overview" element={<OverviewScreen />} />
                   <Route path="growth" element={<GrowthScreen />} />
                   <Route path="leads" element={<LeadsScreen />} />
-                  <Route path="front-desk" element={<ComingSoon />} />
-                  <Route path="work" element={<ComingSoon />} />
-                  <Route path="reports" element={<ComingSoon />} />
+                  <Route path="front-desk" element={<FrontDeskScreen />} />
+                  <Route path="work" element={<WorkContentScreen />} />
+                  <Route path="reports" element={<ReportsScreen />} />
                 </Route>
               </Route>
 

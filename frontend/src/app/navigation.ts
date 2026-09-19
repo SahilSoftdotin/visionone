@@ -10,7 +10,7 @@ export const CLIENT_NAVIGATION = [
   { to: 'overview', label: 'Overview', icon: LayoutDashboard, ready: true },
   { to: 'growth', label: 'Growth', icon: TrendingUp, ready: true },
   { to: 'leads', label: 'Leads', icon: Users, ready: true },
-  { to: 'front-desk', label: 'Front Desk', icon: PhoneCall, ready: false },
-  { to: 'work', label: 'Work & Content', icon: FileText, ready: false },
-  { to: 'reports', label: 'Reports', icon: BarChart3, ready: false },
+  { to: 'front-desk', label: 'Front Desk', icon: PhoneCall, ready: true },
+  { to: 'work', label: 'Work & Content', icon: FileText, ready: true },
+  { to: 'reports', label: 'Reports', icon: BarChart3, ready: true },
 ] as const;
