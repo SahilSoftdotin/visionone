@@ -9,6 +9,7 @@ import { OverviewScreen } from '@/features/overview/OverviewScreen';
 import { GrowthScreen } from '@/features/growth/GrowthScreen';
 import { LeadsScreen } from '@/features/leads/LeadsScreen';
 import { FrontDeskScreen } from '@/features/frontdesk/FrontDeskScreen';
+import { CalendarScreen } from '@/features/calendar/CalendarScreen';
 import { WorkContentScreen } from '@/features/work/WorkContentScreen';
 import { ReportsScreen } from '@/features/reports/ReportsScreen';
 
@@ -39,6 +40,7 @@ export function App() {
                   <Route path="growth" element={<GrowthScreen />} />
                   <Route path="leads" element={<LeadsScreen />} />
                   <Route path="front-desk" element={<FrontDeskScreen />} />
+                  <Route path="calendar" element={<CalendarScreen />} />
                   <Route path="work" element={<WorkContentScreen />} />
                   <Route path="reports" element={<ReportsScreen />} />
                 </Route>
