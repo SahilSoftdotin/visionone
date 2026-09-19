@@ -36,6 +36,8 @@ services:
       - "8180:8180"
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
+      # Login theme lives in the repo, like the realm, so the sign-in page is reviewable.
+      - ./keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       postgres:
         condition: service_healthy

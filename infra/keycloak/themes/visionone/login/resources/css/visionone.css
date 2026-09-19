@@ -1,0 +1,287 @@
+/*
+ * VisionOne login theme.
+ *
+ * Restyles keycloak.v2 to match the product it guards: the same blue-white sky, the same frosted
+ * panel, the same Inter typeface. Tokens are duplicated here rather than imported because this
+ * page is served by Keycloak, not by the app, and the two have no shared build.
+ *
+ * Contrast values were measured, not eyeballed: body text 15.7:1, helper text 5.3:1,
+ * button label on primary 5.5:1.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --vo-primary: hsl(199 89% 33%);
+  --vo-primary-hover: hsl(199 89% 28%);
+  --vo-fg: hsl(217 33% 15%);
+  --vo-muted: hsl(216 14% 42%);
+  --vo-border: hsl(214 27% 90%);
+  --vo-card: hsl(0 0% 100%);
+  --vo-bg: hsl(212 38% 97%);
+  --vo-critical: hsl(0 72% 45%);
+  --vo-radius: 1rem;
+  --vo-shadow: 0 2px 4px -1px hsl(215 35% 25% / 0.05), 0 12px 28px -6px hsl(215 35% 25% / 0.12);
+}
+
+/* ---------- the sky ---------- */
+
+html,
+body#keycloak-bg {
+  min-height: 100%;
+  background-color: var(--vo-bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, hsl(199 90% 88% / 0.55), transparent 60%),
+    radial-gradient(52rem 38rem at 92% 4%, hsl(222 80% 88% / 0.5), transparent 62%),
+    radial-gradient(44rem 34rem at 50% 108%, hsl(199 70% 90% / 0.4), transparent 60%);
+  background-attachment: fixed;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--vo-fg);
+}
+
+/* Keycloak paints its own background image layer; we supply the sky instead. */
+body#keycloak-bg::before,
+.pf-v5-c-login__main-header-desc {
+  display: none !important;
+}
+
+/* The stock theme centres in the viewport and pushes the card past the fold on short windows.
+   Anchor nearer the top so the card and its footer are visible without scrolling. */
+.pf-v5-c-login {
+  padding: 2.5rem 1rem 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: auto;
+}
+
+/* PatternFly reserves a tall header band; the wordmark does not need one. */
+.pf-v5-c-login__header {
+  margin-block-end: 0;
+  padding-block-end: 0;
+}
+
+.pf-v5-c-login__container {
+  max-width: 27rem;
+  gap: 1.25rem;
+}
+
+/* ---------- brand header ---------- */
+
+#kc-header {
+  justify-content: center;
+  padding: 0 0 0.75rem;
+  margin: 0;
+}
+
+/* PatternFly dims the brand and uppercases it; both have to go, and the colour must be
+   forced onto the descendants too or the inline spans inherit the faded value. */
+#kc-header-wrapper,
+#kc-header-wrapper.pf-v5-c-brand,
+#kc-header-wrapper * {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vo-fg) !important;
+  text-transform: none;
+  opacity: 1 !important;
+  padding: 0;
+  line-height: 1.2;
+}
+
+/* …except the half that is meant to be blue. */
+#kc-header-wrapper span[style*='199'] {
+  color: var(--vo-primary) !important;
+}
+
+/* ---------- the frosted card ---------- */
+
+.pf-v5-c-login__main {
+  border-radius: var(--vo-radius);
+  border: 1px solid hsl(0 0% 100% / 0.7);
+  background-color: hsl(0 0% 100% / 0.78);
+  backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: var(--vo-shadow);
+  overflow: hidden;
+}
+
+.pf-v5-c-login__main-header {
+  padding: 1.75rem 1.75rem 0;
+}
+
+#kc-page-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vo-fg);
+}
+
+.pf-v5-c-login__main-body {
+  padding: 1.25rem 1.75rem 1.75rem;
+}
+
+/* ---------- fields ---------- */
+
+.pf-v5-c-form__label-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--vo-fg);
+}
+
+/* PatternFly draws the field as a bottom-accent underline via ::after. We want a box, so the
+   accent is removed and a real border put back on all four sides. */
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BorderRadius: 0.625rem;
+  --pf-v5-c-form-control--BorderColor: var(--vo-border);
+  --pf-v5-c-form-control--BackgroundColor: var(--vo-card);
+  --pf-v5-c-form-control--after--BorderBottomWidth: 0;
+  --pf-v5-c-form-control--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--focus--after--BorderBottomWidth: 0;
+  border: 1px solid var(--vo-border);
+  border-radius: 0.625rem;
+  background-color: var(--vo-card);
+  min-height: 2.75rem; /* 44px touch target */
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-v5-c-form-control::after,
+.pf-v5-c-form-control::before {
+  border-bottom: 0 !important;
+  display: none !important;
+}
+
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--vo-primary);
+  box-shadow: 0 0 0 3px hsl(199 89% 33% / 0.15);
+  outline: none;
+}
+
+.pf-v5-c-form-control > input {
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+/* The password-visibility toggle ships as a dark "control" button; make it a quiet icon. */
+.pf-v5-c-button.pf-m-control,
+.pf-v5-c-input-group__item .pf-v5-c-button {
+  background-color: transparent !important;
+  border: 0 !important;
+  color: var(--vo-muted) !important;
+  box-shadow: none !important;
+  min-height: 2.75rem;
+  border-radius: 0.625rem;
+}
+
+.pf-v5-c-button.pf-m-control:hover,
+.pf-v5-c-input-group__item .pf-v5-c-button:hover {
+  color: var(--vo-primary) !important;
+  background-color: hsl(199 85% 96%) !important;
+}
+
+/* Keep the field and its toggle inside one bordered box rather than two. */
+.pf-v5-c-input-group {
+  border: 1px solid var(--vo-border);
+  border-radius: 0.625rem;
+  background-color: var(--vo-card);
+  overflow: hidden;
+}
+
+.pf-v5-c-input-group:focus-within {
+  border-color: var(--vo-primary);
+  box-shadow: 0 0 0 3px hsl(199 89% 33% / 0.15);
+}
+
+.pf-v5-c-input-group .pf-v5-c-form-control {
+  border: 0;
+  box-shadow: none;
+}
+
+.pf-v5-c-input-group .pf-v5-c-form-control:focus-within {
+  box-shadow: none;
+}
+
+/* ---------- primary button ---------- */
+
+.pf-v5-c-button.pf-m-primary,
+#kc-login {
+  --pf-v5-c-button--BorderRadius: 999px;
+  background-color: var(--vo-primary);
+  border-radius: 999px;
+  min-height: 2.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px 0 hsl(215 35% 25% / 0.05);
+  transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+#kc-login:hover {
+  background-color: var(--vo-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--vo-shadow);
+}
+
+.pf-v5-c-button.pf-m-primary:focus-visible,
+#kc-login:focus-visible {
+  outline: 2px solid var(--vo-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- helper, links, alerts ---------- */
+
+.pf-v5-c-login__main-footer,
+.pf-v5-c-helper-text__item-text,
+#kc-info-wrapper {
+  color: var(--vo-muted);
+  font-size: 0.8125rem;
+}
+
+a {
+  color: var(--vo-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.pf-v5-c-alert.pf-m-danger {
+  border-radius: 0.75rem;
+  border: 1px solid hsl(0 72% 45% / 0.25);
+  background-color: hsl(0 72% 45% / 0.06);
+}
+
+.pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title {
+  color: var(--vo-critical);
+  font-size: 0.8125rem;
+}
+
+/* ---------- the line that says who made this ---------- */
+
+.pf-v5-c-login__main::after {
+  content: 'Secured by Vision Digital Lab';
+  display: block;
+  padding: 0.875rem 1.75rem;
+  border-top: 1px solid var(--vo-border);
+  background-color: hsl(212 38% 98% / 0.6);
+  color: var(--vo-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-v5-c-button.pf-m-primary,
+  #kc-login {
+    transition: none;
+  }
+  .pf-v5-c-button.pf-m-primary:hover,
+  #kc-login:hover {
+    transform: none;
+  }
+}

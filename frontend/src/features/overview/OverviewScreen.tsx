@@ -36,9 +36,13 @@ export function OverviewScreen() {
     >
       {data && (
         <div className="space-y-6">
+          {/*
+            The practice name lives in the app header, beside VisionOne. Repeating it here read as
+            a stutter, so this says what the screen is and which month it covers instead.
+          */}
           <header className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{data.organizationName}</h1>
+              <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Overview</h1>
               <p className="text-sm text-muted-foreground">{formatMonth(data.periodMonth)}</p>
             </div>
             <Badge tone="demo">Demo data</Badge>

@@ -29,7 +29,11 @@
       "subGroups": [
         {
           "name": "thrive",
-          "attributes": { "organization_slug": ["thrive"] }
+          "attributes": {
+            "organization_slug": [
+              "thrive"
+            ]
+          }
         }
       ]
     }
@@ -46,8 +50,12 @@
       "protocol": "openid-connect",
       "rootUrl": "http://localhost:5173",
       "baseUrl": "/",
-      "redirectUris": ["http://localhost:5173/*"],
-      "webOrigins": ["http://localhost:5173"],
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/*"
@@ -85,10 +93,18 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "vision123", "temporary": false }
+        {
+          "type": "password",
+          "value": "vision123",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["VISION_ADMIN"],
-      "groups": ["/org/thrive"]
+      "realmRoles": [
+        "VISION_ADMIN"
+      ],
+      "groups": [
+        "/org/thrive"
+      ]
     },
     {
       "id": "22222222-2222-4222-8222-222222222222",
@@ -99,10 +115,20 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "thrive123", "temporary": false }
+        {
+          "type": "password",
+          "value": "thrive123",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["CLIENT_OWNER"],
-      "groups": ["/org/thrive"]
+      "realmRoles": [
+        "CLIENT_OWNER"
+      ],
+      "groups": [
+        "/org/thrive"
+      ]
     }
-  ]
+  ],
+  "loginTheme": "visionone",
+  "displayNameHtml": "<span style=\"font-weight:600\">Vision</span><span style=\"font-weight:600;color:hsl(199 89% 33%)\">One</span>"
 }
