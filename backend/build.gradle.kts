@@ -18,7 +18,7 @@ repositories {
     mavenCentral()
 }
 
-extra["testcontainersVersion"] = "1.20.6"
+extra["testcontainersVersion"] = "1.21.3"
 extra["resilience4jVersion"] = "2.3.0"
 extra["archunitVersion"] = "1.3.0"
 extra["springdocVersion"] = "2.8.6"
@@ -85,6 +85,13 @@ tasks.withType<JavaCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    // Docker Engine 29 refuses API versions below 1.40, but docker-java still negotiates 1.32 by
+    // default. Testcontainers' probe gets a 400, discards every strategy, and reports the
+    // misleading "Could not find a valid Docker environment". Pin a version both old and new
+    // engines accept - 1.41 has been valid since Docker 20.10. Override with -Dapi.version=... .
+    systemProperty("api.version", System.getProperty("api.version") ?: "1.41")
+
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
