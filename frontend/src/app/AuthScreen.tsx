@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
-import { VisionDigitalLabMark, VisionOneMark } from '@/components/ui/Brand';
+import { VisionOneMark } from '@/components/ui/Brand';
 
 /**
- * The first thing anyone sees, so it carries the brand rather than a spinner on white.
+ * Sign-in, on the Modernize auth layout: a tinted illustration panel on the left and a white
+ * form column on the right.
  *
- * There is no password field here by design. Authentication is a redirect to the identity
- * provider; VisionOne never handles a credential. The button starts that redirect.
+ * Modernize puts email and password fields in that column. VisionOne cannot: authentication is a
+ * redirect to the identity provider, and the product never handles a credential. The column keeps
+ * the same rhythm - heading, subtitle, divider, primary action, footer line - with the action
+ * standing where the fields would be. The real form, styled to match, lives on the Keycloak page
+ * this button leads to.
  */
 export function AuthScreen({
   state,
@@ -18,37 +22,79 @@ export function AuthScreen({
   onSignIn: () => void;
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      <BrandPanel />
+    <div className="min-h-screen bg-card lg:flex">
+      {/* Left: brand and illustration on the tinted ground. */}
+      <div className="relative hidden w-[58%] flex-col bg-[hsl(220_60%_97%)] px-12 py-10 lg:flex">
+        <div className="flex items-center gap-3">
+          <img
+            src="/brand/vision-digital-lab.svg"
+            alt="Vision Digital Lab"
+            className="h-10 w-10 rounded-lg"
+          />
+          <span className="text-2xl font-extrabold tracking-[-0.02em]">
+            Vision<span className="text-primary">One</span>
+          </span>
+        </div>
 
-      <div className="flex items-center justify-center bg-background px-6 py-12 sm:px-10">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden">
+        <div className="flex flex-1 items-center justify-center">
+          <img
+            src="/brand/login-illustration.svg"
+            alt=""
+            aria-hidden
+            className="w-full max-w-[460px]"
+          />
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Practice Growth Operating System · a Vision Digital Lab product
+        </p>
+      </div>
+
+      {/* Right: the form column. */}
+      <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <img src="/brand/vision-digital-lab.svg" alt="" aria-hidden className="h-8 w-8 rounded-lg" />
             <VisionOneMark className="text-lg" />
           </div>
 
-          <h1 className="mt-6 text-2xl font-semibold tracking-[-0.02em] lg:mt-0">
-            Sign in to your practice
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Your growth operations, in one place — calls, campaigns, reviews and bookings.
+          <h1 className="text-2xl font-bold tracking-[-0.02em]">Welcome to VisionOne</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Your growth operations, in one place.
           </p>
 
           {state === 'error' && (
             <div
               role="alert"
-              className="mt-5 rounded-lg border border-critical/25 bg-critical/5 px-3.5 py-3"
+              className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm"
             >
-              <p className="text-sm font-semibold text-critical">Sign-in failed</p>
-              {message && <p className="mt-1 text-xs text-muted-foreground">{message}</p>}
+              <p className="font-semibold text-critical-text">Sign-in failed</p>
+              {message && <p className="mt-0.5 text-xs text-muted-foreground">{message}</p>}
             </div>
           )}
+
+          {/* Modernize's tinted information panel, carrying what a caller actually needs. */}
+          <div className="mt-6 flex gap-3 rounded-lg bg-primary-soft px-4 py-3.5">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary-text" aria-hidden />
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              You are handed to your identity provider to sign in.{' '}
+              <span className="font-semibold text-primary-text">
+                VisionOne never sees your password.
+              </span>
+            </p>
+          </div>
+
+          <div className="my-7 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" aria-hidden />
+            <span className="text-sm text-muted-foreground">continue with</span>
+            <span className="h-px flex-1 bg-border" aria-hidden />
+          </div>
 
           <button
             type="button"
             onClick={onSignIn}
             disabled={state === 'working'}
-            className="group mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground elev-sm transition-all duration-200 hover:-translate-y-px hover:elev-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:translate-y-0 disabled:opacity-70"
+            className="group flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[15px] font-semibold text-primary-foreground transition-all duration-150 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-70"
           >
             {state === 'working' ? (
               <>
@@ -57,21 +103,18 @@ export function AuthScreen({
               </>
             ) : (
               <>
-                {state === 'error' ? 'Try again' : 'Continue to secure sign-in'}
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                {state === 'error' ? 'Try again' : 'Secure sign-in'}
+                <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
               </>
             )}
           </button>
 
-          <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-            <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-positive" aria-hidden />
-            You are handed to your identity provider to sign in. VisionOne never sees your
-            password.
-          </p>
-
-          <p className="mt-8 border-t border-border pt-5 text-xs text-muted-foreground">
-            No account yet? Practices are onboarded by Vision Digital Lab — speak to your account
-            contact.
+          <p className="mt-7 text-sm text-muted-foreground">
+            New to VisionOne?{' '}
+            <span className="font-semibold text-foreground">
+              Practices are onboarded by Vision Digital Lab
+            </span>{' '}
+            — speak to your account contact.
           </p>
         </div>
       </div>
@@ -79,66 +122,10 @@ export function AuthScreen({
   );
 }
 
-/** The blue half: who made this, for whom, and what it promises. */
-function BrandPanel() {
-  return (
-    <div className="relative hidden overflow-hidden bg-primary px-12 py-12 text-primary-foreground lg:flex lg:flex-col">
-      {/* Depth without imagery - a light source behind the panel. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -left-32 -top-40 h-[34rem] w-[34rem] rounded-full bg-white/15 blur-3xl"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -bottom-48 -right-24 h-[30rem] w-[30rem] rounded-full bg-white/10 blur-3xl"
-      />
-
-      <div className="relative flex items-center gap-2.5">
-        <VisionDigitalLabMark className="h-7 w-7" />
-        <span className="text-sm font-semibold tracking-[-0.01em]">Vision Digital Lab</span>
-      </div>
-
-      <div className="relative my-auto max-w-md py-10">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
-          Practice Growth Operating System
-        </p>
-        <p className="mt-4 text-4xl font-semibold leading-[1.12] tracking-[-0.025em]">
-          Vision<span className="text-white/60">One</span>
-        </p>
-        <p className="mt-6 text-lg leading-snug text-primary-foreground/90">
-          You run the practice.
-          <br />
-          VisionOne shows you how Vision is growing it.
-        </p>
-
-        <ul className="mt-9 space-y-3 text-sm text-primary-foreground/80">
-          {[
-            'Every enquiry labelled with where it came from',
-            'Spend, leads and bookings on one screen',
-            'Every panel states how fresh its data is',
-          ].map((line) => (
-            <li key={line} className="flex items-start gap-2.5">
-              <span
-                aria-hidden
-                className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary-foreground/60"
-              />
-              {line}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="relative text-xs text-primary-foreground/60">
-        A Vision Digital Lab product · visiondigitallab.com
-      </p>
-    </div>
-  );
-}
-
 /** Shared frame for the brief moment before the session is known. */
 export function AuthSplash({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-card px-4">
       <div className="max-w-sm text-center">
         <VisionOneMark className="text-lg" />
         <div className="mt-4">{children}</div>

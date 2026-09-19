@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 340" role="img" aria-label="A practice dashboard with rising performance and a secured connection" fill="none">
+  <defs>
+    <linearGradient id="bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#5D87FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#5D87FF"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#13DEB9"/>
+      <stop offset="1" stop-color="#49BEFF"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#5D87FF" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <!-- ambient blooms -->
+  <circle cx="72" cy="66" r="52" fill="#ECF2FF"/>
+  <circle cx="356" cy="268" r="44" fill="#E6FFFA"/>
+  <circle cx="368" cy="60" r="26" fill="#FEF5E5"/>
+
+  <!-- dashboard window -->
+  <g filter="url(#soft)">
+    <rect x="54" y="62" width="250" height="176" rx="12" fill="#FFFFFF"/>
+    <rect x="54" y="62" width="250" height="30" rx="12" fill="#ECF2FF"/>
+    <rect x="54" y="80" width="250" height="12" fill="#ECF2FF"/>
+    <circle cx="72" cy="77" r="4" fill="#FA896B"/>
+    <circle cx="86" cy="77" r="4" fill="#FFAE1F"/>
+    <circle cx="100" cy="77" r="4" fill="#13DEB9"/>
+
+    <!-- stat chips -->
+    <rect x="70" y="106" width="64" height="34" rx="7" fill="#ECF2FF"/>
+    <rect x="142" y="106" width="64" height="34" rx="7" fill="#E6FFFA"/>
+    <rect x="214" y="106" width="64" height="34" rx="7" fill="#FEF5E5"/>
+
+    <!-- rising bars -->
+    <rect x="72" y="196" width="16" height="26" rx="5" fill="url(#bar)"/>
+    <rect x="98" y="182" width="16" height="40" rx="5" fill="url(#bar)"/>
+    <rect x="124" y="190" width="16" height="32" rx="5" fill="url(#bar)"/>
+    <rect x="150" y="168" width="16" height="54" rx="5" fill="url(#bar)"/>
+    <rect x="176" y="176" width="16" height="46" rx="5" fill="url(#bar)"/>
+    <rect x="202" y="156" width="16" height="66" rx="5" fill="url(#bar)"/>
+    <rect x="228" y="164" width="16" height="58" rx="5" fill="url(#bar)"/>
+
+    <!-- trend line -->
+    <path d="M78 204 L106 190 L132 196 L158 176 L184 184 L210 164 L236 172"
+          stroke="#13DEB9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="236" cy="172" r="5" fill="#FFFFFF" stroke="#13DEB9" stroke-width="3"/>
+  </g>
+
+  <!-- secured badge -->
+  <g filter="url(#soft)">
+    <path d="M330 150 L330 196 C330 224 310 240 296 246 C282 240 262 224 262 196 L262 150 L296 138 Z"
+          fill="url(#shield)"/>
+    <path d="M281 194 L292 205 L313 182" stroke="#FFFFFF" stroke-width="7"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- connection dots -->
+  <circle cx="44" cy="262" r="6" fill="#5D87FF" opacity="0.35"/>
+  <circle cx="68" cy="286" r="4" fill="#13DEB9" opacity="0.45"/>
+  <circle cx="98" cy="270" r="3" fill="#FFAE1F" opacity="0.5"/>
+</svg>
