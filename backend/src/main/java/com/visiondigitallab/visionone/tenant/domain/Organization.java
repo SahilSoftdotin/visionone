@@ -9,6 +9,8 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /** A tenant. THRIVE is the first; a second is an INSERT, not a code change. */
 @Entity
@@ -28,6 +30,8 @@ public class Organization {
     @Column(nullable = false)
     private String timezone;
 
+    /** ISO 4217, stored as char(3) by the migration - Flyway owns the schema, Hibernate validates. */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(nullable = false, length = 3)
     private String currency;
 
