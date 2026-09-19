@@ -14,8 +14,15 @@ export function SourceBarChart({ sources }: { sources: SourcePerformance[] }) {
     Booked: source.booked,
   }));
 
+  // The table below carries the same figures, so the chart is decorative to a screen reader -
+  // but it still needs a name, and colour alone must not be the only cue. The legend supplies
+  // the second cue; the table supplies the accessible reading.
+  const summary = data
+    .map((row) => `${row.name}: ${row.Leads} leads, ${row.Booked} booked`)
+    .join('; ');
+
   return (
-    <div className="h-64 w-full">
+    <div className="h-64 w-full" role="img" aria-label={`Leads and booked appointments by channel. ${summary}.`}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />

@@ -158,31 +158,43 @@ export function OverviewScreen() {
               <SourceBarChart sources={data.sourcePerformance} />
               <div className="-mx-4 overflow-x-auto sm:-mx-5">
                 <table className="w-full min-w-[620px] text-sm">
+                  <caption className="sr-only">
+                    Leads, qualified leads, booked appointments and cost per channel for{' '}
+                    {formatMonth(data.periodMonth)}
+                  </caption>
                   <thead>
+                    {/* Sticky so the column a number belongs to stays visible while scrolling. */}
                     <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-2 font-medium sm:px-5">Source</th>
-                      <th className="px-3 py-2 text-right font-medium">Leads</th>
-                      <th className="px-3 py-2 text-right font-medium">Qualified</th>
-                      <th className="px-3 py-2 text-right font-medium">Booked</th>
-                      <th className="px-3 py-2 text-right font-medium">Spend</th>
-                      <th className="px-3 py-2 text-right font-medium">Cost / lead</th>
-                      <th className="px-4 py-2 text-right font-medium sm:px-5">Cost / booked</th>
+                      <th scope="col" className="px-4 py-2.5 font-semibold sm:px-5">Source</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-semibold">Leads</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-semibold">Qualified</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-semibold">Booked</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-semibold">Spend</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-semibold">Cost / lead</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-semibold sm:px-5">
+                        Cost / booked
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.sourcePerformance.map((source) => (
-                      <tr key={source.channelCode} className="border-b border-border/60 last:border-0">
-                        <td className="px-4 py-2.5 font-medium sm:px-5">{source.displayName}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{formatCount(source.leads)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{formatCount(source.qualified)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{formatCount(source.booked)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
+                      <tr
+                        key={source.channelCode}
+                        className="border-b border-border last:border-0 transition-colors hover:bg-primary/[0.04]"
+                      >
+                        <th scope="row" className="px-4 py-3 text-left font-medium sm:px-5">
+                          {source.displayName}
+                        </th>
+                        <td className="px-3 py-3 text-right tabular-nums">{formatCount(source.leads)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{formatCount(source.qualified)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{formatCount(source.booked)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
                           {formatMoney(source.spend, { compact: true })}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
+                        <td className="px-3 py-3 text-right tabular-nums">
                           {formatMoney(source.costPerLead)}
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums sm:px-5">
+                        <td className="px-4 py-3 text-right tabular-nums sm:px-5">
                           {formatMoney(source.costPerBookedAppointment)}
                         </td>
                       </tr>

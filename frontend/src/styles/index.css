@@ -15,13 +15,17 @@
     --primary-foreground: 0 0% 100%;
     --primary-soft: 199 85% 96%;
     --muted: 213 27% 94%;
-    --muted-foreground: 216 14% 46%;
+    /* 42%, not 46%: on a frosted card over the brightest part of the sky, 46% measures 4.57:1 -
+       a hair over the 4.5 floor. 42% gives 5.29:1 and survives a lighter gradient. */
+    --muted-foreground: 216 14% 42%;
     --border: 214 27% 90%;
     --input: 214 27% 90%;
     --ring: 199 89% 33%;
 
     --positive: 152 55% 33%;
-    --caution: 38 92% 40%;
+    /* Amber is the trap colour: at 40% it measures 3.29:1 on white and fails outright. 30%
+       reaches 5.06:1 on a frosted card and still reads as amber rather than brown. */
+    --caution: 38 92% 30%;
     --critical: 0 72% 45%;
 
     --chart-1: 199 89% 38%;

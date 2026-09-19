@@ -26,7 +26,7 @@ export function KpiTile({ label, value, current, prior, invertDirection, hint }:
         aria-hidden
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-2 text-[28px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
@@ -36,7 +36,7 @@ export function KpiTile({ label, value, current, prior, invertDirection, hint }:
         {movement && movement.direction !== 'flat' ? (
           <span
             className={cn(
-              'inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+              'inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums',
               isGood
                 ? 'bg-positive/10 text-positive'
                 : 'bg-critical/10 text-critical',

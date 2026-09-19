@@ -31,7 +31,8 @@ export function AppShell() {
           onClick={() => setMobileOpen(false)}
           className={({ isActive }) =>
             cn(
-              'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all duration-150',
+              // min-h-11 = 44px: the touch-target floor. At py-2 these were ~36px.
+              'relative flex min-h-11 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all duration-150',
               isActive
                 ? 'bg-primary-soft font-semibold text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -41,7 +42,7 @@ export function AppShell() {
           <Icon className="h-4 w-4 shrink-0" aria-hidden />
           <span>{label}</span>
           {!ready && (
-            <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+            <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               soon
             </span>
           )}
@@ -56,8 +57,9 @@ export function AppShell() {
         <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
           <button
             type="button"
-            className="lg:hidden"
+            className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-md hover:bg-muted lg:hidden"
             aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
