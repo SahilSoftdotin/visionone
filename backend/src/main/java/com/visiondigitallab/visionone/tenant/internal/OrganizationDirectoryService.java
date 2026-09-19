@@ -37,15 +37,15 @@ public class OrganizationDirectoryService implements OrganizationDirectory {
 
     @Override
     @Cacheable(cacheNames = "membership", key = "#keycloakUserId")
-    public List<OrganizationSummary> forSubject(String keycloakUserId) {
+    public List<OrganizationMembershipSummary> forSubject(String keycloakUserId) {
         List<Membership> active =
                 memberships.findByKeycloakUserIdAndStatus(keycloakUserId, MembershipStatus.ACTIVE);
         return active.stream()
-                .map(Membership::getOrganizationId)
-                .distinct()
-                .map(organizations::findById)
+                .map(membership -> organizations
+                        .findById(membership.getOrganizationId())
+                        .map(organization -> new OrganizationMembershipSummary(
+                                toSummary(organization), membership.getRole())))
                 .flatMap(java.util.Optional::stream)
-                .map(OrganizationDirectoryService::toSummary)
                 .toList();
     }
 

@@ -3,9 +3,6 @@ package com.visiondigitallab.visionone.tenant.web;
 import com.visiondigitallab.visionone.auth.CurrentUser;
 import com.visiondigitallab.visionone.auth.Role;
 import com.visiondigitallab.visionone.tenant.api.OrganizationDirectory;
-import com.visiondigitallab.visionone.tenant.domain.Membership;
-import com.visiondigitallab.visionone.tenant.domain.MembershipStatus;
-import com.visiondigitallab.visionone.tenant.repository.MembershipRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,22 +19,17 @@ public class SessionController {
 
     private final CurrentUser currentUser;
     private final OrganizationDirectory directory;
-    private final MembershipRepository memberships;
 
-    public SessionController(
-            CurrentUser currentUser, OrganizationDirectory directory, MembershipRepository memberships) {
+    public SessionController(CurrentUser currentUser, OrganizationDirectory directory) {
         this.currentUser = currentUser;
         this.directory = directory;
-        this.memberships = memberships;
     }
 
     @GetMapping("/me")
     public SessionResponse me() {
         String subject = currentUser.subject();
-        List<OrganizationMembership> orgs = memberships
-                .findByKeycloakUserIdAndStatus(subject, MembershipStatus.ACTIVE)
-                .stream()
-                .map(this::toOrganizationMembership)
+        List<OrganizationMembership> orgs = directory.forSubject(subject).stream()
+                .map(SessionController::toOrganizationMembership)
                 .toList();
         return new SessionResponse(subject, currentUser.displayName(), orgs);
     }
@@ -48,11 +40,12 @@ public class SessionController {
         return new MetaResponse("VisionOne", "v1", "phase-1");
     }
 
-    private OrganizationMembership toOrganizationMembership(Membership membership) {
-        OrganizationDirectory.OrganizationSummary summary = directory.require(membership.getOrganizationId());
+    private static OrganizationMembership toOrganizationMembership(
+            OrganizationDirectory.OrganizationMembershipSummary membership) {
+        OrganizationDirectory.OrganizationSummary summary = membership.organization();
         return new OrganizationMembership(
                 summary.id(), summary.name(), summary.slug(), summary.timezone(),
-                summary.currency(), membership.getRole());
+                summary.currency(), membership.role());
     }
 
     public record SessionResponse(
