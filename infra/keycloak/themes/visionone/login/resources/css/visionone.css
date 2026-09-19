@@ -166,6 +166,25 @@ body#keycloak-bg::before {
   min-height: 2.875rem;
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* The wrapper carries the border; the input has to fill it. PatternFly leaves the input at
+     its own intrinsic height with its own padding, which left a dead strip inside the box where
+     a click did not focus the field and the text sat high rather than centred. */
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+}
+
+.pf-v5-c-form-control > input,
+.pf-v5-c-input-group input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  align-self: stretch;
+  padding: 0 0.875rem;
+  margin: 0;
+  border: 0;
+  line-height: normal;
 }
 
 .pf-v5-c-form-control::after,
