@@ -1,4 +1,14 @@
 import { useParams, useSearchParams } from 'react-router-dom';
+import {
+  CalendarCheck,
+  Coins,
+  Percent,
+  Receipt,
+  UserCheck,
+  Users,
+  Wallet,
+  CreditCard,
+} from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
@@ -52,45 +62,53 @@ export function OverviewScreen() {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <KpiTile
                 label="Growth budget"
+                icon={Wallet}
                 value={formatMoney(data.kpis.monthlyGrowthBudget, { compact: true })}
                 hint="planned this month"
               />
               <KpiTile
                 label="Actual spend"
+                icon={CreditCard}
                 value={formatMoney(data.kpis.actualSpend, { compact: true })}
                 current={data.kpis.actualSpend.amountMinor}
                 prior={data.kpis.priorMonth.actualSpend.amountMinor}
               />
               <KpiTile
                 label="New leads"
+                icon={Users}
                 value={formatCount(data.kpis.newLeads)}
                 current={data.kpis.newLeads}
                 prior={data.kpis.priorMonth.newLeads}
               />
               <KpiTile
                 label="Qualified leads"
+                icon={UserCheck}
                 value={formatCount(data.kpis.qualifiedLeads)}
                 current={data.kpis.qualifiedLeads}
                 prior={data.kpis.priorMonth.qualifiedLeads}
               />
               <KpiTile
                 label="Booked appointments"
+                icon={CalendarCheck}
                 value={formatCount(data.kpis.bookedAppointments)}
                 current={data.kpis.bookedAppointments}
                 prior={data.kpis.priorMonth.bookedAppointments}
               />
               <KpiTile
                 label="Cost per lead"
+                icon={Coins}
                 value={formatMoney(data.kpis.costPerLead)}
                 invertDirection
               />
               <KpiTile
                 label="Cost per booked appt."
+                icon={Receipt}
                 value={formatMoney(data.kpis.costPerBookedAppointment)}
                 invertDirection
               />
               <KpiTile
                 label="Lead to book"
+                icon={Percent}
                 value={formatPercent(data.kpis.leadToBookConversionPercent)}
                 current={data.kpis.leadToBookConversionPercent}
                 prior={data.kpis.priorMonth.leadToBookConversionPercent}
