@@ -12,6 +12,17 @@ import { AuthScreen, AuthSplash } from './AuthScreen';
  * button, so `/login` is a page the app owns rather than a flash before leaving for Keycloak.
  */
 
+/**
+ * True while an authorization-code redirect is still sitting unprocessed in the URL.
+ *
+ * `error` is included so a provider-side failure is handled by the screen rather than looping.
+ */
+function hasPendingCallback(): boolean {
+  if (typeof window === 'undefined') return false;
+  const p = new URLSearchParams(window.location.search);
+  return (p.has('code') && p.has('state')) || p.has('error');
+}
+
 /** Wraps the routes: publishes the access token and holds the screen while the session resolves. */
 export function AuthBootstrap({ children }: { children: ReactNode }) {
   const auth = useAuth();
@@ -22,7 +33,11 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
   // Returning from the identity provider, or restoring a stored session. Deciding anything here
   // would race the callback and bounce the caller back to /login with a valid code in hand.
-  if (auth.isLoading || auth.activeNavigator) {
+  //
+  // isLoading alone is not enough: on the first render after the redirect the library may not have
+  // begun the exchange yet, so the guard below would route away and the effect on /login would
+  // start a fresh sign-in, discarding the code. Hold while the callback is still in the URL.
+  if (auth.isLoading || auth.activeNavigator || hasPendingCallback()) {
     return (
       <AuthSplash>
         <p className="text-sm text-muted-foreground">Signing you in&hellip;</p>
@@ -60,7 +75,7 @@ export function LoginRoute() {
   const started = useRef(false);
 
   useEffect(() => {
-    if (auth.isAuthenticated || auth.error || started.current) return;
+    if (auth.isAuthenticated || auth.error || started.current || hasPendingCallback()) return;
     started.current = true;
     void auth.signinRedirect();
   }, [auth]);
