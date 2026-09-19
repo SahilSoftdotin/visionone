@@ -52,16 +52,17 @@ export function KpiTile({
   const t = toneClasses[tone];
 
   return (
-    <div className={cn('tint-tile p-5', t.bg)}>
+    // Modernize centres these: illustration on top, label, then the figure.
+    <div className={cn('tint-tile flex flex-col items-center px-4 py-6 text-center', t.bg)}>
       {Icon && (
-        <span className={cn('grid h-11 w-11 place-items-center rounded-lg', t.icon)} aria-hidden>
-          <Icon className="h-5 w-5" />
+        <span className={cn('grid h-14 w-14 place-items-center rounded-full', t.icon)} aria-hidden>
+          <Icon className="h-7 w-7" />
         </span>
       )}
-      <p className={cn('mt-3 text-sm font-semibold', t.text)}>{label}</p>
-      <p className={cn('mt-1 text-[28px] font-bold leading-tight tabular-nums', t.text)}>{value}</p>
+      <p className={cn('mt-4 text-sm font-semibold', t.text)}>{label}</p>
+      <p className={cn('mt-1 text-2xl font-bold leading-tight tabular-nums', t.text)}>{value}</p>
 
-      <div className="mt-1.5 flex min-h-5 flex-wrap items-center gap-1.5 text-xs">
+      <div className="mt-1.5 flex min-h-5 flex-wrap items-center justify-center gap-1.5 text-xs">
         {movement && movement.direction !== 'flat' ? (
           <span
             className={cn(
