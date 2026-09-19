@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +31,19 @@ public class ApiExceptionHandler {
     public ProblemDetail onOrganizationAccessDenied(AccessDeniedInOrganizationException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
         problem.setType(URI.create(BASE + "organization-access-denied"));
+        problem.setTitle("Access denied");
+        return problem;
+    }
+
+    /**
+     * Method security throws this, and without an explicit handler the catch-all below turns a
+     * denial into a 500. The detail is deliberately generic: a caller learns that it was refused,
+     * not which rule refused it.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail onAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
+        problem.setType(URI.create(BASE + "access-denied"));
         problem.setTitle("Access denied");
         return problem;
     }
