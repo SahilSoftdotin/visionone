@@ -95,8 +95,16 @@ export function OverviewScreen() {
             {[
               { label: 'New leads', value: formatCount(data.kpis.newLeads), icon: Users },
               { label: 'Qualified', value: formatCount(data.kpis.qualifiedLeads), icon: UserCheck },
-              { label: 'Booked', value: formatCount(data.kpis.bookedAppointments), icon: CalendarCheck },
-              { label: 'Spend', value: formatMoney(data.kpis.actualSpend, { compact: true }), icon: Wallet },
+              {
+                label: 'Booked',
+                value: formatCount(data.kpis.bookedAppointments),
+                icon: CalendarCheck,
+              },
+              {
+                label: 'Spend',
+                value: formatMoney(data.kpis.actualSpend, { compact: true }),
+                icon: Wallet,
+              },
               { label: 'Cost / lead', value: formatMoney(data.kpis.costPerLead), icon: Coins },
               {
                 label: 'Lead to book',
@@ -321,7 +329,10 @@ export function OverviewScreen() {
                         {[0, 1, 2, 3].map((i) => (
                           // Modernize highlights one bar and greys the rest; booked is the column
                           // this screen exists to report.
-                          <Cell key={i} fill={i === 3 ? 'hsl(var(--chart-1))' : 'hsl(var(--muted))'} />
+                          <Cell
+                            key={i}
+                            fill={i === 3 ? 'hsl(var(--chart-1))' : 'hsl(var(--muted))'}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -361,7 +372,9 @@ export function OverviewScreen() {
                 {
                   title: 'Qualified rate',
                   value: formatPercent(
-                    data.kpis.newLeads ? (data.kpis.qualifiedLeads / data.kpis.newLeads) * 100 : null,
+                    data.kpis.newLeads
+                      ? (data.kpis.qualifiedLeads / data.kpis.newLeads) * 100
+                      : null,
                   ),
                   up: data.kpis.qualifiedLeads >= data.kpis.priorMonth.qualifiedLeads,
                   hint: 'of all leads',
@@ -448,9 +461,15 @@ export function OverviewScreen() {
                   </caption>
                   <thead>
                     <tr className="border-b border-border text-left text-muted-foreground">
-                      <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Lead</th>
-                      <th scope="col" className="px-3 py-3 font-semibold">Source</th>
-                      <th scope="col" className="px-3 py-3 font-semibold">Status</th>
+                      <th scope="col" className="px-5 py-3 font-semibold sm:px-6">
+                        Lead
+                      </th>
+                      <th scope="col" className="px-3 py-3 font-semibold">
+                        Source
+                      </th>
+                      <th scope="col" className="px-3 py-3 font-semibold">
+                        Status
+                      </th>
                       <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">
                         Response
                       </th>

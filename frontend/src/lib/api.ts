@@ -23,7 +23,10 @@ export function setTokenProvider(provider: () => string | undefined): void {
   tokenProvider = provider;
 }
 
-export async function apiGet<T>(path: string, params?: Record<string, string | undefined>): Promise<T> {
+export async function apiGet<T>(
+  path: string,
+  params?: Record<string, string | undefined>,
+): Promise<T> {
   const url = new URL(`${BASE}${path}`, window.location.origin);
   Object.entries(params ?? {}).forEach(([key, value]) => {
     if (value !== undefined) url.searchParams.set(key, value);

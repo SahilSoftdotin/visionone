@@ -51,7 +51,11 @@ export function IconChip({
 }) {
   return (
     <span
-      className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-lg', toneBg[tone], className)}
+      className={cn(
+        'grid h-10 w-10 shrink-0 place-items-center rounded-lg',
+        toneBg[tone],
+        className,
+      )}
       aria-hidden
     >
       <Icon className="h-[18px] w-[18px]" />
@@ -70,7 +74,13 @@ export function PeriodPill({ label }: { label: string }) {
 }
 
 /** Tinted pill used for status and priority in tables. */
-export function StatusPill({ tone = 'neutral', children }: { tone?: Tone; children: React.ReactNode }) {
+export function StatusPill({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: Tone;
+  children: React.ReactNode;
+}) {
   return (
     <span
       className={cn(

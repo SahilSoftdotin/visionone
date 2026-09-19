@@ -8,7 +8,10 @@ import type { Money } from './types';
  */
 export const EM_DASH = '—';
 
-export function formatMoney(money: Money | null | undefined, options?: { compact?: boolean }): string {
+export function formatMoney(
+  money: Money | null | undefined,
+  options?: { compact?: boolean },
+): string {
   if (!money) return EM_DASH;
   const amount = money.amountMinor / 100;
   return new Intl.NumberFormat('en-US', {
@@ -40,7 +43,13 @@ export function formatMonth(isoDate: string): string {
 
 /** Direction of travel against the prior month, or null when there is nothing to compare. */
 export function delta(current: number | null | undefined, prior: number | null | undefined) {
-  if (current === null || current === undefined || prior === null || prior === undefined || prior === 0) {
+  if (
+    current === null ||
+    current === undefined ||
+    prior === null ||
+    prior === undefined ||
+    prior === 0
+  ) {
     return null;
   }
   const change = ((current - prior) / prior) * 100;

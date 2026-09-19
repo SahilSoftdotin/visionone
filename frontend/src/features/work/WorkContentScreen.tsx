@@ -1,5 +1,13 @@
 import { useState, type CSSProperties } from 'react';
-import { AlertTriangle, Check, CircleDot, Clock, FileText, MessageSquareWarning, UserRoundCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  CircleDot,
+  Clock,
+  FileText,
+  MessageSquareWarning,
+  UserRoundCheck,
+} from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import {
@@ -56,7 +64,9 @@ export function WorkContentScreen() {
     <div className="space-y-6">
       <header className="reveal flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Work &amp; Content</h1>
+          <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
+            Work &amp; Content
+          </h1>
           <p className="text-sm text-muted-foreground">What Vision is doing, and what needs you</p>
         </div>
         <Badge tone="demo">Demo data</Badge>
@@ -98,7 +108,9 @@ export function WorkContentScreen() {
         <CardHeader
           title="Work"
           action={
-            <span className="text-xs text-muted-foreground">{formatCount(workDemo.length)} items</span>
+            <span className="text-xs text-muted-foreground">
+              {formatCount(workDemo.length)} items
+            </span>
           }
         />
         <CardBody className="space-y-3">
@@ -136,7 +148,11 @@ export function WorkContentScreen() {
 
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" aria-hidden />
-                Target {new Date(w.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                Target{' '}
+                {new Date(w.targetDate).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                })}
                 <span aria-hidden>·</span>
                 {w.owner}
               </p>
@@ -148,7 +164,11 @@ export function WorkContentScreen() {
       <Card className="reveal" style={{ '--i': 3 } as CSSProperties}>
         <CardHeader
           title="Content"
-          action={<span className="text-xs text-muted-foreground">{formatCount(content.length)} items</span>}
+          action={
+            <span className="text-xs text-muted-foreground">
+              {formatCount(content.length)} items
+            </span>
+          }
         />
         <CardBody className="space-y-3">
           {content.map((c, i) => {

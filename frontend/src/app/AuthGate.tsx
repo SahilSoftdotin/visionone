@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { setTokenProvider } from '@/lib/api';
@@ -45,9 +45,25 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-/** The /login page itself. Already signed in? There is nothing to do here. */
+/**
+ * The /login page.
+ *
+ * It hands straight over to the identity provider rather than asking for a click first. The
+ * provider's own page now carries the same design and the actual credential fields, so stopping
+ * here showed two near-identical screens in a row and the button appeared to do nothing.
+ *
+ * The screen still renders, and is what a caller sees if the redirect fails or is slow, and it is
+ * where a sign-in error comes back to - with the retry under their control rather than looping.
+ */
 export function LoginRoute() {
   const auth = useAuth();
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (auth.isAuthenticated || auth.error || started.current) return;
+    started.current = true;
+    void auth.signinRedirect();
+  }, [auth]);
 
   if (auth.isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -55,9 +71,12 @@ export function LoginRoute() {
 
   return (
     <AuthScreen
-      state={auth.error ? 'error' : 'idle'}
+      state={auth.error ? 'error' : 'working'}
       message={auth.error?.message}
-      onSignIn={() => void auth.signinRedirect()}
+      onSignIn={() => {
+        started.current = true;
+        void auth.signinRedirect();
+      }}
     />
   );
 }

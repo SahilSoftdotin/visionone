@@ -33,26 +33,85 @@ export const frontDeskDemo = {
   /** Call volume by hour, 0-23. Makes the after-hours gap legible at a glance. */
   hourly: [2, 1, 0, 0, 1, 2, 5, 9, 14, 18, 17, 15, 12, 16, 19, 17, 13, 11, 9, 8, 7, 5, 3, 2],
   recent: [
-    { id: 'C-8821', maskedNumber: '+1 (256)000-4471', handledBy: 'AI Front Desk', outcome: 'BOOKED', afterHours: true, durationSeconds: 212, startedAt: '2026-09-18T23:41:00Z' },
-    { id: 'C-8820', maskedNumber: '+1 (256) 000-1180', handledBy: 'Practice Team', outcome: 'ENQUIRY', afterHours: false, durationSeconds: 145, startedAt: '2026-09-18T18:22:00Z' },
-    { id: 'C-8819', maskedNumber: '+1 (205) 000-9032', handledBy: 'Voicemail', outcome: 'MISSED', afterHours: true, durationSeconds: 0, startedAt: '2026-09-18T02:14:00Z' },
-    { id: 'C-8818', maskedNumber: '+1 (256) 000-7765', handledBy: 'AI Front Desk', outcome: 'RESCHEDULED', afterHours: true, durationSeconds: 178, startedAt: '2026-09-17T21:58:00Z' },
-    { id: 'C-8817', maskedNumber: '+1 (256) 000-2219', handledBy: 'Practice Team', outcome: 'TRANSFERRED', afterHours: false, durationSeconds: 96, startedAt: '2026-09-17T15:30:00Z' },
-    { id: 'C-8816', maskedNumber: '+1 (931) 000-5540', handledBy: 'AI Front Desk', outcome: 'BOOKED', afterHours: true, durationSeconds: 240, startedAt: '2026-09-17T06:12:00Z' },
-    { id: 'C-8815', maskedNumber: '+1 (256) 000-8814', handledBy: 'Voicemail', outcome: 'MISSED', afterHours: false, durationSeconds: 0, startedAt: '2026-09-16T12:44:00Z' },
-    { id: 'C-8814', maskedNumber: '+1 (256) 000-3307', handledBy: 'AI Front Desk', outcome: 'CANCELLED', afterHours: true, durationSeconds: 121, startedAt: '2026-09-16T04:03:00Z' },
+    {
+      id: 'C-8821',
+      maskedNumber: '+1 (256)000-4471',
+      handledBy: 'AI Front Desk',
+      outcome: 'BOOKED',
+      afterHours: true,
+      durationSeconds: 212,
+      startedAt: '2026-09-18T23:41:00Z',
+    },
+    {
+      id: 'C-8820',
+      maskedNumber: '+1 (256) 000-1180',
+      handledBy: 'Practice Team',
+      outcome: 'ENQUIRY',
+      afterHours: false,
+      durationSeconds: 145,
+      startedAt: '2026-09-18T18:22:00Z',
+    },
+    {
+      id: 'C-8819',
+      maskedNumber: '+1 (205) 000-9032',
+      handledBy: 'Voicemail',
+      outcome: 'MISSED',
+      afterHours: true,
+      durationSeconds: 0,
+      startedAt: '2026-09-18T02:14:00Z',
+    },
+    {
+      id: 'C-8818',
+      maskedNumber: '+1 (256) 000-7765',
+      handledBy: 'AI Front Desk',
+      outcome: 'RESCHEDULED',
+      afterHours: true,
+      durationSeconds: 178,
+      startedAt: '2026-09-17T21:58:00Z',
+    },
+    {
+      id: 'C-8817',
+      maskedNumber: '+1 (256) 000-2219',
+      handledBy: 'Practice Team',
+      outcome: 'TRANSFERRED',
+      afterHours: false,
+      durationSeconds: 96,
+      startedAt: '2026-09-17T15:30:00Z',
+    },
+    {
+      id: 'C-8816',
+      maskedNumber: '+1 (931) 000-5540',
+      handledBy: 'AI Front Desk',
+      outcome: 'BOOKED',
+      afterHours: true,
+      durationSeconds: 240,
+      startedAt: '2026-09-17T06:12:00Z',
+    },
+    {
+      id: 'C-8815',
+      maskedNumber: '+1 (256) 000-8814',
+      handledBy: 'Voicemail',
+      outcome: 'MISSED',
+      afterHours: false,
+      durationSeconds: 0,
+      startedAt: '2026-09-16T12:44:00Z',
+    },
+    {
+      id: 'C-8814',
+      maskedNumber: '+1 (256) 000-3307',
+      handledBy: 'AI Front Desk',
+      outcome: 'CANCELLED',
+      afterHours: true,
+      durationSeconds: 121,
+      startedAt: '2026-09-16T04:03:00Z',
+    },
   ] as CallRow[],
 };
 
 /* ------------------------------------------------------------ Work & Content */
 
 export type WorkStatus =
-  | 'PLANNED'
-  | 'IN_PROGRESS'
-  | 'BLOCKED'
-  | 'WAITING_FOR_CLIENT'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'PLANNED' | 'IN_PROGRESS' | 'BLOCKED' | 'WAITING_FOR_CLIENT' | 'COMPLETED' | 'CANCELLED';
 
 export type WorkCategory =
   | 'SEO'
@@ -152,12 +211,7 @@ export const workDemo: WorkItemRow[] = [
 ];
 
 export type ContentType =
-  | 'BLOG'
-  | 'SOCIAL_POST'
-  | 'SHORT_VIDEO'
-  | 'GOOGLE_BUSINESS_POST'
-  | 'LANDING_PAGE'
-  | 'FAQ';
+  'BLOG' | 'SOCIAL_POST' | 'SHORT_VIDEO' | 'GOOGLE_BUSINESS_POST' | 'LANDING_PAGE' | 'FAQ';
 
 export type ContentStatus =
   | 'IDEA'
@@ -187,7 +241,8 @@ export const contentDemo: ContentItemRow[] = [
     status: 'CLIENT_REVIEW',
     owner: 'Vision Digital Lab',
     targetDate: '2026-09-23',
-    summary: 'Explains the panel in plain language and sets expectations before a first consultation.',
+    summary:
+      'Explains the panel in plain language and sets expectations before a first consultation.',
   },
   {
     id: 'CT-87',

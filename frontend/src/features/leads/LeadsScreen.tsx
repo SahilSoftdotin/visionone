@@ -12,7 +12,13 @@ import { ArrowUpDown, Clock, Search, UserCheck, Users, Zap } from 'lucide-react'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
-import { LEAD_STATUSES, leadResponseSummary, leadsDemo, type LeadRow, type LeadStatus } from '@/lib/demoData';
+import {
+  LEAD_STATUSES,
+  leadResponseSummary,
+  leadsDemo,
+  type LeadRow,
+  type LeadStatus,
+} from '@/lib/demoData';
 import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +97,9 @@ export function LeadsScreen() {
             return <span className="text-critical-text">never</span>;
           }
           return (
-            <span className={cn('tabular-nums', m <= 15 ? 'text-positive-text' : 'text-caution-text')}>
+            <span
+              className={cn('tabular-nums', m <= 15 ? 'text-positive-text' : 'text-caution-text')}
+            >
               {m < 60 ? `${m}m` : `${Math.round(m / 60)}h`}
             </span>
           );
@@ -140,8 +148,18 @@ export function LeadsScreen() {
 
       <section aria-label="Lead summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Total leads', value: formatCount(leadsDemo.length), icon: Users, hint: 'this period' },
-          { label: 'Qualified', value: formatCount(qualified), icon: UserCheck, hint: 'reached qualified+' },
+          {
+            label: 'Total leads',
+            value: formatCount(leadsDemo.length),
+            icon: Users,
+            hint: 'this period',
+          },
+          {
+            label: 'Qualified',
+            value: formatCount(qualified),
+            icon: UserCheck,
+            hint: 'reached qualified+',
+          },
           { label: 'Booked', value: formatCount(booked), icon: Zap, hint: 'appointments made' },
           {
             label: 'Median response',
@@ -151,7 +169,13 @@ export function LeadsScreen() {
           },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as React.CSSProperties}>
-            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} tone={TILE_TONES[i % TILE_TONES.length]} />
+            <KpiTile
+              label={t.label}
+              value={t.value}
+              icon={t.icon}
+              hint={t.hint}
+              tone={TILE_TONES[i % TILE_TONES.length]}
+            />
           </div>
         ))}
       </section>
@@ -186,7 +210,8 @@ export function LeadsScreen() {
           <div className="flex gap-1.5 overflow-x-auto px-5 pb-1 sm:px-6">
             {(['ALL', ...LEAD_STATUSES] as const).map((s) => {
               const active = status === s;
-              const count = s === 'ALL' ? leadsDemo.length : leadsDemo.filter((l) => l.status === s).length;
+              const count =
+                s === 'ALL' ? leadsDemo.length : leadsDemo.filter((l) => l.status === s).length;
               return (
                 <button
                   key={s}
@@ -209,7 +234,9 @@ export function LeadsScreen() {
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
-              <caption className="sr-only">Lead pipeline with status, source and response time</caption>
+              <caption className="sr-only">
+                Lead pipeline with status, source and response time
+              </caption>
               <thead>
                 {table.getHeaderGroups().map((hg) => (
                   <tr
@@ -217,7 +244,11 @@ export function LeadsScreen() {
                     className="border-y border-border text-left text-xs uppercase tracking-wide text-muted-foreground"
                   >
                     {hg.headers.map((h) => (
-                      <th key={h.id} scope="col" className="px-3 py-3 font-semibold first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6">
+                      <th
+                        key={h.id}
+                        scope="col"
+                        className="px-3 py-3 font-semibold first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6"
+                      >
                         <button
                           type="button"
                           onClick={h.column.getToggleSortingHandler()}
@@ -239,7 +270,10 @@ export function LeadsScreen() {
                     style={{ '--i': Math.min(i, 10) } as React.CSSProperties}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-3 first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6">
+                      <td
+                        key={cell.id}
+                        className="px-3 py-3 first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6"
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -247,7 +281,10 @@ export function LeadsScreen() {
                 ))}
                 {table.getRowModel().rows.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length} className="px-6 py-12 text-center text-sm text-muted-foreground">
+                    <td
+                      colSpan={columns.length}
+                      className="px-6 py-12 text-center text-sm text-muted-foreground"
+                    >
                       No leads match that filter.
                     </td>
                   </tr>
@@ -258,7 +295,10 @@ export function LeadsScreen() {
         </CardBody>
       </Card>
 
-      <p className="reveal text-xs text-muted-foreground" style={{ '--i': 6 } as React.CSSProperties}>
+      <p
+        className="reveal text-xs text-muted-foreground"
+        style={{ '--i': 6 } as React.CSSProperties}
+      >
         Names are synthetic and service interest is a broad category. VisionOne is a growth
         platform, not an EHR: no medical history, diagnoses, labs or notes are stored.
       </p>

@@ -12,14 +12,25 @@ describe('KpiTile', () => {
   });
 
   it('shows a rise as negative for a cost metric', () => {
-    render(<KpiTile label="Cost per lead" value="$40.00" current={40} prior={30} invertDirection />);
+    render(
+      <KpiTile label="Cost per lead" value="$40.00" current={40} prior={30} invertDirection />,
+    );
     const delta = screen.getByText('+33%');
     expect(delta).toHaveClass('text-critical-text');
     expect(delta.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('renders an em dash when there is nothing to compare', () => {
+  it('omits the comparison row entirely when there is nothing to compare', () => {
+    // An em dash here read as a rendering fault under every tile. The dash convention belongs to
+    // an unanswerable *value* - cost per lead with no leads - not to an absent prior month.
     render(<KpiTile label="Growth budget" value="$5,000" />);
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('$5,000')).toBeInTheDocument();
+    expect(screen.queryByText('—')).not.toBeInTheDocument();
+    expect(screen.queryByText('vs last month')).not.toBeInTheDocument();
+  });
+
+  it('still shows a hint when one is given without a comparison', () => {
+    render(<KpiTile label="Growth budget" value="$5,000" hint="planned this month" />);
+    expect(screen.getByText('planned this month')).toBeInTheDocument();
   });
 });

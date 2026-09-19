@@ -19,31 +19,31 @@
   :root {
     /* Surfaces */
     --background: 0 0% 100%;
-    --foreground: 217 26% 22%;        /* #2A3547 - 12.36:1 */
+    --foreground: 217 26% 22%; /* #2A3547 - 12.36:1 */
     --card: 0 0% 100%;
     --card-foreground: 217 26% 22%;
-    --muted: 210 40% 97%;             /* #F2F6FA - dividers and quiet fills */
-    --muted-foreground: 213 15% 44%;  /* darkened from #7C8FAC (3.29) to 5.1:1 */
+    --muted: 210 40% 97%; /* #F2F6FA - dividers and quiet fills */
+    --muted-foreground: 213 15% 44%; /* darkened from #7C8FAC (3.29) to 5.1:1 */
 
     /* Accents, as Modernize draws them. */
-    --primary: 224 100% 68%;          /* #5D87FF */
+    --primary: 224 100% 68%; /* #5D87FF */
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 220 100% 96%;     /* #ECF2FF */
-    --secondary: 199 100% 64%;        /* #49BEFF */
-    --secondary-soft: 200 100% 96%;   /* #E8F7FF */
-    --positive: 170 84% 47%;          /* #13DEB9 */
-    --positive-soft: 166 100% 95%;    /* #E6FFFA */
-    --caution: 38 100% 56%;           /* #FFAE1F */
-    --caution-soft: 39 89% 95%;       /* #FEF5E5 */
-    --critical: 12 94% 70%;           /* #FA896B */
-    --critical-soft: 14 78% 95%;      /* #FDEDE8 */
+    --primary-soft: 220 100% 96%; /* #ECF2FF */
+    --secondary: 199 100% 64%; /* #49BEFF */
+    --secondary-soft: 200 100% 96%; /* #E8F7FF */
+    --positive: 170 84% 47%; /* #13DEB9 */
+    --positive-soft: 166 100% 95%; /* #E6FFFA */
+    --caution: 38 100% 56%; /* #FFAE1F */
+    --caution-soft: 39 89% 95%; /* #FEF5E5 */
+    --critical: 12 94% 70%; /* #FA896B */
+    --critical-soft: 14 78% 95%; /* #FDEDE8 */
 
     /* Text-safe counterparts. Same hue, enough darkness to clear 4.5:1 on white. */
     --primary-text: 224 64% 52%;
-    --secondary-text: 199 100% 33%;   /* 4.83:1 on its own tint, not just on white */
-    --positive-text: 170 84% 27%;     /* #0B7F6A - 4.93:1 */
-    --caution-text: 38 100% 30%;      /* #996200 - 5.12:1 */
-    --critical-text: 14 94% 40%;      /* 4.76:1 on its own tint, not just on white */
+    --secondary-text: 199 100% 33%; /* 4.83:1 on its own tint, not just on white */
+    --positive-text: 170 84% 27%; /* #0B7F6A - 4.93:1 */
+    --caution-text: 38 100% 30%; /* #996200 - 5.12:1 */
+    --critical-text: 14 94% 40%; /* 4.76:1 on its own tint, not just on white */
 
     --border: 210 40% 96%;
     --input: 214 32% 91%;
@@ -156,7 +156,9 @@
     border-radius: var(--radius);
     border: 0;
     box-shadow: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .tint-tile:hover {

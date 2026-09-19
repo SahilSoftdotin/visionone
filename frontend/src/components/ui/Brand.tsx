@@ -80,11 +80,13 @@ export function ParentBrandLine({ className }: { className?: string }) {
       )}
     >
       <VisionDigitalLabMark className="h-6 w-6 shrink-0 transition-transform duration-200 group-hover:scale-105" />
+      {/* The rail is 104px wide. "Vision Digital Lab" cannot fit on one line there, so it wraps
+          onto three short lines rather than truncating to "Vision Digital L…". */}
       <span className="min-w-0 leading-tight">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Built by
         </span>
-        <span className="block truncate text-xs font-semibold">Vision Digital Lab</span>
+        <span className="block text-[11px] font-semibold leading-snug">Vision Digital Lab</span>
       </span>
     </a>
   );

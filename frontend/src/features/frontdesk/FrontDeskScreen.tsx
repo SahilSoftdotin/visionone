@@ -1,5 +1,14 @@
 import type { CSSProperties } from 'react';
-import { CalendarX, Moon, PhoneCall, PhoneMissed, PhoneForwarded, Repeat, Timer, Zap } from 'lucide-react';
+import {
+  CalendarX,
+  Moon,
+  PhoneCall,
+  PhoneMissed,
+  PhoneForwarded,
+  Repeat,
+  Timer,
+  Zap,
+} from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
@@ -45,13 +54,39 @@ export function FrontDeskScreen() {
 
       <section aria-label="Call volume" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Total calls', value: formatCount(d.totalCalls), icon: PhoneCall, hint: 'this month' },
-          { label: 'Answered', value: formatCount(d.answered), icon: Zap, hint: `${answerRate.toFixed(0)}% answer rate` },
-          { label: 'Missed', value: formatCount(d.missed), icon: PhoneMissed, hint: 'went unanswered' },
-          { label: 'After hours', value: formatCount(d.afterHours), icon: Moon, hint: `${((d.afterHours / d.totalCalls) * 100).toFixed(0)}% of all calls` },
+          {
+            label: 'Total calls',
+            value: formatCount(d.totalCalls),
+            icon: PhoneCall,
+            hint: 'this month',
+          },
+          {
+            label: 'Answered',
+            value: formatCount(d.answered),
+            icon: Zap,
+            hint: `${answerRate.toFixed(0)}% answer rate`,
+          },
+          {
+            label: 'Missed',
+            value: formatCount(d.missed),
+            icon: PhoneMissed,
+            hint: 'went unanswered',
+          },
+          {
+            label: 'After hours',
+            value: formatCount(d.afterHours),
+            icon: Moon,
+            hint: `${((d.afterHours / d.totalCalls) * 100).toFixed(0)}% of all calls`,
+          },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as CSSProperties}>
-            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} tone={TILE_TONES[i % TILE_TONES.length]} />
+            <KpiTile
+              label={t.label}
+              value={t.value}
+              icon={t.icon}
+              hint={t.hint}
+              tone={TILE_TONES[i % TILE_TONES.length]}
+            />
           </div>
         ))}
       </section>
@@ -118,10 +153,25 @@ export function FrontDeskScreen() {
           <CardBody>
             <dl className="grid grid-cols-2 gap-4">
               {[
-                { label: 'Booked', value: d.appointmentsBooked, icon: Zap, tone: 'text-positive-text' },
+                {
+                  label: 'Booked',
+                  value: d.appointmentsBooked,
+                  icon: Zap,
+                  tone: 'text-positive-text',
+                },
                 { label: 'Transferred', value: d.transferred, icon: PhoneForwarded, tone: '' },
-                { label: 'Rescheduled', value: d.rescheduled, icon: Repeat, tone: 'text-caution-text' },
-                { label: 'Cancelled', value: d.cancelled, icon: CalendarX, tone: 'text-critical-text' },
+                {
+                  label: 'Rescheduled',
+                  value: d.rescheduled,
+                  icon: Repeat,
+                  tone: 'text-caution-text',
+                },
+                {
+                  label: 'Cancelled',
+                  value: d.cancelled,
+                  icon: CalendarX,
+                  tone: 'text-critical-text',
+                },
               ].map(({ label, value, icon: Icon, tone }) => (
                 <div
                   key={label}
@@ -131,7 +181,12 @@ export function FrontDeskScreen() {
                   <dt className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     {label}
                   </dt>
-                  <dd className={cn('mt-1 text-2xl font-semibold tabular-nums tracking-[-0.02em]', tone)}>
+                  <dd
+                    className={cn(
+                      'mt-1 text-2xl font-semibold tabular-nums tracking-[-0.02em]',
+                      tone,
+                    )}
+                  >
                     {formatCount(value)}
                   </dd>
                 </div>
@@ -189,11 +244,21 @@ export function FrontDeskScreen() {
               <caption className="sr-only">Recent call activity with outcome and handler</caption>
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Caller</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Handled by</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Outcome</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">When</th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">Duration</th>
+                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">
+                    Caller
+                  </th>
+                  <th scope="col" className="px-3 py-3 font-semibold">
+                    Handled by
+                  </th>
+                  <th scope="col" className="px-3 py-3 font-semibold">
+                    Outcome
+                  </th>
+                  <th scope="col" className="px-3 py-3 font-semibold">
+                    When
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">
+                    Duration
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -203,11 +268,18 @@ export function FrontDeskScreen() {
                     className="reveal border-b border-border last:border-0 transition-colors hover:bg-primary/[0.04]"
                     style={{ '--i': i } as CSSProperties}
                   >
-                    <th scope="row" className="px-5 py-3 text-left font-mono text-xs font-medium sm:px-6">
+                    <th
+                      scope="row"
+                      className="px-5 py-3 text-left font-mono text-xs font-medium sm:px-6"
+                    >
                       {c.maskedNumber}
                     </th>
                     <td className="px-3 py-3">
-                      <span className={cn(c.handledBy === 'AI Front Desk' && 'font-medium text-primary-text')}>
+                      <span
+                        className={cn(
+                          c.handledBy === 'AI Front Desk' && 'font-medium text-primary-text',
+                        )}
+                      >
                         {c.handledBy}
                       </span>
                     </td>
@@ -222,7 +294,10 @@ export function FrontDeskScreen() {
                         minute: '2-digit',
                       })}
                       {c.afterHours && (
-                        <Moon className="ml-1.5 inline h-3 w-3 text-caution-text" aria-label="after hours" />
+                        <Moon
+                          className="ml-1.5 inline h-3 w-3 text-caution-text"
+                          aria-label="after hours"
+                        />
                       )}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums sm:px-6">

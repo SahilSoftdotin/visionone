@@ -1,4 +1,13 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type { SourcePerformance } from '@/lib/types';
 
 /**
@@ -22,7 +31,11 @@ export function SourceBarChart({ sources }: { sources: SourcePerformance[] }) {
     .join('; ');
 
   return (
-    <div className="h-64 w-full" role="img" aria-label={`Leads and booked appointments by channel. ${summary}.`}>
+    <div
+      className="h-64 w-full"
+      role="img"
+      aria-label={`Leads and booked appointments by channel. ${summary}.`}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -52,8 +65,18 @@ export function SourceBarChart({ sources }: { sources: SourcePerformance[] }) {
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {/* Fully rounded caps: a bar reads as a measured quantity, not a cut column. */}
-          <Bar dataKey="Leads" fill="hsl(var(--chart-1))" radius={[999, 999, 999, 999]} maxBarSize={18} />
-          <Bar dataKey="Booked" fill="hsl(var(--navy))" radius={[999, 999, 999, 999]} maxBarSize={18} />
+          <Bar
+            dataKey="Leads"
+            fill="hsl(var(--chart-1))"
+            radius={[999, 999, 999, 999]}
+            maxBarSize={18}
+          />
+          <Bar
+            dataKey="Booked"
+            fill="hsl(var(--navy))"
+            radius={[999, 999, 999, 999]}
+            maxBarSize={18}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

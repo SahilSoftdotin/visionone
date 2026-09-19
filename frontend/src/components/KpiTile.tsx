@@ -1,5 +1,5 @@
 import { TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
-import { delta, EM_DASH } from '@/lib/format';
+import { delta } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -14,11 +14,31 @@ import { cn } from '@/lib/utils';
 export type TileTone = 'primary' | 'secondary' | 'positive' | 'caution' | 'critical';
 
 const toneClasses: Record<TileTone, { bg: string; text: string; icon: string }> = {
-  primary: { bg: 'bg-primary-soft', text: 'text-primary-text', icon: 'bg-primary/15 text-primary-text' },
-  secondary: { bg: 'bg-secondary-soft', text: 'text-secondary-text', icon: 'bg-secondary/15 text-secondary-text' },
-  positive: { bg: 'bg-positive-soft', text: 'text-positive-text', icon: 'bg-positive/20 text-positive-text' },
-  caution: { bg: 'bg-caution-soft', text: 'text-caution-text', icon: 'bg-caution/20 text-caution-text' },
-  critical: { bg: 'bg-critical-soft', text: 'text-critical-text', icon: 'bg-critical/20 text-critical-text' },
+  primary: {
+    bg: 'bg-primary-soft',
+    text: 'text-primary-text',
+    icon: 'bg-primary/15 text-primary-text',
+  },
+  secondary: {
+    bg: 'bg-secondary-soft',
+    text: 'text-secondary-text',
+    icon: 'bg-secondary/15 text-secondary-text',
+  },
+  positive: {
+    bg: 'bg-positive-soft',
+    text: 'text-positive-text',
+    icon: 'bg-positive/20 text-positive-text',
+  },
+  caution: {
+    bg: 'bg-caution-soft',
+    text: 'text-caution-text',
+    icon: 'bg-caution/20 text-caution-text',
+  },
+  critical: {
+    bg: 'bg-critical-soft',
+    text: 'text-critical-text',
+    icon: 'bg-critical/20 text-critical-text',
+  },
 };
 
 interface Props {
@@ -62,28 +82,32 @@ export function KpiTile({
       <p className={cn('mt-4 text-sm font-semibold', t.text)}>{label}</p>
       <p className={cn('mt-1 text-2xl font-bold leading-tight tabular-nums', t.text)}>{value}</p>
 
-      <div className="mt-1.5 flex min-h-5 flex-wrap items-center justify-center gap-1.5 text-xs">
-        {movement && movement.direction !== 'flat' ? (
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold tabular-nums',
-              isGood ? 'text-positive-text' : 'text-critical-text',
-            )}
-          >
-            {/* The arrow carries direction so colour is not the only cue. */}
-            {movement.direction === 'up' ? (
-              <TrendingUp className="h-3 w-3" aria-hidden />
-            ) : (
-              <TrendingDown className="h-3 w-3" aria-hidden />
-            )}
-            {movement.change > 0 ? '+' : ''}
-            {movement.change.toFixed(0)}%
-          </span>
-        ) : (
-          <span className="text-muted-foreground">{movement ? 'no change' : EM_DASH}</span>
-        )}
-        <span className="text-muted-foreground">{hint ?? 'vs last month'}</span>
-      </div>
+      {/* With nothing to compare and nothing to say, the row was printing a bare em dash under
+          every tile, which read as a rendering fault rather than as absent data. */}
+      {(movement || hint) && (
+        <div className="mt-1.5 flex min-h-5 flex-wrap items-center justify-center gap-1.5 text-xs">
+          {movement && movement.direction !== 'flat' ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold tabular-nums',
+                isGood ? 'text-positive-text' : 'text-critical-text',
+              )}
+            >
+              {/* The arrow carries direction so colour is not the only cue. */}
+              {movement.direction === 'up' ? (
+                <TrendingUp className="h-3 w-3" aria-hidden />
+              ) : (
+                <TrendingDown className="h-3 w-3" aria-hidden />
+              )}
+              {movement.change > 0 ? '+' : ''}
+              {movement.change.toFixed(0)}%
+            </span>
+          ) : movement ? (
+            <span className="text-muted-foreground">no change</span>
+          ) : null}
+          {hint && <span className="text-muted-foreground">{hint}</span>}
+        </div>
+      )}
     </div>
   );
 }

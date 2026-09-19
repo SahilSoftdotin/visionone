@@ -33,10 +33,7 @@ export function DataStateBoundary({
   if (error) {
     const forbidden = error instanceof ApiError && error.isForbidden;
     return (
-      <div
-        role="alert"
-        className="rounded-lg border border-border bg-card px-5 py-8 text-center"
-      >
+      <div role="alert" className="rounded-lg border border-border bg-card px-5 py-8 text-center">
         <p className="text-sm font-medium">
           {forbidden ? 'You do not have access to this practice' : 'We could not load this view'}
         </p>

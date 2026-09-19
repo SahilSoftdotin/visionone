@@ -69,7 +69,11 @@ export function AppShell() {
       >
         <div className="flex h-full flex-col">
           <div className="hidden items-center justify-center py-5 lg:flex">
-            <img src="/brand/vision-digital-lab.svg" alt="Vision Digital Lab" className="h-9 w-9 rounded-lg" />
+            <img
+              src="/brand/vision-digital-lab.svg"
+              alt="Vision Digital Lab"
+              className="h-9 w-9 rounded-lg"
+            />
           </div>
           <div className="py-3 lg:py-0">{rail}</div>
           <div className="mt-auto hidden p-3 lg:block">

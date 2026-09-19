@@ -28,20 +28,25 @@ export function RecommendationCard({ recommendation }: { recommendation: Recomme
       <CardBody className="space-y-4">
         {FIELDS.map(({ key, label }) => (
           <div key={key}>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {label}
+            </p>
             <p className="mt-1 text-sm leading-relaxed">{recommendation[key]}</p>
           </div>
         ))}
 
         <div className="rounded-md bg-muted/60 p-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Expected effect <span className="normal-case italic">(hypothesis, not a guarantee)</span>
+            Expected effect{' '}
+            <span className="normal-case italic">(hypothesis, not a guarantee)</span>
           </p>
           <p className="mt-1 text-sm leading-relaxed">{recommendation.expectedEffect}</p>
         </div>
 
         <div className="rounded-md border border-caution/30 bg-caution/5 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-caution-text">Decision required</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-caution-text">
+            Decision required
+          </p>
           <p className="mt-1 text-sm leading-relaxed">{recommendation.decisionRequired}</p>
         </div>
       </CardBody>

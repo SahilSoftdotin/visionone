@@ -54,7 +54,12 @@ export function AuthScreen({
       <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-[400px]">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <img src="/brand/vision-digital-lab.svg" alt="" aria-hidden className="h-8 w-8 rounded-lg" />
+            <img
+              src="/brand/vision-digital-lab.svg"
+              alt=""
+              aria-hidden
+              className="h-8 w-8 rounded-lg"
+            />
             <VisionOneMark className="text-lg" />
           </div>
 
@@ -64,10 +69,7 @@ export function AuthScreen({
           </p>
 
           {state === 'error' && (
-            <div
-              role="alert"
-              className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm"
-            >
+            <div role="alert" className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm">
               <p className="font-semibold text-critical-text">Sign-in failed</p>
               {message && <p className="mt-0.5 text-xs text-muted-foreground">{message}</p>}
             </div>

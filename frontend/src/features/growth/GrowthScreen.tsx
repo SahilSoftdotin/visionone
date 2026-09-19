@@ -32,7 +32,10 @@ export function GrowthScreen() {
       </header>
 
       {/* The one figure this screen exists to answer: is the budget on track? */}
-      <section className="reveal group relative overflow-hidden rounded-lg p-6" style={{ '--i': 1 } as React.CSSProperties}>
+      <section
+        className="reveal group relative overflow-hidden rounded-lg p-6"
+        style={{ '--i': 1 } as React.CSSProperties}
+      >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
@@ -59,24 +62,41 @@ export function GrowthScreen() {
                 />
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {formatMoney(plan.remaining, { compact: true })} remaining with 11 days of the
-                month left.
+                {formatMoney(plan.remaining, { compact: true })} remaining with 11 days of the month
+                left.
               </p>
             </div>
           </div>
 
           <dl className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Planned', value: formatMoney(plan.plannedTotal, { compact: true }), icon: Target },
-              { label: 'Spent', value: formatMoney(plan.actualTotal, { compact: true }), icon: Wallet },
-              { label: 'Remaining', value: formatMoney(plan.remaining, { compact: true }), icon: Activity },
+              {
+                label: 'Planned',
+                value: formatMoney(plan.plannedTotal, { compact: true }),
+                icon: Target,
+              },
+              {
+                label: 'Spent',
+                value: formatMoney(plan.actualTotal, { compact: true }),
+                icon: Wallet,
+              },
+              {
+                label: 'Remaining',
+                value: formatMoney(plan.remaining, { compact: true }),
+                icon: Activity,
+              },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-lg bg-primary-soft/60 p-3.5 ring-1 ring-inset ring-primary/10">
+              <div
+                key={label}
+                className="rounded-lg bg-primary-soft/60 p-3.5 ring-1 ring-inset ring-primary/10"
+              >
                 <Icon className="h-4 w-4 text-primary-text" aria-hidden />
                 <dt className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {label}
                 </dt>
-                <dd className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.02em]">{value}</dd>
+                <dd className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.02em]">
+                  {value}
+                </dd>
               </div>
             ))}
           </dl>
@@ -88,10 +108,20 @@ export function GrowthScreen() {
           { label: 'Leads produced', value: formatCount(totalLeads(plan)), icon: TrendingUp },
           { label: 'Booked from spend', value: formatCount(totalBooked(plan)), icon: Target },
           { label: 'Blended cost / lead', value: formatMoney(blendedCpl(plan)), icon: Wallet },
-          { label: 'Active campaigns', value: formatCount(plan.campaigns.filter((c) => c.status === 'ACTIVE').length), icon: Radio },
+          {
+            label: 'Active campaigns',
+            value: formatCount(plan.campaigns.filter((c) => c.status === 'ACTIVE').length),
+            icon: Radio,
+          },
         ].map((tile, i) => (
           <div key={tile.label} className="reveal" style={{ '--i': i + 2 } as React.CSSProperties}>
-            <KpiTile label={tile.label} value={tile.value} icon={tile.icon} hint="this month" tone={TILE_TONES[i % TILE_TONES.length]} />
+            <KpiTile
+              label={tile.label}
+              value={tile.value}
+              icon={tile.icon}
+              hint="this month"
+              tone={TILE_TONES[i % TILE_TONES.length]}
+            />
           </div>
         ))}
       </section>
@@ -113,8 +143,14 @@ export function GrowthScreen() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                   <span className="font-medium">{a.displayName}</span>
                   <span className="tabular-nums text-muted-foreground">
-                    {formatMoney(a.actual, { compact: true })} / {formatMoney(a.planned, { compact: true })}
-                    <span className={cn('ml-2 font-semibold', over ? 'text-critical-text' : 'text-foreground')}>
+                    {formatMoney(a.actual, { compact: true })} /{' '}
+                    {formatMoney(a.planned, { compact: true })}
+                    <span
+                      className={cn(
+                        'ml-2 font-semibold',
+                        over ? 'text-critical-text' : 'text-foreground',
+                      )}
+                    >
                       {pct}%
                     </span>
                   </span>
@@ -149,12 +185,24 @@ export function GrowthScreen() {
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Campaign</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Channel</th>
-                  <th scope="col" className="px-3 py-3 font-semibold">Status</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Spend</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Leads</th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">Booked</th>
+                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">
+                    Campaign
+                  </th>
+                  <th scope="col" className="px-3 py-3 font-semibold">
+                    Channel
+                  </th>
+                  <th scope="col" className="px-3 py-3 font-semibold">
+                    Status
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                    Spend
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                    Leads
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">
+                    Booked
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -163,13 +211,23 @@ export function GrowthScreen() {
                     key={c.id}
                     className="border-b border-border last:border-0 transition-colors hover:bg-primary/[0.04]"
                   >
-                    <th scope="row" className="px-5 py-3 text-left font-medium sm:px-6">{c.name}</th>
+                    <th scope="row" className="px-5 py-3 text-left font-medium sm:px-6">
+                      {c.name}
+                    </th>
                     <td className="px-3 py-3 text-muted-foreground">
                       {plan.allocations.find((a) => a.channelCode === c.channelCode)?.displayName ??
                         c.channelCode}
                     </td>
                     <td className="px-3 py-3">
-                      <Badge tone={c.status === 'ACTIVE' ? 'positive' : c.status === 'PAUSED' ? 'caution' : 'neutral'}>
+                      <Badge
+                        tone={
+                          c.status === 'ACTIVE'
+                            ? 'positive'
+                            : c.status === 'PAUSED'
+                              ? 'caution'
+                              : 'neutral'
+                        }
+                      >
                         {c.status.toLowerCase()}
                       </Badge>
                     </td>
@@ -177,7 +235,9 @@ export function GrowthScreen() {
                       {formatMoney(c.spend, { compact: true })}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{formatCount(c.leads)}</td>
-                    <td className="px-5 py-3 text-right tabular-nums sm:px-6">{formatCount(c.booked)}</td>
+                    <td className="px-5 py-3 text-right tabular-nums sm:px-6">
+                      {formatCount(c.booked)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -186,7 +246,10 @@ export function GrowthScreen() {
         </CardBody>
       </Card>
 
-      <p className="reveal text-xs text-muted-foreground" style={{ '--i': 8 } as React.CSSProperties}>
+      <p
+        className="reveal text-xs text-muted-foreground"
+        style={{ '--i': 8 } as React.CSSProperties}
+      >
         Phase 1 uses manual and synthetic figures. Live Google Ads, Meta and Search Console
         connections arrive in Phase 2 and will replace this screen&rsquo;s source without changing
         its shape.

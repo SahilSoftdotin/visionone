@@ -4,7 +4,9 @@ import { FunnelChart } from './FunnelChart';
 
 describe('FunnelChart', () => {
   it('shows every stage with its count', () => {
-    render(<FunnelChart funnel={{ leads: 60, qualified: 30, appointmentRequested: 18, booked: 12 }} />);
+    render(
+      <FunnelChart funnel={{ leads: 60, qualified: 30, appointmentRequested: 18, booked: 12 }} />,
+    );
 
     expect(screen.getByText('Lead')).toBeInTheDocument();
     expect(screen.getByText('Qualified')).toBeInTheDocument();

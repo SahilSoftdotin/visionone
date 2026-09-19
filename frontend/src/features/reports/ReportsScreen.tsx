@@ -58,11 +58,16 @@ export function ReportsScreen() {
             { label: 'Appointments', value: formatCount(totalBooked) },
             { label: 'Utilisation', value: formatPercent(growthDemo.utilizationPercent) },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg bg-primary-soft/60 p-3.5 ring-1 ring-inset ring-primary/10">
+            <div
+              key={label}
+              className="rounded-lg bg-primary-soft/60 p-3.5 ring-1 ring-inset ring-primary/10"
+            >
               <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {label}
               </dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums tracking-[-0.02em]">{value}</dd>
+              <dd className="mt-1 text-xl font-semibold tabular-nums tracking-[-0.02em]">
+                {value}
+              </dd>
             </div>
           ))}
         </dl>
@@ -76,11 +81,21 @@ export function ReportsScreen() {
               <caption className="sr-only">Leads, booked appointments and spend by channel</caption>
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Channel</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Spend</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Leads</th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">Booked</th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">Cost / booked</th>
+                  <th scope="col" className="px-5 py-3 font-semibold sm:px-6">
+                    Channel
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                    Spend
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                    Leads
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                    Booked
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold sm:px-6">
+                    Cost / booked
+                  </th>
                 </tr>
               </thead>
               <tbody>
