@@ -50,7 +50,7 @@ export function OverviewScreen() {
             The practice name lives in the app header, beside VisionOne. Repeating it here read as
             a stutter, so this says what the screen is and which month it covers instead.
           */}
-          <header className="flex flex-wrap items-baseline justify-between gap-2">
+          <header className="reveal flex flex-wrap items-baseline justify-between gap-2">
             <div>
               <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Overview</h1>
               <p className="text-sm text-muted-foreground">{formatMonth(data.periodMonth)}</p>
@@ -58,7 +58,7 @@ export function OverviewScreen() {
             <Badge tone="demo">Demo data</Badge>
           </header>
 
-          <section aria-label="Key performance indicators">
+          <section aria-label="Key performance indicators" className="reveal" style={{ '--i': 1 } as React.CSSProperties}>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <KpiTile
                 label="Growth budget"
@@ -116,7 +116,7 @@ export function OverviewScreen() {
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="reveal grid gap-6 lg:grid-cols-2" style={{ '--i': 3 } as React.CSSProperties}>
             <Card>
               <CardHeader title="From enquiry to appointment" />
               <CardBody>
@@ -174,7 +174,7 @@ export function OverviewScreen() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="reveal draw-in" style={{ '--i': 4 } as React.CSSProperties}>
             <CardHeader title="Where leads come from" />
             <CardBody className="space-y-5">
               <SourceBarChart sources={data.sourcePerformance} />

@@ -8,8 +8,8 @@ import { BarChart3, FileText, LayoutDashboard, PhoneCall, TrendingUp, Users } fr
  */
 export const CLIENT_NAVIGATION = [
   { to: 'overview', label: 'Overview', icon: LayoutDashboard, ready: true },
-  { to: 'growth', label: 'Growth', icon: TrendingUp, ready: false },
-  { to: 'leads', label: 'Leads', icon: Users, ready: false },
+  { to: 'growth', label: 'Growth', icon: TrendingUp, ready: true },
+  { to: 'leads', label: 'Leads', icon: Users, ready: true },
   { to: 'front-desk', label: 'Front Desk', icon: PhoneCall, ready: false },
   { to: 'work', label: 'Work & Content', icon: FileText, ready: false },
   { to: 'reports', label: 'Reports', icon: BarChart3, ready: false },

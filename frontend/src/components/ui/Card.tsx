@@ -1,9 +1,17 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({
+  className,
+  children,
+  style,
+}: {
+  className?: string;
+  children: ReactNode;
+  style?: CSSProperties;
+}) {
   return (
-    <div className={cn('rounded-lg glass text-card-foreground', className)}>
+    <div className={cn('rounded-lg glass text-card-foreground', className)} style={style}>
       {children}
     </div>
   );

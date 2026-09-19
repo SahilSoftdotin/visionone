@@ -7,6 +7,8 @@ import { AppShell } from './AppShell';
 import { ComingSoon } from './ComingSoon';
 import { OrganizationRouter } from './OrganizationRouter';
 import { OverviewScreen } from '@/features/overview/OverviewScreen';
+import { GrowthScreen } from '@/features/growth/GrowthScreen';
+import { LeadsScreen } from '@/features/leads/LeadsScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,8 +34,8 @@ export function App() {
                 <Route path="/orgs/:orgId" element={<AppShell />}>
                   <Route index element={<Navigate to="overview" replace />} />
                   <Route path="overview" element={<OverviewScreen />} />
-                  <Route path="growth" element={<ComingSoon />} />
-                  <Route path="leads" element={<ComingSoon />} />
+                  <Route path="growth" element={<GrowthScreen />} />
+                  <Route path="leads" element={<LeadsScreen />} />
                   <Route path="front-desk" element={<ComingSoon />} />
                   <Route path="work" element={<ComingSoon />} />
                   <Route path="reports" element={<ComingSoon />} />

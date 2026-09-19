@@ -142,4 +142,167 @@
     background-color: hsl(var(--card) / 0.7);
     border-color: hsl(var(--border) / 0.8);
   }
+
+  /* ============================================================
+     Motion. Every animation below is disabled wholesale by the
+     reduced-motion block at the end of this file - vestibular
+     disorders are common enough that "go all out" cannot mean
+     "ignore the people it makes ill".
+     ============================================================ */
+
+  /* Aurora: three slow-drifting blooms behind the workspace. */
+  .app-sky::before {
+    content: '';
+    position: fixed;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(38rem 30rem at 18% 22%, hsl(199 95% 72% / 0.3), transparent 62%),
+      radial-gradient(34rem 28rem at 82% 18%, hsl(222 90% 74% / 0.26), transparent 62%),
+      radial-gradient(30rem 26rem at 52% 88%, hsl(186 88% 70% / 0.22), transparent 62%);
+    filter: blur(28px);
+    animation: aurora-drift 26s ease-in-out infinite alternate;
+  }
+
+  @keyframes aurora-drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(2.5%, -2%, 0) scale(1.06);
+    }
+    100% {
+      transform: translate3d(-2%, 2.5%, 0) scale(1.03);
+    }
+  }
+
+  /* Staggered entrance. Set --i on each child for the cascade. */
+  .reveal {
+    opacity: 0;
+    animation: reveal-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* A brand-coloured halo that breathes. Used sparingly - on the one
+     figure a screen wants read first. */
+  .glow-ring {
+    position: relative;
+  }
+
+  .glow-ring::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      130deg,
+      hsl(199 89% 55% / 0.55),
+      hsl(222 80% 62% / 0.35),
+      hsl(186 85% 58% / 0.5)
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+  }
+
+  .group:hover .glow-ring::after,
+  .glow-ring:hover::after {
+    opacity: 1;
+  }
+
+  /* Sweeping sheen for loading surfaces. */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.45), transparent);
+    animation: shimmer-sweep 1.8s infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Recharts paths draw themselves in rather than appearing. */
+  .draw-in .recharts-bar-rectangle,
+  .draw-in .recharts-layer .recharts-rectangle {
+    animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  @keyframes rise-in {
+    from {
+      transform: scaleY(0.02);
+      transform-origin: bottom;
+      opacity: 0.2;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  /* A hairline that travels along the top edge of a focused panel. */
+  .scanline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    width: 35%;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+    animation: scan 3.5s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0%,
+    100% {
+      transform: translateX(-30%);
+      opacity: 0;
+    }
+    50% {
+      transform: translateX(220%);
+      opacity: 0.9;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sky::before,
+  .reveal,
+  .shimmer::after,
+  .draw-in .recharts-bar-rectangle,
+  .scanline::before {
+    animation: none !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
