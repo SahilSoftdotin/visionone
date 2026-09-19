@@ -65,11 +65,11 @@ export function WorkContentScreen() {
       {/* What needs the client, first. Everything else is reporting. */}
       {(waitingOnClient > 0 || awaitingReview > 0) && (
         <section
-          className="reveal glass scanline relative overflow-hidden rounded-lg p-5"
+          className="reveal relative overflow-hidden rounded-lg p-5"
           style={{ '--i': 1 } as CSSProperties}
         >
           <div className="flex flex-wrap items-center gap-4">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-caution/10 text-caution ring-1 ring-inset ring-caution/25">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-caution/10 text-caution-text ring-1 ring-inset ring-caution/25">
               <UserRoundCheck className="h-5 w-5" aria-hidden />
             </span>
             <div className="min-w-0">
@@ -123,12 +123,12 @@ export function WorkContentScreen() {
               </div>
 
               <p className="mt-3 flex items-start gap-2 text-sm">
-                <CircleDot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                <CircleDot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary-text" aria-hidden />
                 <span>{w.clientUpdate}</span>
               </p>
 
               {w.clientDependency && (
-                <p className="mt-2 flex items-start gap-2 rounded-md bg-caution/5 px-3 py-2 text-sm text-caution ring-1 ring-inset ring-caution/20">
+                <p className="mt-2 flex items-start gap-2 rounded-md bg-caution/5 px-3 py-2 text-sm text-caution-text ring-1 ring-inset ring-caution/20">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span>{w.clientDependency}</span>
                 </p>
@@ -191,7 +191,7 @@ export function WorkContentScreen() {
                     <button
                       type="button"
                       onClick={() => decide(c.id, 'CHANGES_REQUESTED')}
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-critical/40 hover:bg-critical/5 hover:text-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-critical/40 hover:bg-critical/5 hover:text-critical-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <MessageSquareWarning className="h-4 w-4" aria-hidden />
                       Request changes

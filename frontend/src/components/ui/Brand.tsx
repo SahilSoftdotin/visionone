@@ -14,7 +14,7 @@ export function VisionOneMark({ className }: { className?: string }) {
   return (
     <span className={cn('text-base font-semibold tracking-[-0.015em]', className)}>
       <span>Vision</span>
-      <span className="text-primary">One</span>
+      <span className="text-primary-text">One</span>
     </span>
   );
 }
@@ -57,7 +57,7 @@ export function ClientMark({
       ) : (
         <span
           aria-hidden
-          className="grid h-5 w-5 place-items-center rounded-[5px] bg-primary-soft text-[9px] font-bold tracking-tight text-primary ring-1 ring-inset ring-primary/20"
+          className="grid h-5 w-5 place-items-center rounded-[5px] bg-primary-soft text-[9px] font-bold tracking-tight text-primary-text ring-1 ring-inset ring-primary/20"
         >
           {monogram}
         </span>

@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { CalendarX, Moon, PhoneCall, PhoneMissed, PhoneForwarded, Repeat, Timer, Zap } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { KpiTile } from '@/components/KpiTile';
+import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { frontDeskDemo, type CallRow } from '@/lib/demoOperations';
 import { formatCount, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -51,13 +51,13 @@ export function FrontDeskScreen() {
           { label: 'After hours', value: formatCount(d.afterHours), icon: Moon, hint: `${((d.afterHours / d.totalCalls) * 100).toFixed(0)}% of all calls` },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as CSSProperties}>
-            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} />
+            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} tone={TILE_TONES[i % TILE_TONES.length]} />
           </div>
         ))}
       </section>
 
       {/* The argument the whole service rests on, drawn rather than asserted. */}
-      <Card className="reveal glow-ring group" style={{ '--i': 5 } as CSSProperties}>
+      <Card className="reveal" style={{ '--i': 5 } as CSSProperties}>
         <CardHeader
           title="When calls arrive"
           action={
@@ -118,10 +118,10 @@ export function FrontDeskScreen() {
           <CardBody>
             <dl className="grid grid-cols-2 gap-4">
               {[
-                { label: 'Booked', value: d.appointmentsBooked, icon: Zap, tone: 'text-positive' },
+                { label: 'Booked', value: d.appointmentsBooked, icon: Zap, tone: 'text-positive-text' },
                 { label: 'Transferred', value: d.transferred, icon: PhoneForwarded, tone: '' },
-                { label: 'Rescheduled', value: d.rescheduled, icon: Repeat, tone: 'text-caution' },
-                { label: 'Cancelled', value: d.cancelled, icon: CalendarX, tone: 'text-critical' },
+                { label: 'Rescheduled', value: d.rescheduled, icon: Repeat, tone: 'text-caution-text' },
+                { label: 'Cancelled', value: d.cancelled, icon: CalendarX, tone: 'text-critical-text' },
               ].map(({ label, value, icon: Icon, tone }) => (
                 <div
                   key={label}
@@ -162,7 +162,7 @@ export function FrontDeskScreen() {
             </div>
 
             <div className="flex items-center gap-3 border-t border-border pt-4">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary-text">
                 <Timer className="h-4 w-4" aria-hidden />
               </span>
               <div>
@@ -207,7 +207,7 @@ export function FrontDeskScreen() {
                       {c.maskedNumber}
                     </th>
                     <td className="px-3 py-3">
-                      <span className={cn(c.handledBy === 'AI Front Desk' && 'font-medium text-primary')}>
+                      <span className={cn(c.handledBy === 'AI Front Desk' && 'font-medium text-primary-text')}>
                         {c.handledBy}
                       </span>
                     </td>
@@ -222,7 +222,7 @@ export function FrontDeskScreen() {
                         minute: '2-digit',
                       })}
                       {c.afterHours && (
-                        <Moon className="ml-1.5 inline h-3 w-3 text-caution" aria-label="after hours" />
+                        <Moon className="ml-1.5 inline h-3 w-3 text-caution-text" aria-label="after hours" />
                       )}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums sm:px-6">

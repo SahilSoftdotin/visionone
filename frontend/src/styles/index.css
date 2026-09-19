@@ -2,82 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens. Defined once; charts and components read these, never literals. */
+/*
+ * Modernize theme.
+ *
+ * Palette, tints, radius, typeface and card treatment are taken from the Modernize dashboard
+ * and matched to its measured values rather than approximated by eye.
+ *
+ * One deliberate divergence. Modernize's accents are decorative-bright and fail text contrast on
+ * white - primary 3.29:1, success 1.72:1, warning 1.85:1, and the white label on a primary button
+ * is itself 3.29:1. Each accent therefore has a `-text` variant: same hue and saturation, lower
+ * lightness, used only where the colour carries words. Fills, bars, icons and chart series keep
+ * the original values, so the theme looks like Modernize while remaining readable.
+ */
+
 @layer base {
   :root {
-    /* Surfaces carry a faint blue cast rather than neutral grey, so white cards read as
-       deliberate rather than as the absence of colour. */
-    --background: 212 38% 97%;
-    --foreground: 217 33% 15%;
+    /* Surfaces */
+    --background: 0 0% 100%;
+    --foreground: 217 26% 22%;        /* #2A3547 - 12.36:1 */
     --card: 0 0% 100%;
-    --card-foreground: 217 33% 15%;
-    --primary: 199 89% 33%;
+    --card-foreground: 217 26% 22%;
+    --muted: 210 40% 97%;             /* #F2F6FA - dividers and quiet fills */
+    --muted-foreground: 213 15% 44%;  /* darkened from #7C8FAC (3.29) to 5.1:1 */
+
+    /* Accents, as Modernize draws them. */
+    --primary: 224 100% 68%;          /* #5D87FF */
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 199 85% 96%;
-    --muted: 213 27% 94%;
-    /* 42%, not 46%: on a frosted card over the brightest part of the sky, 46% measures 4.57:1 -
-       a hair over the 4.5 floor. 42% gives 5.29:1 and survives a lighter gradient. */
-    --muted-foreground: 216 14% 42%;
-    --border: 214 27% 90%;
-    --input: 214 27% 90%;
-    --ring: 199 89% 33%;
+    --primary-soft: 220 100% 96%;     /* #ECF2FF */
+    --secondary: 199 100% 64%;        /* #49BEFF */
+    --secondary-soft: 200 100% 96%;   /* #E8F7FF */
+    --positive: 170 84% 47%;          /* #13DEB9 */
+    --positive-soft: 166 100% 95%;    /* #E6FFFA */
+    --caution: 38 100% 56%;           /* #FFAE1F */
+    --caution-soft: 39 89% 95%;       /* #FEF5E5 */
+    --critical: 12 94% 70%;           /* #FA896B */
+    --critical-soft: 14 78% 95%;      /* #FDEDE8 */
 
-    --positive: 152 55% 33%;
-    /* Amber is the trap colour: at 40% it measures 3.29:1 on white and fails outright. 30%
-       reaches 5.06:1 on a frosted card and still reads as amber rather than brown. */
-    --caution: 38 92% 30%;
-    --critical: 0 72% 45%;
+    /* Text-safe counterparts. Same hue, enough darkness to clear 4.5:1 on white. */
+    --primary-text: 224 64% 52%;
+    --secondary-text: 199 100% 33%;   /* 4.83:1 on its own tint, not just on white */
+    --positive-text: 170 84% 27%;     /* #0B7F6A - 4.93:1 */
+    --caution-text: 38 100% 30%;      /* #996200 - 5.12:1 */
+    --critical-text: 14 94% 40%;      /* 4.76:1 on its own tint, not just on white */
 
-    --chart-1: 199 89% 38%;
-    --chart-2: 152 55% 40%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 262 52% 55%;
-    --chart-5: 340 65% 52%;
-    --chart-6: 215 16% 55%;
+    --border: 210 40% 96%;
+    --input: 214 32% 91%;
+    --ring: 224 100% 68%;
 
-    --radius: 1rem;
+    /* Chart series keep full saturation - they are fills, not text. */
+    --chart-1: 224 100% 68%;
+    --chart-2: 170 84% 47%;
+    --chart-3: 38 100% 56%;
+    --chart-4: 199 100% 64%;
+    --chart-5: 12 94% 70%;
+    --chart-6: 213 15% 60%;
 
-    /* Navy, for the weightiest surfaces. Blue carries the brand; navy carries authority. */
-    --navy: 222 42% 34%;
+    --navy: 217 26% 22%;
     --navy-foreground: 0 0% 100%;
 
-    /* Layered, blue-tinted shadows. Grey shadows on a tinted ground look muddy. */
-    --shadow-sm: 0 1px 2px 0 hsl(215 35% 25% / 0.05);
-    --shadow-md: 0 1px 2px 0 hsl(215 35% 25% / 0.04), 0 4px 12px -2px hsl(215 35% 25% / 0.07);
-    --shadow-lg: 0 2px 4px -1px hsl(215 35% 25% / 0.05), 0 12px 28px -6px hsl(215 35% 25% / 0.12);
+    /* Modernize's radius is small - 7px - which is what makes it read as crisp rather than soft. */
+    --radius: 0.4375rem;
+
+    /* Its shadow is a tight grey halo plus a wide soft drop. */
+    --shadow-sm: 0 0 2px 0 hsl(210 12% 62% / 0.3), 0 1px 3px -1px hsl(210 12% 62% / 0.12);
+    --shadow-md: 0 0 2px 0 hsl(210 12% 62% / 0.3), 0 12px 24px -4px hsl(210 12% 62% / 0.12);
+    --shadow-lg: 0 0 2px 0 hsl(210 12% 62% / 0.3), 0 20px 40px -6px hsl(210 12% 62% / 0.18);
   }
 
   .dark {
-    --background: 217 33% 10%;
+    --background: 220 22% 12%;
     --foreground: 210 20% 96%;
-    --card: 217 28% 14%;
+    --card: 220 20% 16%;
     --card-foreground: 210 20% 96%;
-    --primary: 199 85% 55%;
-    --primary-foreground: 217 33% 10%;
-    --primary-soft: 199 60% 18%;
-    --muted: 217 24% 19%;
-    --muted-foreground: 215 15% 65%;
-    --border: 217 22% 24%;
-    --input: 217 22% 24%;
-    --ring: 199 85% 55%;
+    --muted: 220 18% 21%;
+    --muted-foreground: 213 15% 68%;
 
-    --positive: 152 50% 50%;
-    --caution: 38 88% 58%;
-    --critical: 0 70% 62%;
+    --primary: 224 100% 72%;
+    --primary-foreground: 220 22% 12%;
+    --primary-soft: 224 40% 22%;
+    --secondary: 199 100% 68%;
+    --secondary-soft: 199 45% 20%;
+    --positive: 170 84% 52%;
+    --positive-soft: 170 45% 18%;
+    --caution: 38 100% 62%;
+    --caution-soft: 38 45% 20%;
+    --critical: 12 94% 72%;
+    --critical-soft: 12 45% 20%;
 
-    --chart-1: 199 85% 58%;
-    --chart-2: 152 50% 52%;
-    --chart-3: 38 88% 60%;
-    --chart-4: 262 60% 70%;
-    --chart-5: 340 70% 65%;
-    --chart-6: 215 15% 65%;
+    --primary-text: 224 100% 78%;
+    --secondary-text: 199 100% 74%;
+    --positive-text: 170 84% 60%;
+    --caution-text: 38 100% 66%;
+    --critical-text: 12 94% 74%;
 
-    --navy: 220 35% 62%;
-    --navy-foreground: 217 33% 10%;
+    --border: 220 16% 26%;
+    --input: 220 16% 26%;
+    --ring: 224 100% 72%;
+
+    --chart-1: 224 100% 72%;
+    --chart-2: 170 84% 52%;
+    --chart-3: 38 100% 62%;
+    --chart-4: 199 100% 68%;
+    --chart-5: 12 94% 72%;
+    --chart-6: 213 15% 65%;
+
+    --navy: 210 20% 90%;
+    --navy-foreground: 220 22% 12%;
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 4px 12px -2px hsl(0 0% 0% / 0.35);
-    --shadow-lg: 0 2px 4px -1px hsl(0 0% 0% / 0.3), 0 12px 28px -6px hsl(0 0% 0% / 0.45);
+    --shadow-md: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 12px 24px -4px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 2px 4px -1px hsl(0 0% 0% / 0.3), 0 20px 40px -6px hsl(0 0% 0% / 0.5);
   }
 
   * {
@@ -86,18 +120,15 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
-  /* Figures line up column-to-column; a KPI that shifts as it updates reads as unstable. */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04';
+    font-feature-settings: 'tnum' 1;
   }
 }
 
 @layer components {
-  /* One elevation vocabulary, so panels never disagree about how high they sit. */
   .elev-sm {
     box-shadow: var(--shadow-sm);
   }
@@ -108,86 +139,42 @@
     box-shadow: var(--shadow-lg);
   }
 
-  /*
-   * The soft blue-white sky the whole workspace floats on. Two blurred blooms rather than a
-   * single linear ramp, so the light has a direction instead of a seam.
-   */
+  /* Modernize sits on plain white with a faint page tint, not a gradient. */
   .app-sky {
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(60rem 40rem at 12% -8%, hsl(199 90% 88% / 0.55), transparent 60%),
-      radial-gradient(52rem 38rem at 92% 4%, hsl(222 80% 88% / 0.5), transparent 62%),
-      radial-gradient(44rem 34rem at 50% 108%, hsl(199 70% 90% / 0.4), transparent 60%);
-    background-attachment: fixed;
   }
 
-  .dark .app-sky {
-    background-image:
-      radial-gradient(60rem 40rem at 12% -8%, hsl(199 70% 30% / 0.3), transparent 60%),
-      radial-gradient(52rem 38rem at 92% 4%, hsl(222 60% 32% / 0.28), transparent 62%);
-  }
-
-  /*
-   * Panels are frosted rather than opaque, so the sky reads through them and the stack has
-   * depth. The border is a light edge, not an outline.
-   */
+  /* Cards are solid and crisp here - no frosting. */
   .glass {
-    background-color: hsl(var(--card) / 0.72);
-    backdrop-filter: blur(20px) saturate(140%);
-    border: 1px solid hsl(0 0% 100% / 0.65);
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-md);
   }
 
-  .dark .glass {
-    background-color: hsl(var(--card) / 0.7);
-    border-color: hsl(var(--border) / 0.8);
+  /* The signature element: a flat pastel tile with no shadow and no border. */
+  .tint-tile {
+    border-radius: var(--radius);
+    border: 0;
+    box-shadow: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  /* ============================================================
-     Motion. Every animation below is disabled wholesale by the
-     reduced-motion block at the end of this file - vestibular
-     disorders are common enough that "go all out" cannot mean
-     "ignore the people it makes ill".
-     ============================================================ */
-
-  /* Aurora: three slow-drifting blooms behind the workspace. */
-  .app-sky::before {
-    content: '';
-    position: fixed;
-    inset: -20%;
-    z-index: -1;
-    pointer-events: none;
-    background:
-      radial-gradient(38rem 30rem at 18% 22%, hsl(199 95% 72% / 0.3), transparent 62%),
-      radial-gradient(34rem 28rem at 82% 18%, hsl(222 90% 74% / 0.26), transparent 62%),
-      radial-gradient(30rem 26rem at 52% 88%, hsl(186 88% 70% / 0.22), transparent 62%);
-    filter: blur(28px);
-    animation: aurora-drift 26s ease-in-out infinite alternate;
+  .tint-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
-  @keyframes aurora-drift {
-    0% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(2.5%, -2%, 0) scale(1.06);
-    }
-    100% {
-      transform: translate3d(-2%, 2.5%, 0) scale(1.03);
-    }
-  }
-
-  /* Staggered entrance. Set --i on each child for the cascade. */
+  /* Staggered entrance, kept from the previous theme. */
   .reveal {
     opacity: 0;
-    animation: reveal-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    animation-delay: calc(var(--i, 0) * 60ms);
+    animation: reveal-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 55ms);
   }
 
   @keyframes reveal-up {
     from {
       opacity: 0;
-      transform: translate3d(0, 14px, 0) scale(0.985);
+      transform: translate3d(0, 10px, 0);
     }
     to {
       opacity: 1;
@@ -195,40 +182,6 @@
     }
   }
 
-  /* A brand-coloured halo that breathes. Used sparingly - on the one
-     figure a screen wants read first. */
-  .glow-ring {
-    position: relative;
-  }
-
-  .glow-ring::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(
-      130deg,
-      hsl(199 89% 55% / 0.55),
-      hsl(222 80% 62% / 0.35),
-      hsl(186 85% 58% / 0.5)
-    );
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 1px;
-  }
-
-  .group:hover .glow-ring::after,
-  .glow-ring:hover::after {
-    opacity: 1;
-  }
-
-  /* Sweeping sheen for loading surfaces. */
   .shimmer {
     position: relative;
     overflow: hidden;
@@ -239,7 +192,7 @@
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.45), transparent);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.5), transparent);
     animation: shimmer-sweep 1.8s infinite;
   }
 
@@ -249,10 +202,8 @@
     }
   }
 
-  /* Recharts paths draw themselves in rather than appearing. */
-  .draw-in .recharts-bar-rectangle,
-  .draw-in .recharts-layer .recharts-rectangle {
-    animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  .draw-in .recharts-bar-rectangle {
+    animation: rise-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 
   @keyframes rise-in {
@@ -266,43 +217,21 @@
       opacity: 1;
     }
   }
-
-  /* A hairline that travels along the top edge of a focused panel. */
-  .scanline::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 1px;
-    width: 35%;
-    background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
-    animation: scan 3.5s ease-in-out infinite;
-  }
-
-  @keyframes scan {
-    0%,
-    100% {
-      transform: translateX(-30%);
-      opacity: 0;
-    }
-    50% {
-      transform: translateX(220%);
-      opacity: 0.9;
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-sky::before,
   .reveal,
   .shimmer::after,
-  .draw-in .recharts-bar-rectangle,
-  .scanline::before {
+  .draw-in .recharts-bar-rectangle {
     animation: none !important;
   }
 
   .reveal {
     opacity: 1;
+    transform: none;
+  }
+
+  .tint-tile:hover {
     transform: none;
   }
 }

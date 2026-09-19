@@ -1,7 +1,7 @@
 import { Activity, Radio, Target, TrendingUp, Wallet } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { KpiTile } from '@/components/KpiTile';
+import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { growthDemo } from '@/lib/demoData';
 import { formatCount, formatMoney, formatMonth } from '@/lib/format';
 import { useCountUp } from '@/lib/useCountUp';
@@ -32,7 +32,7 @@ export function GrowthScreen() {
       </header>
 
       {/* The one figure this screen exists to answer: is the budget on track? */}
-      <section className="reveal glass glow-ring scanline group relative overflow-hidden rounded-lg p-6" style={{ '--i': 1 } as React.CSSProperties}>
+      <section className="reveal group relative overflow-hidden rounded-lg p-6" style={{ '--i': 1 } as React.CSSProperties}>
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
@@ -72,7 +72,7 @@ export function GrowthScreen() {
               { label: 'Remaining', value: formatMoney(plan.remaining, { compact: true }), icon: Activity },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="rounded-lg bg-primary-soft/60 p-3.5 ring-1 ring-inset ring-primary/10">
-                <Icon className="h-4 w-4 text-primary" aria-hidden />
+                <Icon className="h-4 w-4 text-primary-text" aria-hidden />
                 <dt className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {label}
                 </dt>
@@ -91,7 +91,7 @@ export function GrowthScreen() {
           { label: 'Active campaigns', value: formatCount(plan.campaigns.filter((c) => c.status === 'ACTIVE').length), icon: Radio },
         ].map((tile, i) => (
           <div key={tile.label} className="reveal" style={{ '--i': i + 2 } as React.CSSProperties}>
-            <KpiTile label={tile.label} value={tile.value} icon={tile.icon} hint="this month" />
+            <KpiTile label={tile.label} value={tile.value} icon={tile.icon} hint="this month" tone={TILE_TONES[i % TILE_TONES.length]} />
           </div>
         ))}
       </section>
@@ -114,7 +114,7 @@ export function GrowthScreen() {
                   <span className="font-medium">{a.displayName}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {formatMoney(a.actual, { compact: true })} / {formatMoney(a.planned, { compact: true })}
-                    <span className={cn('ml-2 font-semibold', over ? 'text-critical' : 'text-foreground')}>
+                    <span className={cn('ml-2 font-semibold', over ? 'text-critical-text' : 'text-foreground')}>
                       {pct}%
                     </span>
                   </span>

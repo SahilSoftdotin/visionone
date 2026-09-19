@@ -2,6 +2,25 @@ import { TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
 import { delta, EM_DASH } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+/**
+ * Modernize's signature stat tile: a flat pastel block, no border, no shadow at rest, with the
+ * label and figure both carrying the tint's own colour.
+ *
+ * The text uses each tint's `-text` variant rather than the fill colour. Modernize prints the
+ * label in the raw accent, which measures as low as 1.7:1 on its own pastel ground; the darker
+ * variant keeps the hue and makes the number legible.
+ */
+
+export type TileTone = 'primary' | 'secondary' | 'positive' | 'caution' | 'critical';
+
+const toneClasses: Record<TileTone, { bg: string; text: string; icon: string }> = {
+  primary: { bg: 'bg-primary-soft', text: 'text-primary-text', icon: 'bg-primary/15 text-primary-text' },
+  secondary: { bg: 'bg-secondary-soft', text: 'text-secondary-text', icon: 'bg-secondary/15 text-secondary-text' },
+  positive: { bg: 'bg-positive-soft', text: 'text-positive-text', icon: 'bg-positive/20 text-positive-text' },
+  caution: { bg: 'bg-caution-soft', text: 'text-caution-text', icon: 'bg-caution/20 text-caution-text' },
+  critical: { bg: 'bg-critical-soft', text: 'text-critical-text', icon: 'bg-critical/20 text-critical-text' },
+};
+
 interface Props {
   label: string;
   value: string;
@@ -10,47 +29,44 @@ interface Props {
   /** True when a rise is bad news, as with cost per lead. */
   invertDirection?: boolean;
   hint?: string;
-  /** Anchors the tile so the grid is scannable by shape, not only by reading every label. */
   icon?: LucideIcon;
+  tone?: TileTone;
 }
 
-export function KpiTile({ label, value, current, prior, invertDirection, hint, icon: Icon }: Props) {
+export function KpiTile({
+  label,
+  value,
+  current,
+  prior,
+  invertDirection,
+  hint,
+  icon: Icon,
+  tone = 'primary',
+}: Props) {
   const movement = delta(current, prior);
   const isGood = movement
     ? invertDirection
       ? movement.direction === 'down'
       : movement.direction === 'up'
     : null;
+  const t = toneClasses[tone];
 
   return (
-    <div className="group relative overflow-hidden rounded-lg glass p-5 transition-all duration-200 hover:-translate-y-0.5 hover:elev-lg">
-      {/* A hairline of brand colour on hover - presence without decoration. */}
-      <span
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-      />
+    <div className={cn('tint-tile p-5', t.bg)}>
       {Icon && (
-        <span
-          aria-hidden
-          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-lg bg-primary-soft text-primary ring-1 ring-inset ring-primary/10 transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground"
-        >
-          <Icon className="h-4 w-4" />
+        <span className={cn('grid h-11 w-11 place-items-center rounded-lg', t.icon)} aria-hidden>
+          <Icon className="h-5 w-5" />
         </span>
       )}
-      <p className="pr-11 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-[28px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
-        {value}
-      </p>
-      <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5 text-xs">
+      <p className={cn('mt-3 text-sm font-semibold', t.text)}>{label}</p>
+      <p className={cn('mt-1 text-[28px] font-bold leading-tight tabular-nums', t.text)}>{value}</p>
+
+      <div className="mt-1.5 flex min-h-5 flex-wrap items-center gap-1.5 text-xs">
         {movement && movement.direction !== 'flat' ? (
           <span
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
-              isGood
-                ? 'bg-positive/10 text-positive'
-                : 'bg-critical/10 text-critical',
+              'inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold tabular-nums',
+              isGood ? 'text-positive-text' : 'text-critical-text',
             )}
           >
             {/* The arrow carries direction so colour is not the only cue. */}
@@ -70,3 +86,6 @@ export function KpiTile({ label, value, current, prior, invertDirection, hint, i
     </div>
   );
 }
+
+/** Modernize cycles its tints across a row rather than colouring by meaning. */
+export const TILE_TONES: TileTone[] = ['primary', 'caution', 'secondary', 'critical', 'positive'];

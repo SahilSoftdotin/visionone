@@ -63,12 +63,14 @@ export function OverviewScreen() {
               <KpiTile
                 label="Growth budget"
                 icon={Wallet}
+                tone="primary"
                 value={formatMoney(data.kpis.monthlyGrowthBudget, { compact: true })}
                 hint="planned this month"
               />
               <KpiTile
                 label="Actual spend"
                 icon={CreditCard}
+                tone="caution"
                 value={formatMoney(data.kpis.actualSpend, { compact: true })}
                 current={data.kpis.actualSpend.amountMinor}
                 prior={data.kpis.priorMonth.actualSpend.amountMinor}
@@ -76,6 +78,7 @@ export function OverviewScreen() {
               <KpiTile
                 label="New leads"
                 icon={Users}
+                tone="secondary"
                 value={formatCount(data.kpis.newLeads)}
                 current={data.kpis.newLeads}
                 prior={data.kpis.priorMonth.newLeads}
@@ -83,6 +86,7 @@ export function OverviewScreen() {
               <KpiTile
                 label="Qualified leads"
                 icon={UserCheck}
+                tone="critical"
                 value={formatCount(data.kpis.qualifiedLeads)}
                 current={data.kpis.qualifiedLeads}
                 prior={data.kpis.priorMonth.qualifiedLeads}
@@ -90,6 +94,7 @@ export function OverviewScreen() {
               <KpiTile
                 label="Booked appointments"
                 icon={CalendarCheck}
+                tone="positive"
                 value={formatCount(data.kpis.bookedAppointments)}
                 current={data.kpis.bookedAppointments}
                 prior={data.kpis.priorMonth.bookedAppointments}
@@ -97,18 +102,21 @@ export function OverviewScreen() {
               <KpiTile
                 label="Cost per lead"
                 icon={Coins}
+                tone="primary"
                 value={formatMoney(data.kpis.costPerLead)}
                 invertDirection
               />
               <KpiTile
                 label="Cost per booked appt."
                 icon={Receipt}
+                tone="caution"
                 value={formatMoney(data.kpis.costPerBookedAppointment)}
                 invertDirection
               />
               <KpiTile
                 label="Lead to book"
                 icon={Percent}
+                tone="secondary"
                 value={formatPercent(data.kpis.leadToBookConversionPercent)}
                 current={data.kpis.leadToBookConversionPercent}
                 prior={data.kpis.priorMonth.leadToBookConversionPercent}
@@ -154,12 +162,12 @@ export function OverviewScreen() {
 
                 <div className="grid grid-cols-3 gap-3 border-t border-border pt-4">
                   {[
-                    { label: 'Completed', value: data.visionActivity.completed, tone: 'text-positive' },
+                    { label: 'Completed', value: data.visionActivity.completed, tone: 'text-positive-text' },
                     { label: 'In progress', value: data.visionActivity.inProgress, tone: '' },
                     {
                       label: 'Waiting for you',
                       value: data.visionActivity.waitingForClient,
-                      tone: 'text-caution',
+                      tone: 'text-caution-text',
                     },
                   ].map(({ label, value, tone }) => (
                     <div key={label}>

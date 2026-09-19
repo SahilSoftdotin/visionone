@@ -14,6 +14,7 @@ export default {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
           soft: 'hsl(var(--primary-soft))',
+          text: 'hsl(var(--primary-text))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -27,9 +28,26 @@ export default {
           DEFAULT: 'hsl(var(--navy))',
           foreground: 'hsl(var(--navy-foreground))',
         },
-        positive: 'hsl(var(--positive))',
-        caution: 'hsl(var(--caution))',
-        critical: 'hsl(var(--critical))',
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          soft: 'hsl(var(--secondary-soft))',
+          text: 'hsl(var(--secondary-text))',
+        },
+        positive: {
+          DEFAULT: 'hsl(var(--positive))',
+          soft: 'hsl(var(--positive-soft))',
+          text: 'hsl(var(--positive-text))',
+        },
+        caution: {
+          DEFAULT: 'hsl(var(--caution))',
+          soft: 'hsl(var(--caution-soft))',
+          text: 'hsl(var(--caution-text))',
+        },
+        critical: {
+          DEFAULT: 'hsl(var(--critical))',
+          soft: 'hsl(var(--critical-soft))',
+          text: 'hsl(var(--critical-text))',
+        },
         chart: {
           1: 'hsl(var(--chart-1))',
           2: 'hsl(var(--chart-2))',
@@ -40,7 +58,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',

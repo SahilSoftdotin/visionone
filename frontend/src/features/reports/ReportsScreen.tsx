@@ -36,7 +36,7 @@ export function ReportsScreen() {
       </header>
 
       <section
-        className="reveal glass glow-ring group relative overflow-hidden rounded-lg p-6"
+        className="reveal relative overflow-hidden rounded-lg p-6"
         style={{ '--i': 1 } as CSSProperties}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
@@ -135,7 +135,7 @@ export function ReportsScreen() {
           <CardBody className="space-y-4">
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                <CheckCircle2 className="h-3.5 w-3.5 text-positive" aria-hidden />
+                <CheckCircle2 className="h-3.5 w-3.5 text-positive-text" aria-hidden />
                 Work completed
               </p>
               <ul className="mt-2 space-y-1.5 text-sm">
@@ -149,7 +149,7 @@ export function ReportsScreen() {
             </div>
             <div className="border-t border-border pt-4">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                <FileText className="h-3.5 w-3.5 text-primary" aria-hidden />
+                <FileText className="h-3.5 w-3.5 text-primary-text" aria-hidden />
                 Content published
               </p>
               <ul className="mt-2 space-y-1.5 text-sm">
@@ -170,7 +170,7 @@ export function ReportsScreen() {
         <CardHeader title="Key learning" />
         <CardBody>
           <p className="flex gap-3 text-sm leading-relaxed">
-            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-caution" aria-hidden />
+            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-caution-text" aria-hidden />
             <span>{r.keyLearning}</span>
           </p>
         </CardBody>
@@ -183,7 +183,7 @@ export function ReportsScreen() {
             <ul className="space-y-2.5 text-sm">
               {r.nextActions.map((a) => (
                 <li key={a} className="flex gap-2.5">
-                  <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-primary-text" aria-hidden />
                   <span>{a}</span>
                 </li>
               ))}
@@ -197,7 +197,7 @@ export function ReportsScreen() {
             <ul className="space-y-2.5 text-sm">
               {r.decisionsRequired.map((d) => (
                 <li key={d} className="flex gap-2.5">
-                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-caution" aria-hidden />
+                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-caution-text" aria-hidden />
                   <span>{d}</span>
                 </li>
               ))}

@@ -41,7 +41,7 @@ export function RecommendationCard({ recommendation }: { recommendation: Recomme
         </div>
 
         <div className="rounded-md border border-caution/30 bg-caution/5 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-caution">Decision required</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-caution-text">Decision required</p>
           <p className="mt-1 text-sm leading-relaxed">{recommendation.decisionRequired}</p>
         </div>
       </CardBody>

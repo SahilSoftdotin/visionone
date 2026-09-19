@@ -11,7 +11,7 @@ import {
 import { ArrowUpDown, Clock, Search, UserCheck, Users, Zap } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { KpiTile } from '@/components/KpiTile';
+import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { LEAD_STATUSES, leadResponseSummary, leadsDemo, type LeadRow, type LeadStatus } from '@/lib/demoData';
 import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -88,10 +88,10 @@ export function LeadsScreen() {
         cell: (c) => {
           const m = c.getValue<number | null>();
           if (m === null) {
-            return <span className="text-critical">never</span>;
+            return <span className="text-critical-text">never</span>;
           }
           return (
-            <span className={cn('tabular-nums', m <= 15 ? 'text-positive' : 'text-caution')}>
+            <span className={cn('tabular-nums', m <= 15 ? 'text-positive-text' : 'text-caution-text')}>
               {m < 60 ? `${m}m` : `${Math.round(m / 60)}h`}
             </span>
           );
@@ -151,7 +151,7 @@ export function LeadsScreen() {
           },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as React.CSSProperties}>
-            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} />
+            <KpiTile label={t.label} value={t.value} icon={t.icon} hint={t.hint} tone={TILE_TONES[i % TILE_TONES.length]} />
           </div>
         ))}
       </section>
@@ -197,7 +197,7 @@ export function LeadsScreen() {
                     'shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-all duration-150',
                     active
                       ? 'bg-primary text-primary-foreground elev-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-primary-soft hover:text-primary',
+                      : 'bg-muted text-muted-foreground hover:bg-primary-soft hover:text-primary-text',
                   )}
                 >
                   {s === 'ALL' ? 'All' : prettyStatus(s)}
