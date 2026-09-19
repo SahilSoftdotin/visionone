@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from 'react-oidc-context';
 import { oidcConfig } from '@/lib/auth';
-import { AuthGate } from './AuthGate';
+import { AuthBootstrap, LoginRoute, RequireAuth } from './AuthGate';
 import { AppShell } from './AppShell';
 import { ComingSoon } from './ComingSoon';
 import { OrganizationRouter } from './OrganizationRouter';
@@ -21,23 +21,29 @@ export function App() {
   return (
     <AuthProvider {...oidcConfig}>
       <QueryClientProvider client={queryClient}>
-        <AuthGate>
-          <BrowserRouter>
+        <BrowserRouter>
+          <AuthBootstrap>
             <Routes>
-              <Route path="/" element={<OrganizationRouter />} />
-              <Route path="/orgs/:orgId" element={<AppShell />}>
-                <Route index element={<Navigate to="overview" replace />} />
-                <Route path="overview" element={<OverviewScreen />} />
-                <Route path="growth" element={<ComingSoon />} />
-                <Route path="leads" element={<ComingSoon />} />
-                <Route path="front-desk" element={<ComingSoon />} />
-                <Route path="work" element={<ComingSoon />} />
-                <Route path="reports" element={<ComingSoon />} />
+              {/* Public. Keycloak returns to "/", so the callback never lands here. */}
+              <Route path="/login" element={<LoginRoute />} />
+
+              <Route element={<RequireAuth />}>
+                <Route path="/" element={<OrganizationRouter />} />
+                <Route path="/orgs/:orgId" element={<AppShell />}>
+                  <Route index element={<Navigate to="overview" replace />} />
+                  <Route path="overview" element={<OverviewScreen />} />
+                  <Route path="growth" element={<ComingSoon />} />
+                  <Route path="leads" element={<ComingSoon />} />
+                  <Route path="front-desk" element={<ComingSoon />} />
+                  <Route path="work" element={<ComingSoon />} />
+                  <Route path="reports" element={<ComingSoon />} />
+                </Route>
               </Route>
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </BrowserRouter>
-        </AuthGate>
+          </AuthBootstrap>
+        </BrowserRouter>
       </QueryClientProvider>
     </AuthProvider>
   );
