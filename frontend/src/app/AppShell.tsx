@@ -19,9 +19,9 @@ export function AppShell() {
           onClick={() => setMobileOpen(false)}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+              'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all duration-150',
               isActive
-                ? 'bg-primary/10 font-medium text-primary'
+                ? 'bg-primary-soft font-semibold text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )
           }
@@ -29,7 +29,7 @@ export function AppShell() {
           <Icon className="h-4 w-4 shrink-0" aria-hidden />
           <span>{label}</span>
           {!ready && (
-            <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               soon
             </span>
           )}
@@ -40,7 +40,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/80 backdrop-blur-md elev-sm">
         <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
           <button
             type="button"
@@ -50,17 +50,21 @@ export function AppShell() {
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <span className="text-base font-semibold tracking-tight">
+          <span className="flex items-center gap-2 text-base font-semibold tracking-[-0.01em]">
+            <span
+              aria-hidden
+              className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-primary/70 elev-sm"
+            />
             Vision<span className="text-primary">One</span>
           </span>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
+            <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
               {auth.user?.profile.name ?? auth.user?.profile.preferred_username}
             </span>
             <button
               type="button"
               onClick={() => void auth.signoutRedirect()}
-              className="rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
+              className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium transition-colors hover:border-primary/30 hover:bg-primary-soft hover:text-primary"
             >
               Sign out
             </button>

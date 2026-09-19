@@ -13,6 +13,7 @@ export default {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          soft: 'hsl(var(--primary-soft))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -33,6 +34,9 @@ export default {
           5: 'hsl(var(--chart-5))',
           6: 'hsl(var(--chart-6))',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',

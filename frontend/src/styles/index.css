@@ -5,21 +5,24 @@
 /* Design tokens. Defined once; charts and components read these, never literals. */
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 28% 17%;
+    /* Surfaces carry a faint blue cast rather than neutral grey, so white cards read as
+       deliberate rather than as the absence of colour. */
+    --background: 212 38% 97%;
+    --foreground: 217 33% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 17%;
+    --card-foreground: 217 33% 15%;
     --primary: 199 89% 33%;
     --primary-foreground: 0 0% 100%;
-    --muted: 210 16% 93%;
-    --muted-foreground: 215 16% 47%;
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
+    --primary-soft: 199 85% 96%;
+    --muted: 213 27% 94%;
+    --muted-foreground: 216 14% 46%;
+    --border: 214 27% 90%;
+    --input: 214 27% 90%;
     --ring: 199 89% 33%;
 
-    --positive: 152 55% 36%;
-    --caution: 38 92% 42%;
-    --critical: 0 72% 48%;
+    --positive: 152 55% 33%;
+    --caution: 38 92% 40%;
+    --critical: 0 72% 45%;
 
     --chart-1: 199 89% 38%;
     --chart-2: 152 55% 40%;
@@ -28,20 +31,26 @@
     --chart-5: 340 65% 52%;
     --chart-6: 215 16% 55%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
+
+    /* Layered, blue-tinted shadows. Grey shadows on a tinted ground look muddy. */
+    --shadow-sm: 0 1px 2px 0 hsl(215 35% 25% / 0.05);
+    --shadow-md: 0 1px 2px 0 hsl(215 35% 25% / 0.04), 0 4px 12px -2px hsl(215 35% 25% / 0.07);
+    --shadow-lg: 0 2px 4px -1px hsl(215 35% 25% / 0.05), 0 12px 28px -6px hsl(215 35% 25% / 0.12);
   }
 
   .dark {
-    --background: 215 28% 11%;
+    --background: 217 33% 10%;
     --foreground: 210 20% 96%;
-    --card: 215 25% 15%;
+    --card: 217 28% 14%;
     --card-foreground: 210 20% 96%;
     --primary: 199 85% 55%;
-    --primary-foreground: 215 28% 11%;
-    --muted: 215 22% 20%;
+    --primary-foreground: 217 33% 10%;
+    --primary-soft: 199 60% 18%;
+    --muted: 217 24% 19%;
     --muted-foreground: 215 15% 65%;
-    --border: 215 20% 26%;
-    --input: 215 20% 26%;
+    --border: 217 22% 24%;
+    --input: 217 22% 24%;
     --ring: 199 85% 55%;
 
     --positive: 152 50% 50%;
@@ -54,6 +63,10 @@
     --chart-4: 262 60% 70%;
     --chart-5: 340 70% 65%;
     --chart-6: 215 15% 65%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 4px 12px -2px hsl(0 0% 0% / 0.35);
+    --shadow-lg: 0 2px 4px -1px hsl(0 0% 0% / 0.3), 0 12px 28px -6px hsl(0 0% 0% / 0.45);
   }
 
   * {
@@ -63,5 +76,24 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Figures line up column-to-column; a KPI that shifts as it updates reads as unstable. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04';
+  }
+}
+
+@layer components {
+  /* One elevation vocabulary, so panels never disagree about how high they sit. */
+  .elev-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  .elev-md {
+    box-shadow: var(--shadow-md);
+  }
+  .elev-lg {
+    box-shadow: var(--shadow-lg);
   }
 }

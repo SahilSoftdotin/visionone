@@ -20,15 +20,26 @@ export function KpiTile({ label, value, current, prior, invertDirection, hint }:
     : null;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-      <div className="mt-1 flex min-h-5 items-center gap-1.5 text-xs">
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-card p-5 elev-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/25 hover:elev-md">
+      {/* A hairline of brand colour on hover - presence without decoration. */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+      />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 text-[28px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
+        {value}
+      </p>
+      <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5 text-xs">
         {movement && movement.direction !== 'flat' ? (
           <span
             className={cn(
-              'font-medium tabular-nums',
-              isGood ? 'text-positive' : 'text-critical',
+              'inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+              isGood
+                ? 'bg-positive/10 text-positive'
+                : 'bg-critical/10 text-critical',
             )}
           >
             {movement.change > 0 ? '+' : ''}
