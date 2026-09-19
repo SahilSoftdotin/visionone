@@ -157,10 +157,43 @@ body#keycloak-bg::before,
   outline: none;
 }
 
-.pf-v5-c-form-control > input {
+/* PatternFly's own --Color token was left in place and renders near-white on our light card,
+   so what you type was effectively invisible. Set the text colour explicitly, on the element
+   and on the token, and give the placeholder a weaker but still legible value. */
+.pf-v5-c-form-control,
+.pf-v5-c-form-control > input,
+.pf-v5-c-form-control input[type='text'],
+.pf-v5-c-form-control input[type='email'],
+.pf-v5-c-form-control input[type='password'],
+input#username,
+input#password {
+  --pf-v5-c-form-control--Color: var(--vo-fg);
+  --pf-v5-c-form-control--m-placeholder--Color: var(--vo-muted);
+  color: var(--vo-fg) !important;
   background: transparent;
   border: 0;
   outline: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  -webkit-text-fill-color: var(--vo-fg); /* Chrome autofill overrides `color` alone. */
+}
+
+.pf-v5-c-form-control > input::placeholder,
+input#username::placeholder,
+input#password::placeholder {
+  color: var(--vo-muted) !important;
+  -webkit-text-fill-color: var(--vo-muted);
+  opacity: 1; /* Firefox dims placeholders by default, on top of our colour. */
+  font-weight: 400;
+}
+
+/* Chrome paints autofilled fields pale yellow-on-white; keep them on-brand and readable. */
+.pf-v5-c-form-control > input:-webkit-autofill,
+input#username:-webkit-autofill,
+input#password:-webkit-autofill {
+  -webkit-text-fill-color: var(--vo-fg);
+  box-shadow: 0 0 0 1000px var(--vo-card) inset;
+  caret-color: var(--vo-fg);
 }
 
 /* The password-visibility toggle ships as a dark "control" button; make it a quiet icon. */
