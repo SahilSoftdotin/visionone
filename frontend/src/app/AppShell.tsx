@@ -1,14 +1,26 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
+import { useQuery } from '@tanstack/react-query';
 import { Menu, X } from 'lucide-react';
 import { CLIENT_NAVIGATION } from './navigation';
+import { apiGet, queryKeys } from '@/lib/api';
+import type { SessionResponse } from '@/lib/types';
+import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
 import { cn } from '@/lib/utils';
 
 export function AppShell() {
   const { orgId = '' } = useParams();
   const auth = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Same key as OrganizationRouter, so this is a cache read rather than a second request.
+  const { data: session } = useQuery({
+    queryKey: queryKeys.session,
+    queryFn: () => apiGet<SessionResponse>('/me'),
+    staleTime: 5 * 60_000,
+  });
+  const organization = session?.organizations.find((candidate) => candidate.id === orgId);
 
   const nav = (
     <nav className="space-y-0.5" aria-label="Main">
@@ -50,13 +62,16 @@ export function AppShell() {
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <span className="flex items-center gap-2 text-base font-semibold tracking-[-0.01em]">
-            <span
-              aria-hidden
-              className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-primary/70 elev-sm"
-            />
-            Vision<span className="text-primary">One</span>
-          </span>
+          <VisionOneMark />
+
+          {organization && (
+            <>
+              {/* The platform and the practice, shown as a pairing rather than a breadcrumb. */}
+              <span aria-hidden className="hidden h-5 w-px bg-border sm:block" />
+              <ClientMark name={organization.name} className="hidden min-w-0 sm:flex" />
+            </>
+          )}
+
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
               {auth.user?.profile.name ?? auth.user?.profile.preferred_username}
@@ -79,7 +94,12 @@ export function AppShell() {
             mobileOpen ? 'block' : 'hidden lg:block',
           )}
         >
-          {nav}
+          <div className="flex h-full flex-col">
+            {nav}
+            <div className="mt-6 border-t border-border pt-3 lg:mt-auto">
+              <ParentBrandLine />
+            </div>
+          </div>
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
