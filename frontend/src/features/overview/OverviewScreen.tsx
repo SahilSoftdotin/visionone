@@ -9,6 +9,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
 } from 'recharts';
 import {
@@ -25,18 +26,15 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
-import { ArrowBadge, IconChip, PeriodPill, PersonCell, StatusPill } from '@/components/ui/Chips';
+import { ArrowBadge, IconChip, PersonCell, StatusPill } from '@/components/ui/Chips';
+import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
+import { ChartTooltip, hoverCursor } from '@/components/charts/ChartTooltip';
 import { formatCount, formatMoney, formatMonth, formatPercent } from '@/lib/format';
 import { leadsDemo, type LeadStatus } from '@/lib/demoData';
 import { frontDeskDemo } from '@/lib/demoOperations';
 import { useOverview } from './useOverview';
 import { OverviewSkeleton } from './OverviewSkeleton';
 import { RecommendationCard } from './RecommendationCard';
-
-function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
 
 /**
  * Overview, laid out as the Modernize "modern" dashboard: a row of tinted tiles, a wide primary
@@ -70,7 +68,7 @@ const statusTone: Record<string, 'neutral' | 'positive' | 'caution' | 'critical'
 export function OverviewScreen() {
   const { orgId = '' } = useParams();
   const [searchParams] = useSearchParams();
-  const month = searchParams.get('month') ?? currentMonth();
+  const month = searchParams.get('month') ?? currentMonthKey();
   const { data, isLoading, error, refetch } = useOverview(orgId, month);
 
   return (
@@ -130,7 +128,7 @@ export function OverviewScreen() {
               <CardBody className="space-y-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <PanelHeading title="Growth investment" subtitle="Spend against leads produced" />
-                  <PeriodPill label={formatMonth(data.periodMonth)} />
+                  <MonthPicker />
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-[1.6fr_1fr] sm:items-center">
@@ -145,6 +143,14 @@ export function OverviewScreen() {
                         margin={{ top: 8, right: 4, bottom: 4, left: 4 }}
                         barGap={4}
                       >
+                        <Tooltip
+                          cursor={hoverCursor}
+                          content={
+                            <ChartTooltip
+                              formatter={(v, n) => `${v} ${n === 'leads' ? 'leads' : 'booked'}`}
+                            />
+                          }
+                        />
                         <XAxis
                           dataKey="name"
                           tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
@@ -153,12 +159,14 @@ export function OverviewScreen() {
                         />
                         <Bar
                           dataKey="leads"
+                          name="Leads"
                           fill="hsl(var(--chart-1))"
                           radius={[999, 999, 999, 999]}
                           maxBarSize={12}
                         />
                         <Bar
                           dataKey="booked"
+                          name="Booked"
                           fill="hsl(var(--chart-4))"
                           radius={[999, 999, 999, 999]}
                           maxBarSize={12}
@@ -250,6 +258,7 @@ export function OverviewScreen() {
                     <div className="h-[120px] w-[120px] shrink-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
+                          <Tooltip content={<ChartTooltip formatter={(v) => `${v} leads`} />} />
                           <Pie
                             data={data.sourcePerformance.map((s) => ({
                               name: s.displayName,
@@ -289,9 +298,19 @@ export function OverviewScreen() {
                 <div className="h-20 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={frontDeskDemo.hourly.map((v, i) => ({ i, v }))}>
+                      <Tooltip
+                        cursor={hoverCursor}
+                        content={
+                          <ChartTooltip
+                            labelFormatter={(l) => `${String(l).padStart(2, '0')}:00`}
+                            formatter={(v) => `${v} calls`}
+                          />
+                        }
+                      />
                       <Area
                         type="monotone"
                         dataKey="v"
+                        name="Calls"
                         stroke="hsl(var(--chart-4))"
                         strokeWidth={2}
                         fill="hsl(var(--chart-4) / 0.15)"
@@ -319,13 +338,17 @@ export function OverviewScreen() {
                       ]}
                       margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
                     >
+                      <Tooltip
+                        cursor={hoverCursor}
+                        content={<ChartTooltip formatter={(v) => `${v} leads`} />}
+                      />
                       <XAxis
                         dataKey="name"
                         tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                         axisLine={false}
                         tickLine={false}
                       />
-                      <Bar dataKey="v" radius={[7, 7, 7, 7]} maxBarSize={34}>
+                      <Bar dataKey="v" name="Leads" radius={[7, 7, 7, 7]} maxBarSize={34}>
                         {[0, 1, 2, 3].map((i) => (
                           // Modernize highlights one bar and greys the rest; booked is the column
                           // this screen exists to report.
@@ -451,7 +474,7 @@ export function OverviewScreen() {
                   title="Recent leads"
                   subtitle="Latest enquiries and where they stand"
                 />
-                <PeriodPill label={formatMonth(data.periodMonth)} />
+                <MonthPicker />
               </div>
 
               <div className="-mx-5 overflow-x-auto sm:-mx-6">

@@ -117,18 +117,41 @@ export function FrontDeskScreen() {
             {d.hourly.map((count, hour) => {
               const open = hour >= OPEN_FROM && hour < OPEN_TO;
               return (
-                <div key={hour} className="group/bar flex flex-1 flex-col items-center gap-1">
+                <div
+                  key={hour}
+                  className="group/bar relative flex flex-1 flex-col items-center gap-1"
+                >
+                  {/* A styled tooltip rather than the native title attribute, which waits a
+                      second before appearing and cannot be themed. */}
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 elev-lg group-hover/bar:block">
+                    <p className="text-xs font-semibold tabular-nums">
+                      {String(hour).padStart(2, '0')}:00
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full',
+                          open ? 'bg-[hsl(var(--primary))]' : 'bg-critical',
+                        )}
+                        aria-hidden
+                      />
+                      {count} {count === 1 ? 'call' : 'calls'}
+                      <span className="font-semibold text-foreground">
+                        {open ? '· answered' : '· nobody answers'}
+                      </span>
+                    </p>
+                  </div>
+
                   <div className="flex w-full flex-1 items-end">
                     <div
                       className={cn(
-                        'w-full rounded-t-full transition-all duration-500 ease-out',
+                        'w-full rounded-t-full transition-all duration-200 ease-out',
                         open
                           ? 'bg-gradient-to-t from-[hsl(var(--primary))] to-[hsl(199_89%_52%)]'
                           : 'bg-gradient-to-t from-critical/70 to-critical/40',
-                        'group-hover/bar:brightness-110',
+                        'group-hover/bar:brightness-110 group-hover/bar:saturate-150',
                       )}
                       style={{ height: `${Math.max((count / peak) * 100, 3)}%` }}
-                      title={`${hour}:00 — ${count} calls`}
                     />
                   </div>
                   {hour % 4 === 0 && (

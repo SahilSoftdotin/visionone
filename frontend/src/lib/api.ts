@@ -15,6 +15,15 @@ export class ApiError extends Error {
   get isForbidden(): boolean {
     return this.status === 403;
   }
+
+  /**
+   * 401 means the token has expired or was rejected. It is not a statement about the account, and
+   * a screen that treats it as one tells the caller their practice is missing when they simply
+   * need to sign in again.
+   */
+  get isUnauthenticated(): boolean {
+    return this.status === 401;
+  }
 }
 
 let tokenProvider: () => string | undefined = () => undefined;

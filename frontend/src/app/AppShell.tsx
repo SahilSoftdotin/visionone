@@ -39,7 +39,7 @@ export function AppShell() {
           onClick={() => setMobileOpen(false)}
           className={({ isActive }) =>
             cn(
-              'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 lg:flex-col lg:gap-1.5 lg:px-2 lg:py-3',
+              'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 lg:min-h-[68px] lg:flex-col lg:justify-center lg:gap-1.5 lg:px-2 lg:py-2.5',
               isActive
                 ? 'bg-primary text-primary-foreground shadow-[0_2px_8px_-1px_hsl(224_100%_68%/0.45)]'
                 : 'text-muted-foreground hover:bg-primary-soft hover:text-primary-text',
@@ -47,7 +47,9 @@ export function AppShell() {
           }
         >
           <Icon className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="lg:text-[10px] lg:font-semibold lg:leading-none">{label}</span>
+          <span className="text-center lg:text-[10px] lg:font-semibold lg:leading-tight">
+            {label}
+          </span>
           {!ready && (
             <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground lg:ml-0">
               soon
