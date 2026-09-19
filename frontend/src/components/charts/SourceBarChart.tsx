@@ -34,16 +34,19 @@ export function SourceBarChart({ sources }: { sources: SourcePerformance[] }) {
             allowDecimals={false}
           />
           <Tooltip
+            cursor={{ fill: 'hsl(var(--primary) / 0.06)' }}
             contentStyle={{
               backgroundColor: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
-              borderRadius: 'var(--radius)',
+              borderRadius: '0.75rem',
+              boxShadow: 'var(--shadow-lg)',
               fontSize: 12,
             }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="Leads" fill="hsl(var(--chart-1))" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="Booked" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
+          {/* Fully rounded caps: a bar reads as a measured quantity, not a cut column. */}
+          <Bar dataKey="Leads" fill="hsl(var(--chart-1))" radius={[999, 999, 999, 999]} maxBarSize={18} />
+          <Bar dataKey="Booked" fill="hsl(var(--navy))" radius={[999, 999, 999, 999]} maxBarSize={18} />
         </BarChart>
       </ResponsiveContainer>
     </div>

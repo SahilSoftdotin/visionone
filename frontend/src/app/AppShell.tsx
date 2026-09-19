@@ -51,8 +51,8 @@ export function AppShell() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-card/80 backdrop-blur-md elev-sm">
+    <div className="app-sky min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-white/60 bg-card/60 backdrop-blur-xl">
         <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
           <button
             type="button"
@@ -87,22 +87,23 @@ export function AppShell() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1400px]">
+      <div className="mx-auto flex w-full max-w-[1500px] gap-5 px-3 pb-6 pt-4 sm:px-5">
+        {/* The rail floats on the sky rather than being carved out of it by a border. */}
         <aside
           className={cn(
-            'w-full shrink-0 border-b border-border px-4 py-3 lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:w-56 lg:border-b-0 lg:border-r lg:px-3 lg:py-5',
+            'w-full shrink-0 rounded-lg glass p-3 lg:sticky lg:top-[4.5rem] lg:block lg:h-[calc(100vh-6rem)] lg:w-56',
             mobileOpen ? 'block' : 'hidden lg:block',
           )}
         >
           <div className="flex h-full flex-col">
             {nav}
-            <div className="mt-6 border-t border-border pt-3 lg:mt-auto">
+            <div className="mt-6 border-t border-border/60 pt-2 lg:mt-auto">
               <ParentBrandLine />
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
+        <main className="min-w-0 flex-1">
           <Outlet />
         </main>
       </div>

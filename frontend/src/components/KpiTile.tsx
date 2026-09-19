@@ -20,7 +20,7 @@ export function KpiTile({ label, value, current, prior, invertDirection, hint }:
     : null;
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border bg-card p-5 elev-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/25 hover:elev-md">
+    <div className="group relative overflow-hidden rounded-lg glass p-5 transition-all duration-200 hover:-translate-y-0.5 hover:elev-lg">
       {/* A hairline of brand colour on hover - presence without decoration. */}
       <span
         aria-hidden

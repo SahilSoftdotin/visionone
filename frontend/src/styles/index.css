@@ -31,7 +31,11 @@
     --chart-5: 340 65% 52%;
     --chart-6: 215 16% 55%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
+
+    /* Navy, for the weightiest surfaces. Blue carries the brand; navy carries authority. */
+    --navy: 222 42% 34%;
+    --navy-foreground: 0 0% 100%;
 
     /* Layered, blue-tinted shadows. Grey shadows on a tinted ground look muddy. */
     --shadow-sm: 0 1px 2px 0 hsl(215 35% 25% / 0.05);
@@ -64,6 +68,9 @@
     --chart-5: 340 70% 65%;
     --chart-6: 215 15% 65%;
 
+    --navy: 220 35% 62%;
+    --navy-foreground: 217 33% 10%;
+
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 4px 12px -2px hsl(0 0% 0% / 0.35);
     --shadow-lg: 0 2px 4px -1px hsl(0 0% 0% / 0.3), 0 12px 28px -6px hsl(0 0% 0% / 0.45);
@@ -95,5 +102,40 @@
   }
   .elev-lg {
     box-shadow: var(--shadow-lg);
+  }
+
+  /*
+   * The soft blue-white sky the whole workspace floats on. Two blurred blooms rather than a
+   * single linear ramp, so the light has a direction instead of a seam.
+   */
+  .app-sky {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(60rem 40rem at 12% -8%, hsl(199 90% 88% / 0.55), transparent 60%),
+      radial-gradient(52rem 38rem at 92% 4%, hsl(222 80% 88% / 0.5), transparent 62%),
+      radial-gradient(44rem 34rem at 50% 108%, hsl(199 70% 90% / 0.4), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  .dark .app-sky {
+    background-image:
+      radial-gradient(60rem 40rem at 12% -8%, hsl(199 70% 30% / 0.3), transparent 60%),
+      radial-gradient(52rem 38rem at 92% 4%, hsl(222 60% 32% / 0.28), transparent 62%);
+  }
+
+  /*
+   * Panels are frosted rather than opaque, so the sky reads through them and the stack has
+   * depth. The border is a light edge, not an outline.
+   */
+  .glass {
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid hsl(0 0% 100% / 0.65);
+    box-shadow: var(--shadow-md);
+  }
+
+  .dark .glass {
+    background-color: hsl(var(--card) / 0.7);
+    border-color: hsl(var(--border) / 0.8);
   }
 }
