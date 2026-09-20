@@ -3,14 +3,14 @@ import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { VisionOneMark } from '@/components/ui/Brand';
 
 /**
- * Sign-in, on the Modernize auth layout: a tinted illustration panel on the left and a white
- * form column on the right.
+ * Sign-in: a form column on the left behind a wide gutter, an illustration mosaic filling the
+ * right and bleeding off the edge.
  *
- * Modernize puts email and password fields in that column. VisionOne cannot: authentication is a
- * redirect to the identity provider, and the product never handles a credential. The column keeps
- * the same rhythm - heading, subtitle, divider, primary action, footer line - with the action
- * standing where the fields would be. The real form, styled to match, lives on the Keycloak page
- * this button leads to.
+ * The reference layout puts email and password fields in that column. VisionOne cannot:
+ * authentication is a redirect to the identity provider, and the product never handles a
+ * credential. The column keeps the same rhythm - heading, subtitle, primary action, footer line -
+ * with the action standing where the fields would be, on the same 330px measure behind the same
+ * 7rem gutter as the Keycloak page this button leads to.
  */
 export function AuthScreen({
   state,

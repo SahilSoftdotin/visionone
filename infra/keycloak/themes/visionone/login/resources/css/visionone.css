@@ -1,12 +1,13 @@
 /*
  * VisionOne login theme, on the Modernize auth layout.
  *
- * A tinted illustration panel on the left, a white form column on the right, matching the
- * dashboard's own theme so the redirect does not feel like leaving the product.
+ * A white form column on the left behind a wide gutter, an illustration mosaic filling the right
+ * and bleeding off the edge, matching the dashboard so the redirect does not feel like leaving
+ * the product.
  *
- * Values are Modernize's measured ones: #5D87FF primary, #2A3547 text, 7px radius, Plus Jakarta
- * Sans. Where an accent carries text it uses a darkened variant - Modernize's raw accents measure
- * as low as 1.7:1 on white and would put an unreadable label on a clinical product.
+ * #1E63E9 primary, #2A3547 text, 7px radius, Plus Jakarta Sans. Where an accent carries text it
+ * uses a darkened variant - the raw accents measure as low as 1.7:1 on white and would put an
+ * unreadable label on a clinical product.
  *
  * Only CSS. Keycloak keeps owning the markup, so OTP, reset and consent inherit this styling and
  * nothing breaks at the next upgrade.
@@ -84,7 +85,12 @@ body#keycloak-bg::before {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 330px;
+  /* Without this the children size to their own content - the form measured 255px inside a
+     330px column, and the heading 179px, which is what was breaking it onto three lines. */
+  align-items: stretch;
+  /* The gutter is padding inside this box, so max-width has to include it - otherwise the
+     fields get whatever is left over, which measured 218px. */
+  max-width: calc(330px + 7rem);
   width: 100%;
   margin: 0;
   padding: 2rem 0 2rem 7rem;
@@ -93,12 +99,14 @@ body#keycloak-bg::before {
 
 @media (max-width: 1280px) {
   .pf-v5-c-login__container {
+    max-width: calc(330px + 4rem);
     padding-left: 4rem;
   }
 }
 
 @media (max-width: 1024px) {
   .pf-v5-c-login__container {
+    max-width: 420px;
     margin: 0 auto;
     padding: 3rem 1.5rem;
   }
@@ -128,6 +136,28 @@ body#keycloak-bg::before {
 #kc-header-wrapper {
   text-align: left;
   width: 100%;
+  display: flex;
+  align-items: center;
+  /* Not gap: the display name is two spans, and a gap would space those apart too - which is
+     exactly the split that had to be taken out of "VisionOne" once already. The mark carries
+     its own margin instead. */
+  gap: 0;
+}
+
+/* The app screen puts the Vision Digital Lab mark beside the wordmark. Keycloak's header holds
+   only the realm's display name, so the mark comes in as a pseudo-element rather than a template
+   fork - the two surfaces have to look like one product across the redirect. */
+#kc-header-wrapper::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.625rem;
+  border-radius: 0.5rem;
+  background-image: url('../img/vision-digital-lab.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 #kc-header-wrapper,
@@ -157,6 +187,10 @@ body#keycloak-bg::before {
   border: 0;
   box-shadow: none;
   border-radius: 0;
+  /* PatternFly sets align-self: start here, which beats the container's align-items and left the
+     form sized to its own content - 255px inside a 330px column, and the heading narrower still. */
+  align-self: stretch;
+  width: 100%;
 }
 
 .pf-v5-c-login__main-header {
@@ -172,6 +206,16 @@ body#keycloak-bg::before {
   text-align: left;
 }
 
+#kc-page-title::after {
+  content: 'Log in to your VisionOne account';
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--vo-muted);
+}
+
 .pf-v5-c-login__main-body {
   padding: 1.5rem 0 0;
 }
@@ -182,6 +226,11 @@ body#keycloak-bg::before {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--vo-fg);
+}
+
+/* The label sat on the input with its descenders almost touching the border. */
+.pf-v5-c-form__label {
+  margin-bottom: 0.375rem;
 }
 
 .pf-v5-c-form-control,
@@ -224,21 +273,48 @@ body#keycloak-bg::before {
   display: none !important;
 }
 
+.pf-v5-c-input-group {
+  gap: 0;
+}
+
+.pf-v5-c-input-group__item {
+  border: 0 !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+  display: flex;
+  align-items: stretch;
+}
+
+.pf-v5-c-input-group__item.pf-m-fill {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .pf-v5-c-input-group .pf-v5-c-form-control {
-  border: 0;
+  border: 0 !important;
   border-radius: 0;
+  box-shadow: none !important;
   min-height: 2.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pf-v5-c-form-control:focus-within,
 .pf-v5-c-input-group:focus-within {
   border-color: var(--vo-primary);
-  box-shadow: 0 0 0 3px rgba(93, 135, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(30, 99, 233, 0.18);
   outline: none;
 }
 
 .pf-v5-c-input-group .pf-v5-c-form-control:focus-within {
   box-shadow: none;
+}
+
+.pf-v5-c-form-control > input:focus,
+.pf-v5-c-input-group input:focus,
+input#username:focus,
+input#password:focus {
+  outline: none;
 }
 
 /* PatternFly leaves its own light --Color token in place, which renders what you type as
@@ -280,6 +356,14 @@ input#password:-webkit-autofill {
   color: var(--vo-muted) !important;
   box-shadow: none !important;
   min-height: 2.75rem;
+}
+
+/* PatternFly draws the control button's underline as an ::after, which survived border:0 and
+   left a grey line across the bottom of the password box. */
+.pf-v5-c-button.pf-m-control::after,
+.pf-v5-c-input-group__item .pf-v5-c-button::after {
+  display: none !important;
+  border: 0 !important;
 }
 
 .pf-v5-c-button.pf-m-control:hover,
