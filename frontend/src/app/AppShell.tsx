@@ -27,6 +27,9 @@ export function AppShell() {
     queryKey: queryKeys.session,
     queryFn: () => apiGet<SessionResponse>('/me'),
     staleTime: 5 * 60_000,
+    // Same guard as OrganizationRouter: this shares the cache key, so an unauthenticated call
+    // here would poison it for both.
+    enabled: Boolean(auth.user?.access_token),
   });
   const organization = session?.organizations.find((candidate) => candidate.id === orgId);
 

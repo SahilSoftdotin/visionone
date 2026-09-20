@@ -27,9 +27,11 @@ function hasPendingCallback(): boolean {
 export function AuthBootstrap({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
-  useEffect(() => {
-    setTokenProvider(() => auth.user?.access_token);
-  }, [auth.user]);
+  // Published during render, not in an effect. An effect runs *after* children have rendered, so
+  // any query fired in that first pass went out with no Authorization header, came back 401, and
+  // the renewal below read that as an expiry and restarted sign-in - a redirect loop. Assigning a
+  // module-level function is idempotent and has no ordering hazard.
+  setTokenProvider(() => auth.user?.access_token);
 
   // Returning from the identity provider, or restoring a stored session. Deciding anything here
   // would race the callback and bounce the caller back to /login with a valid code in hand.

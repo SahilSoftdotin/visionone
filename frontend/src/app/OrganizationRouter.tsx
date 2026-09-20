@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from 'react-oidc-context';
@@ -13,23 +13,31 @@ import type { SessionResponse } from '@/lib/types';
  */
 export function OrganizationRouter() {
   const auth = useAuth();
+  const token = auth.user?.access_token;
+  const renewing = useRef(false);
+
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.session,
     queryFn: () => apiGet<SessionResponse>('/me'),
     staleTime: 5 * 60_000,
+    // Belt and braces alongside the render-time token: never ask until there is one to ask with.
+    enabled: Boolean(token),
     // An expired token is not worth retrying; it needs a new one.
     retry: (count, err) => !(err instanceof ApiError && err.isUnauthenticated) && count < 1,
   });
 
-  const expired = error instanceof ApiError && error.isUnauthenticated;
+  // Only a session we actually held can expire. Without this, a 401 from any other cause
+  // restarts sign-in, and the loop is indistinguishable from a broken login.
+  const expired = Boolean(token) && error instanceof ApiError && error.isUnauthenticated;
 
-  // A rejected token is a sign-in problem, not an account problem. Renew it rather than telling
-  // someone their practice has disappeared.
+  // Renew once. A ref, not state, so a re-render cannot fire a second redirect.
   useEffect(() => {
-    if (expired) void auth.signinRedirect();
+    if (!expired || renewing.current) return;
+    renewing.current = true;
+    void auth.signinRedirect();
   }, [expired, auth]);
 
-  if (isLoading || expired) {
+  if (!token || isLoading || expired) {
     return <p className="p-6 text-sm text-muted-foreground">Loading your practice&hellip;</p>;
   }
 
