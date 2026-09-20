@@ -39,7 +39,12 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
   // isLoading alone is not enough: on the first render after the redirect the library may not have
   // begun the exchange yet, so the guard below would route away and the effect on /login would
   // start a fresh sign-in, discarding the code. Hold while the callback is still in the URL.
-  if (auth.isLoading || auth.activeNavigator || hasPendingCallback()) {
+  // Hold only while the exchange is genuinely in flight. Once the library has resolved - either
+  // way - stop waiting. Holding on the URL alone left a failed exchange stuck on this splash
+  // forever, because a failure does not clean the query string.
+  const settling = hasPendingCallback() && !auth.error && !auth.isAuthenticated;
+
+  if (auth.isLoading || auth.activeNavigator || settling) {
     return (
       <AuthSplash>
         <p className="text-sm text-muted-foreground">Signing you in&hellip;</p>
