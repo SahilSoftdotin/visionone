@@ -20,6 +20,11 @@ frontend/.vite/
 .env.local
 *.log
 
+# Deployment secrets and anything rendered from them. The realm under generated/ carries real
+# account passwords; it is built on the host at deploy time and must never be committed.
+.env.prod
+infra/keycloak/generated/
+
 # OS
 .DS_Store
 Thumbs.db

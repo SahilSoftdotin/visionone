@@ -1,0 +1,45 @@
+# One public origin. Caddy terminates TLS, serves the SPA, and proxies the two backends, so the
+# browser only ever talks to {$DOMAIN} and the app needs no CORS configuration at all.
+#
+# Certificates are issued and renewed by Caddy against Let's Encrypt automatically. That requires
+# {$DOMAIN} to already resolve to this host on ports 80 and 443.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Keycloak owns these paths. The themed sign-in page and the OIDC endpoints both live under
+	# /realms; /resources serves the theme's own CSS and images.
+	handle /realms/* {
+		reverse_proxy keycloak:8180
+	}
+	handle /resources/* {
+		reverse_proxy keycloak:8180
+	}
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# The Keycloak admin console is deliberately NOT routed. It is the keys to every account in
+	# the realm and it does not need to be on the public internet for a demo. Reach it over an
+	# SSH tunnel instead - see docs/deployment.md.
+
+	# Everything else is the SPA. try_files sends unknown paths to index.html so client-side
+	# routes survive a refresh or a pasted link.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
