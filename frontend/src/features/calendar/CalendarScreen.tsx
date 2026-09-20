@@ -121,7 +121,9 @@ export function CalendarScreen() {
                 <div
                   key={iso}
                   className={cn(
-                    'group relative min-h-[92px] rounded-lg border p-2 transition-all duration-150',
+                    // z-0 plus a raise on hover: without it the popover is painted under the grid
+                    // cells that follow it in document order, so it appears not to work at all.
+                    'group relative z-0 min-h-[92px] rounded-lg border p-2 transition-all duration-150 hover:z-40',
                     has
                       ? 'border-primary/20 bg-primary-soft/60 hover:-translate-y-0.5 hover:border-primary/40 hover:elev-md'
                       : 'border-border bg-card',
