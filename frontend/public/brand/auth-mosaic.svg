@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" width="1000" height="900" fill="none" role="img" aria-label="Illustrations of a practice: calls, scheduling, reviews, reporting">
+  <defs>
+    <style>
+      .navy { fill: #0B2C6B; }
+      .blue { fill: #1E63E9; }
+      .mid  { fill: #9FC0F5; }
+      .soft { fill: #DCE8FB; }
+      .white{ fill: #FFFFFF; }
+      .sNavy{ stroke: #0B2C6B; stroke-width: 6; stroke-linecap: round; fill: none; }
+      .sBlue{ stroke: #1E63E9; stroke-width: 6; stroke-linecap: round; fill: none; }
+      .sWhite{ stroke:#FFFFFF; stroke-width: 6; stroke-linecap: round; fill: none; }
+    </style>
+    <clipPath id="t1"><rect x="0" y="0" width="185" height="150" rx="14"/></clipPath>
+  </defs>
+
+  <!-- column 1 -->
+  <g>
+    <rect x="0" y="0" width="185" height="150" rx="14" class="soft"/>
+    <!-- desk phone -->
+    <rect x="40" y="52" width="105" height="58" rx="10" class="white"/>
+    <rect x="54" y="66" width="44" height="14" rx="4" class="mid"/>
+    <circle cx="112" cy="72" r="5" class="blue"/><circle cx="128" cy="72" r="5" class="blue"/>
+    <circle cx="112" cy="90" r="5" class="mid"/><circle cx="128" cy="90" r="5" class="mid"/>
+    <rect x="54" y="86" width="44" height="8" rx="4" class="soft"/>
+
+    <rect x="0" y="162" width="185" height="215" rx="14" class="blue"/>
+    <!-- keypad -->
+    <g>
+      <rect x="40" y="212" width="105" height="118" rx="12" class="white"/>
+      <circle cx="66" cy="240" r="9" class="blue"/><circle cx="92" cy="240" r="9" class="blue"/><circle cx="118" cy="240" r="9" class="blue"/>
+      <circle cx="66" cy="271" r="9" class="blue"/><circle cx="92" cy="271" r="9" class="blue"/><circle cx="118" cy="271" r="9" class="blue"/>
+      <circle cx="66" cy="302" r="9" class="blue"/><circle cx="92" cy="302" r="9" class="blue"/><circle cx="118" cy="302" r="9" class="blue"/>
+    </g>
+
+    <rect x="0" y="389" width="185" height="246" rx="14" class="navy"/>
+    <!-- map pin on circle -->
+    <circle cx="92" cy="500" r="56" class="white"/>
+    <path d="M92 470 C79 470 69 480 69 493 C69 510 92 532 92 532 C92 532 115 510 115 493 C115 480 105 470 92 470 Z" class="blue"/>
+    <circle cx="92" cy="492" r="9" class="white"/>
+    <path d="M40 585 C70 570 120 600 150 582" class="sWhite" opacity="0.5"/>
+
+    <rect x="0" y="647" width="185" height="253" rx="14" class="soft"/>
+    <!-- headset person -->
+    <circle cx="92" cy="760" r="42" class="mid"/>
+    <path d="M92 806 C60 806 44 830 44 856 L140 856 C140 830 124 806 92 806 Z" class="blue"/>
+    <path d="M58 752 a34 34 0 0 1 68 0" class="sNavy"/>
+    <rect x="50" y="750" width="14" height="26" rx="7" class="navy"/>
+    <rect x="120" y="750" width="14" height="26" rx="7" class="navy"/>
+  </g>
+
+  <!-- column 2 -->
+  <g transform="translate(197,0)">
+    <rect x="0" y="0" width="185" height="196" rx="14" class="soft"/>
+    <!-- clipboard / intake -->
+    <rect x="46" y="38" width="94" height="120" rx="10" class="white"/>
+    <rect x="72" y="30" width="42" height="18" rx="6" class="blue"/>
+    <rect x="62" y="74" width="62" height="8" rx="4" class="mid"/>
+    <rect x="62" y="94" width="62" height="8" rx="4" class="mid"/>
+    <rect x="62" y="114" width="40" height="8" rx="4" class="soft"/>
+
+    <rect x="0" y="208" width="185" height="300" rx="14" class="soft"/>
+    <!-- abstract wave -->
+    <path d="M0 330 C56 300 74 400 116 372 C150 349 168 402 185 388 L185 508 L0 508 Z" class="mid" opacity="0.65"/>
+    <circle cx="128" cy="286" r="12" class="mid"/>
+
+    <rect x="0" y="520" width="185" height="180" rx="14" class="soft"/>
+    <!-- mobile -->
+    <rect x="62" y="546" width="62" height="118" rx="12" class="white"/>
+    <circle cx="80" cy="592" r="6" class="blue"/><circle cx="102" cy="592" r="6" class="blue"/>
+    <circle cx="80" cy="614" r="6" class="mid"/><circle cx="102" cy="614" r="6" class="mid"/>
+    <rect x="76" y="560" width="34" height="8" rx="4" class="soft"/>
+
+    <rect x="0" y="712" width="185" height="188" rx="14" class="soft"/>
+    <!-- storefront -->
+    <rect x="38" y="770" width="110" height="88" rx="8" class="white"/>
+    <rect x="38" y="758" width="110" height="18" rx="6" class="blue"/>
+    <rect x="56" y="794" width="34" height="34" rx="4" class="soft"/>
+    <rect x="102" y="794" width="28" height="64" rx="4" class="mid"/>
+  </g>
+
+  <!-- column 3 -->
+  <g transform="translate(394,0)">
+    <rect x="0" y="0" width="185" height="176" rx="14" class="mid"/>
+    <!-- clock grid -->
+    <rect x="30" y="36" width="125" height="104" rx="12" class="white"/>
+    <g class="sBlue" stroke-width="4">
+      <circle cx="58" cy="66" r="13"/><circle cx="92" cy="66" r="13"/><circle cx="126" cy="66" r="13"/>
+      <circle cx="58" cy="110" r="13"/><circle cx="92" cy="110" r="13"/><circle cx="126" cy="110" r="13"/>
+    </g>
+
+    <rect x="0" y="188" width="185" height="212" rx="14" class="soft"/>
+    <!-- chart card -->
+    <rect x="28" y="222" width="129" height="144" rx="10" class="white"/>
+    <rect x="44" y="318" width="16" height="32" rx="5" class="mid"/>
+    <rect x="68" y="298" width="16" height="52" rx="5" class="blue"/>
+    <rect x="92" y="308" width="16" height="42" rx="5" class="mid"/>
+    <rect x="116" y="280" width="16" height="70" rx="5" class="blue"/>
+    <path d="M52 300 L76 284 L100 292 L124 266" class="sNavy" stroke-width="4"/>
+
+    <rect x="0" y="412" width="185" height="150" rx="14" class="blue"/>
+    <!-- VisionOne wordmark tile -->
+    <text x="92" y="495" text-anchor="middle" font-family="'Plus Jakarta Sans', 'Segoe UI', sans-serif" font-size="30" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">VisionOne</text>
+
+    <rect x="0" y="574" width="185" height="326" rx="14" class="navy"/>
+    <!-- treatment chair, simplified -->
+    <rect x="34" y="700" width="90" height="26" rx="10" class="white"/>
+    <rect x="34" y="726" width="34" height="74" rx="10" class="mid"/>
+    <rect x="108" y="664" width="18" height="52" rx="8" class="blue"/>
+    <circle cx="132" cy="742" r="16" class="blue"/>
+    <path d="M40 820 L150 820" class="sWhite" opacity="0.4"/>
+  </g>
+
+  <!-- column 4 -->
+  <g transform="translate(591,0)">
+    <rect x="0" y="0" width="185" height="240" rx="14" class="navy"/>
+    <!-- donut metric -->
+    <circle cx="92" cy="120" r="56" stroke="#DCE8FB" stroke-width="18" fill="none"/>
+    <path d="M92 64 a56 56 0 0 1 43 92" stroke="#1E63E9" stroke-width="18" fill="none" stroke-linecap="round"/>
+    <text x="92" y="118" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">2,870</text>
+    <text x="92" y="138" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="10" fill="#9FC0F5">Total calls</text>
+
+    <rect x="0" y="252" width="185" height="288" rx="14" class="soft"/>
+    <path d="M0 400 C48 370 70 470 112 440 C148 414 170 468 185 452 L185 540 L0 540 Z" class="mid" opacity="0.55"/>
+
+    <rect x="0" y="552" width="185" height="160" rx="14" class="navy"/>
+    <!-- avatar -->
+    <circle cx="92" cy="612" r="30" class="mid"/>
+    <path d="M92 646 C68 646 54 664 54 684 L130 684 C130 664 116 646 92 646 Z" class="white"/>
+
+    <rect x="0" y="724" width="185" height="176" rx="14" class="soft"/>
+    <!-- desk + monitor -->
+    <rect x="52" y="766" width="82" height="56" rx="6" class="white"/>
+    <rect x="64" y="778" width="58" height="32" rx="4" class="blue"/>
+    <rect x="84" y="822" width="18" height="10" class="mid"/>
+    <rect x="42" y="834" width="102" height="8" rx="4" class="mid"/>
+  </g>
+
+  <!-- column 5 -->
+  <g transform="translate(788,0)">
+    <rect x="0" y="0" width="212" height="330" rx="14" class="blue"/>
+    <path d="M0 120 C60 160 90 60 150 108 C180 132 200 96 212 108 L212 330 L0 330 Z" class="navy" opacity="0.85"/>
+
+    <rect x="0" y="342" width="212" height="180" rx="14" class="soft"/>
+    <!-- review stars -->
+    <g class="blue">
+      <path d="M46 430 l9 18 20 3 -15 14 4 20 -18 -10 -18 10 4 -20 -15 -14 20 -3 Z"/>
+      <path d="M106 430 l9 18 20 3 -15 14 4 20 -18 -10 -18 10 4 -20 -15 -14 20 -3 Z"/>
+      <path d="M166 430 l9 18 20 3 -15 14 4 20 -18 -10 -18 10 4 -20 -15 -14 20 -3 Z" opacity="0.4"/>
+    </g>
+
+    <rect x="0" y="534" width="212" height="180" rx="14" class="mid"/>
+    <!-- calendar -->
+    <rect x="34" y="568" width="144" height="112" rx="10" class="white"/>
+    <rect x="34" y="568" width="144" height="26" rx="10" class="navy"/>
+    <g class="soft">
+      <rect x="50" y="608" width="22" height="18" rx="4"/><rect x="82" y="608" width="22" height="18" rx="4"/>
+      <rect x="114" y="608" width="22" height="18" rx="4"/><rect x="146" y="608" width="18" height="18" rx="4"/>
+      <rect x="50" y="636" width="22" height="18" rx="4"/>
+      <rect x="114" y="636" width="22" height="18" rx="4"/><rect x="146" y="636" width="18" height="18" rx="4"/>
+    </g>
+    <rect x="82" y="636" width="22" height="18" rx="4" class="blue"/>
+
+    <rect x="0" y="726" width="212" height="174" rx="14" class="navy"/>
+    <!-- chat bubbles -->
+    <rect x="34" y="760" width="96" height="46" rx="14" class="white"/>
+    <rect x="86" y="818" width="92" height="44" rx="14" class="blue"/>
+  </g>
+</svg>
