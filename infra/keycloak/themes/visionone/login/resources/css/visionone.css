@@ -46,7 +46,7 @@ body#keycloak-bg::before {
 /* Form column on the left, illustration mosaic filling the right. */
 .pf-v5-c-login {
   display: grid;
-  grid-template-columns: minmax(420px, 34fr) 66fr;
+  grid-template-columns: minmax(450px, 40fr) 60fr;
   min-height: 100vh;
   max-width: none;
   padding: 0;
@@ -90,16 +90,16 @@ body#keycloak-bg::before {
   align-items: stretch;
   /* The gutter is padding inside this box, so max-width has to include it - otherwise the
      fields get whatever is left over, which measured 218px. */
-  max-width: calc(330px + 7rem);
+  max-width: calc(324px + 126px);
   width: 100%;
   margin: 0;
-  padding: 2rem 0 2rem 7rem;
+  padding: 2rem 0 2rem 126px;
   gap: 0;
 }
 
 @media (max-width: 1280px) {
   .pf-v5-c-login__container {
-    max-width: calc(330px + 4rem);
+    max-width: calc(324px + 4rem);
     padding-left: 4rem;
   }
 }
@@ -116,8 +116,8 @@ body#keycloak-bg::before {
 
 #kc-header {
   position: absolute;
-  top: 2rem;
-  left: 7rem;
+  top: 1rem;
+  left: 1rem;
   display: flex;
   justify-content: flex-start;
   text-align: left;
@@ -126,7 +126,7 @@ body#keycloak-bg::before {
 }
 
 @media (max-width: 1280px) {
-  #kc-header { left: 4rem; }
+  #kc-header { left: 1rem; }
 }
 
 @media (max-width: 1024px) {
@@ -150,9 +150,9 @@ body#keycloak-bg::before {
 #kc-header-wrapper::before {
   content: '';
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0.625rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.5rem;
   border-radius: 0.5rem;
   background-image: url('../img/vision-digital-lab.svg');
   background-size: contain;
@@ -164,7 +164,7 @@ body#keycloak-bg::before {
 #kc-header-wrapper.pf-v5-c-brand,
 #kc-header-wrapper * {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--vo-fg) !important;
@@ -195,13 +195,17 @@ body#keycloak-bg::before {
 
 .pf-v5-c-login__main-header {
   padding: 0;
+  /* PatternFly makes this a grid with auto-sized tracks, which handed the title a 227px column
+     inside a 324px form and broke "Welcome back" across two lines. It only holds the title. */
+  display: block;
 }
 
 #kc-page-title {
-  font-size: 2.125rem;
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  width: 100%;
+  font-size: 2.25rem;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: normal;
   color: var(--vo-fg);
   text-align: left;
 }
@@ -209,11 +213,12 @@ body#keycloak-bg::before {
 #kc-page-title::after {
   content: 'Log in to your VisionOne account';
   display: block;
-  margin-top: 0.625rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--vo-muted);
+  margin-top: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--vo-fg);
 }
 
 .pf-v5-c-login__main-body {
@@ -327,7 +332,7 @@ input#password {
   color: var(--vo-fg) !important;
   -webkit-text-fill-color: var(--vo-fg);
   background: transparent;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 500;
 }
 
@@ -390,10 +395,10 @@ input#password:-webkit-autofill {
   --pf-v5-c-button--BorderRadius: var(--vo-radius);
   background-color: var(--vo-primary);
   border-radius: var(--vo-radius);
-  min-height: 3rem;
+  min-height: 2.5rem;
   width: 100%;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   letter-spacing: 0;
   box-shadow: none;
   transition: background-color 0.15s ease, filter 0.15s ease;

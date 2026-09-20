@@ -24,23 +24,21 @@ export function AuthScreen({
   return (
     // Form column left, illustration mosaic right - the same shape as the provider page this
     // hands over to, so the redirect does not feel like changing product.
-    <div className="grid min-h-screen bg-card lg:grid-cols-[minmax(420px,34fr)_66fr]">
-      <div className="relative flex flex-col justify-center px-6 py-10 sm:px-10 lg:py-12 lg:pl-28 lg:pr-0">
-        <div className="absolute left-6 top-8 flex items-center gap-2.5 sm:left-10 lg:left-28">
+    <div className="grid min-h-screen bg-card lg:grid-cols-[minmax(450px,40fr)_60fr]">
+      <div className="relative flex flex-col justify-center px-6 py-10 sm:px-10 lg:py-12 lg:pl-[126px] lg:pr-0">
+        <div className="absolute left-4 top-4 flex items-center gap-2">
           <img
             src="/brand/vision-digital-lab.svg"
             alt=""
             aria-hidden
-            className="h-8 w-8 rounded-lg"
+            className="h-7 w-7 rounded-lg"
           />
-          <VisionOneMark className="text-xl font-extrabold" />
+          <VisionOneMark className="text-[22px] font-extrabold" />
         </div>
 
-        <div className="w-full max-w-[330px]">
-          <h1 className="text-[34px] font-extrabold leading-[1.15] tracking-[-0.02em]">
-            Welcome back
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Log in to your VisionOne account</p>
+        <div className="w-full max-w-[324px]">
+          <h1 className="text-4xl font-bold leading-[1.5] tracking-normal">Welcome back</h1>
+          <p className="text-base leading-[1.5]">Log in to your VisionOne account</p>
 
           {state === 'error' && (
             <div role="alert" className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm">
@@ -63,7 +61,7 @@ export function AuthScreen({
             type="button"
             onClick={onSignIn}
             disabled={state === 'working'}
-            className="group mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[15px] font-semibold text-primary-foreground transition-all duration-150 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-70"
+            className="group mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-base font-bold text-primary-foreground transition-all duration-150 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-70"
           >
             {state === 'working' ? (
               <>
