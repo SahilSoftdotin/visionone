@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from 'react-oidc-context';
 import { oidcConfig } from '@/lib/auth';
 import { AuthBootstrap, LoginRoute, RequireAuth } from './AuthGate';
+import { ScrollToTop } from './ScrollToTop';
 import { AppShell } from './AppShell';
 import { OrganizationRouter } from './OrganizationRouter';
 import { OverviewScreen } from '@/features/overview/OverviewScreen';
@@ -27,6 +28,7 @@ export function App() {
     <AuthProvider {...oidcConfig}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <ScrollToTop />
           <AuthBootstrap>
             <Routes>
               {/* Public. Keycloak returns to "/", so the callback never lands here. */}

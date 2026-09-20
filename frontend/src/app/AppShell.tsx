@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, Search, X } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import { CLIENT_NAVIGATION } from './navigation';
 import { apiGet, queryKeys } from '@/lib/api';
 import type { SessionResponse } from '@/lib/types';
 import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
+import { GlobalSearch } from '@/components/ui/GlobalSearch';
+import { Notifications } from '@/components/ui/Notifications';
 import { cn } from '@/lib/utils';
 
 /**
@@ -74,11 +76,19 @@ export function AppShell() {
       >
         <div className="flex h-full flex-col">
           <div className="hidden items-center justify-center py-5 lg:flex">
-            <img
-              src="/brand/vision-digital-lab.svg"
-              alt="Vision Digital Lab"
-              className="h-9 w-9 rounded-lg"
-            />
+            {/* The mark is the way home, as it is on most products. */}
+            <Link
+              to={`/orgs/${orgId}/overview`}
+              onClick={() => setMobileOpen(false)}
+              aria-label="VisionOne overview"
+              className="rounded-lg transition-transform duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <img
+                src="/brand/vision-digital-lab.svg"
+                alt="Vision Digital Lab"
+                className="h-9 w-9 rounded-lg"
+              />
+            </Link>
           </div>
           <div className="py-3 lg:py-0">{rail}</div>
           <div className="mt-auto hidden p-3 lg:block">
@@ -100,28 +110,21 @@ export function AppShell() {
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
-            <VisionOneMark className="lg:hidden" />
+            <Link
+              to={`/orgs/${orgId}/overview`}
+              className="lg:hidden"
+              aria-label="VisionOne overview"
+            >
+              <VisionOneMark />
+            </Link>
 
             {organization && (
               <ClientMark name={organization.name} className="hidden min-w-0 sm:flex" />
             )}
 
             <div className="ml-auto flex items-center gap-1.5">
-              <button
-                type="button"
-                className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Search"
-              >
-                <Search className="h-[18px] w-[18px]" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="relative grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Notifications"
-              >
-                <Bell className="h-[18px] w-[18px]" aria-hidden />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-critical ring-2 ring-card" />
-              </button>
+              <GlobalSearch />
+              <Notifications />
 
               <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
 
