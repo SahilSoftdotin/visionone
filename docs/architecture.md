@@ -85,6 +85,133 @@ stores its realm, users and sessions there, so the container stays even if the a
 persisted nothing of its own. And the six fixture-backed screens have no edge leaving them at all,
 which is the honest shape of the product today.
 
+### The same system, by layer
+
+Every component, and which layer it sits in. Arrows cross downward; nothing calls upward.
+
+The cleanest version of this is the **Layered view** page of
+[`architecture.drawio`](architecture.drawio) — ten full-width bands, browser at the top, Postgres
+at the bottom. The Mermaid below is the same content and renders inline on GitHub, but its
+auto-layout will not hold strict horizontal bands: with this many cross-layer edges it staggers
+them sideways. Layer order is correct; alignment is not. Use the drawio page when the shape itself
+matters.
+
+```mermaid
+flowchart TB
+    subgraph CLIENT["1 · CLIENT — browser"]
+        direction LR
+        SHELL["<b>SPA shell</b><br/>React Router · AuthGate · AppShell"]
+        OVUI["<b>Overview screen</b><br/><i>live — calls the API</i>"]
+        FIXUI["<b>Six screens on fixtures</b><br/>Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports<br/><i>no network call</i>"]
+    end
+
+    subgraph EDGE["2 · EDGE — demo deployment only"]
+        CADDY["<b>Caddy</b><br/>TLS · serves the SPA · reverse proxy"]
+    end
+
+    subgraph IDENT["3 · IDENTITY"]
+        KC["<b>Keycloak 26</b><br/>realm visionone · themed login · issues the JWT"]
+    end
+
+    subgraph SEC["4 · SECURITY — in process"]
+        direction LR
+        SC["<b>auth.SecurityConfig</b><br/>validate JWT · map realm roles"]
+        OCI["<b>OrganizationContextInterceptor</b><br/>resolve orgId · check membership"]
+    end
+
+    subgraph WEB["5 · WEB / API"]
+        direction LR
+        SESSC["<b>SessionController</b><br/>/me · /meta"]
+        OVC["<b>OverviewController</b><br/>/overview"]
+        AEH["<b>ApiExceptionHandler</b><br/>403 · 404 · 400"]
+    end
+
+    subgraph APP["6 · APPLICATION"]
+        direction LR
+        OVSVC["<b>OverviewService</b><br/>composes the month"]
+        PORTS["<b>integration ports</b><br/>Scheduling · Voice<br/>Advertising · Analytics<br/><i>all DEMO</i>"]
+    end
+
+    subgraph DOM["7 · DOMAIN MODULES"]
+        direction LR
+        MODS["<b>lead · growth · work<br/>appointment · tenant</b><br/>metrics services behind api interfaces"]
+        EVT["<b>eventing</b><br/>publisher → outbox → relay<br/><i>no callers</i>"]
+        AUDM["<b>audit</b><br/>AuditEventConsumer"]
+    end
+
+    subgraph PERS["8 · PERSISTENCE"]
+        direction LR
+        JPA["<b>JPA repositories ×5</b><br/>Organization · Membership<br/>AuditEvent · Outbox · Processed"]
+        JDBC["<b>JdbcClient ×5</b><br/>metric aggregation reads"]
+        CACHE["<b>Caffeine cache</b><br/>orgConfig · membership<br/>channelSources · integrationStatus"]
+        FLY["<b>Flyway</b><br/>7 migrations + demo seed"]
+    end
+
+    subgraph DATA["9 · DATA"]
+        direction LR
+        PG[("<b>PostgreSQL 17</b><br/>visionone — 19 tables<br/>keycloak — realm, users, sessions")]
+        KAFKA["<b>Kafka 3.9</b><br/><i>opt-in · no traffic</i>"]
+    end
+
+    subgraph EXT["10 · EXTERNAL"]
+        EXTS["<b>Healthie · voice · ad platforms · analytics</b><br/><i>none connected</i>"]
+    end
+
+    %% Invisible chain pinning the layers into bands. Without it dagre optimises for
+    %% edge length and floats Identity beside Security and External up next to Application,
+    %% which is exactly what a layered diagram must not do.
+    CLIENT ~~~ EDGE ~~~ IDENT ~~~ SEC ~~~ WEB ~~~ APP ~~~ DOM ~~~ PERS ~~~ DATA ~~~ EXT
+
+    SHELL -. "redirect to sign in" .-> KC
+    OVUI --> CADDY
+    CADDY -- "/api/*" --> SC
+    CADDY -- "/realms/*" --> KC
+    SC --> OCI
+    OCI --> SESSC
+    OCI --> OVC
+    OVC --> OVSVC
+    SESSC --> MODS
+    OVSVC --> MODS
+    OVSVC --> PORTS
+    PORTS -.-> EXTS
+    MODS --> JPA
+    MODS --> JDBC
+    MODS --> CACHE
+    JPA --> PG
+    JDBC --> PG
+    FLY --> PG
+    KC --> PG
+    EVT -.-> KAFKA
+    KAFKA -.-> AUDM
+    AUDM -.-> JPA
+
+    classDef ui fill:#DAE8FC,stroke:#6C8EBF,color:#16304F
+    classDef live fill:#D5E8D4,stroke:#82B366,color:#1B3A17
+    classDef fixture fill:#FFF2CC,stroke:#D6B656,color:#5C4300
+    classDef ident fill:#E1D5E7,stroke:#9673A6,color:#3D2B47
+    classDef data fill:#FFE6CC,stroke:#D79B00,color:#5C4300
+    classDef idle fill:#FFFFFF,stroke:#B1B7C3,stroke-dasharray:5 5,color:#5F6F85
+    classDef edgec fill:#F5F5F5,stroke:#666666,color:#333333
+
+    class SHELL ui
+    class OVUI,SC,OCI,SESSC,OVC,AEH,OVSVC,MODS,JPA,JDBC,CACHE,FLY live
+    class FIXUI fixture
+    class KC ident
+    class PG,PORTS data
+    class EVT,AUDM,KAFKA,EXTS idle
+    class CADDY edgec
+```
+
+The layers earn their separation in different ways. Four and five are the tenant-safety layers —
+security runs before any controller, so no endpoint can forget the membership check. Eight splits
+by access style rather than by module: JPA where a row has identity and a lifecycle
+(`Organization`, `Membership`, and the eventing plumbing), `JdbcClient` where the work is
+aggregation and an ORM would only get in the way. Ten is drawn but not wired; every adapter behind
+the ports in layer six is a `Demo*` class.
+
+Layer seven is the only one with modules that are currently empty: `content` and `frontdesk` exist
+as packages holding the names for two of the fixture-backed screens.
+
 ### Sign-in
 
 ```
