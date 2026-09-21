@@ -10,13 +10,11 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "e2e": "playwright test"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.0",
     "@tanstack/react-table": "^8.20.6",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
     "oidc-client-ts": "^3.1.0",
@@ -28,10 +26,8 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
-    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.17",
     "@types/react-dom": "^18.3.5",
