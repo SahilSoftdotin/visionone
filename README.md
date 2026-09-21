@@ -33,7 +33,19 @@ without changing the domain model.
 
 On a machine with `make`, `make up` does the same thing.
 
-This starts PostgreSQL (5432) and Keycloak (8180). Keycloak imports the `visionone` realm from
+This starts PostgreSQL (5432) and Keycloak (8180).
+
+If a native PostgreSQL service already owns 5432 — common on Windows, where the
+`postgresql-x64-14` service starts automatically — compose cannot bind and the stack fails to
+come up. Publish it elsewhere and point the API at the same port:
+
+```powershell
+$env:VISIONONE_DB_HOST_PORT = "5433"
+docker compose -f infra/docker-compose.yml up -d
+# then start the API with VISIONONE_DB_URL=jdbc:postgresql://localhost:5433/visionone
+```
+
+Only the host side moves. Everything inside the compose network still talks to 5432. Keycloak imports the `visionone` realm from
 `infra/keycloak/visionone-realm.json` on first start, so authentication is version-controlled
 rather than clicked together.
 
