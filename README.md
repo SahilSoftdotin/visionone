@@ -33,12 +33,21 @@ without changing the domain model.
 
 On a machine with `make`, `make up` does the same thing.
 
-This starts PostgreSQL (5432), Keycloak (8180) and Kafka (9092). Keycloak imports the
-`visionone` realm from `infra/keycloak/visionone-realm.json` on first start, so authentication is
-version-controlled rather than clicked together.
+This starts PostgreSQL (5432) and Keycloak (8180). Keycloak imports the `visionone` realm from
+`infra/keycloak/visionone-realm.json` on first start, so authentication is version-controlled
+rather than clicked together.
 
-Add Kafka UI on :8081 when you want it:
-`docker compose -f infra/docker-compose.yml --profile tools up -d`
+**Kafka is opt-in.** The API reports readiness `UP` without a broker and its Kafka health
+indicator is disabled on purpose, so working on the screens or the API does not need a gigabyte of
+RAM sitting idle. Start it when you are exercising the outbox:
+
+```
+make up-eventing
+# or: docker compose -f infra/docker-compose.yml --profile eventing up -d
+```
+
+Kafka UI on :8081 needs the broker too, so it takes both profiles:
+`docker compose -f infra/docker-compose.yml --profile eventing --profile tools up -d`
 
 ### 2. Start the API
 
