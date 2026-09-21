@@ -10,27 +10,80 @@ sections after it are normative: rules and recipes that hold regardless. Where t
 disagree, they do not. "Adding an event" tells you how to publish one; this section records that
 nothing publishes one yet.
 
-### Runtime topology
+### The whole picture
 
-```
-  Browser
-     │
-     │  (demo deploy: all three behind Caddy on :443, one origin)
-     │
-     ├──▶ SPA          React 18 + Vite 6      :5173
-     ├──▶ Keycloak 26  OIDC, custom theme     :8180
-     └──▶ Spring Boot  modular monolith       :8080
-                          │
-                          ├──▶ PostgreSQL 17  :5432
-                          │      ├── visionone   19 tables
-                          │      └── keycloak    realm, users, sessions
-                          │
-                          └┄┄▶ Kafka  :9092   opt-in profile, no traffic
+An editable version lives at [`architecture.drawio`](architecture.drawio) — open it at
+[diagrams.net](https://app.diagrams.net) or with the Draw.io extension in VS Code. The diagram
+below is the same picture, and renders inline on GitHub.
+
+```mermaid
+flowchart TB
+    subgraph BROWSER["Browser"]
+        direction LR
+        SPA["<b>SPA</b><br/>React 18 · Vite 6 · Tailwind 3<br/>react-oidc-context — auth code + PKCE"]
+        OV["<b>Overview</b><br/>the only screen that calls the API<br/><i>fails if the API is down — the canary</i>"]
+        FIX["<b>Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports</b><br/>945 lines of fixtures in the bundle<br/><i>no network call at all</i>"]
+    end
+
+    CADDY["<b>Caddy</b> — TLS · serves the SPA · reverse proxy<br/><i>demo deployment only; local dev hits the ports directly</i>"]
+    KC["<b>Keycloak 26</b> :8180<br/>realm visionone · custom login theme<br/><i>the only place a credential is entered</i>"]
+
+    subgraph API["Spring Boot API :8080 — modular monolith"]
+        direction TB
+        L1["<b>1</b> auth.SecurityConfig<br/>validate JWT · map realm roles"]
+        L2["<b>2</b> OrganizationContextInterceptor<br/>resolve orgId · check membership"]
+        L3["<b>3</b> tenant-scoped repositories<br/>every query bound to organization_id"]
+        CTRL["<b>Controllers</b><br/>/me · /meta · /overview<br/><i>the entire REST surface</i>"]
+        OVS["<b>OverviewService</b><br/>LeadMetrics · AppointmentMetrics<br/>GrowthFinance · WorkActivity"]
+        PORTS["<b>integration ports</b><br/>Scheduling ← Healthie · Voice<br/>Advertising · Analytics<br/><b>all four report DEMO</b>"]
+        EV["<b>eventing</b> — no callers<br/>publisher → outbox_event → relay"]
+        AUD["<b>audit</b><br/>AuditEventConsumer"]
+    end
+
+    PG[("<b>PostgreSQL 17</b><br/>keycloak DB · visionone DB<br/>19 tables, 13 queried today")]
+    KAFKA["<b>Kafka 3.9</b><br/>opt-in profile · no traffic"]
+    EXT["<b>External systems</b><br/>Healthie · voice · ads · analytics<br/>none connected"]
+
+    SPA -. "redirect to sign in, back with ?code" .-> KC
+    OV -- "GET /orgs/:orgId/overview<br/>Bearer token" --> CADDY
+    CADDY -- "/realms/*" --> KC
+    CADDY -- "/api/*" --> L1
+    L1 --> L2
+    L2 --> L3
+    L2 --> CTRL
+    CTRL --> OVS
+    OVS --> L3
+    L3 -- "JdbcClient / JPA" --> PG
+    KC -- "its own schema" --> PG
+    EV -.-> KAFKA
+    KAFKA -.-> AUD
+    AUD -. "audit_event — back into the<br/>same database it came from" .-> PG
+    PORTS -.-> EXT
+
+    classDef ui fill:#DAE8FC,stroke:#6C8EBF,color:#16304F
+    classDef live fill:#D5E8D4,stroke:#82B366,color:#1B3A17
+    classDef fixture fill:#FFF2CC,stroke:#D6B656,color:#5C4300
+    classDef ident fill:#E1D5E7,stroke:#9673A6,color:#3D2B47
+    classDef data fill:#FFE6CC,stroke:#D79B00,color:#5C4300
+    classDef idle fill:#FFFFFF,stroke:#B1B7C3,stroke-dasharray:5 5,color:#5F6F85
+    classDef edge fill:#F5F5F5,stroke:#666666,color:#333333
+
+    class SPA ui
+    class OV,L1,L2,L3,CTRL,OVS live
+    class FIX fixture
+    class KC ident
+    class PG,PORTS data
+    class EV,AUD,KAFKA,EXT idle
+    class CADDY edge
 ```
 
-Postgres is not optional at any point: Keycloak stores its realm, users and sessions there, so the
-container stays even if the application persisted nothing. Kafka sits behind the `eventing`
-compose profile because the API reaches readiness without a broker.
+Solid edges carry traffic today. Dashed edges are built, wired and idle — the eventing pipeline
+has no callers, and every provider adapter is a `Demo*` class.
+
+Two things the picture is meant to make obvious. Postgres is not optional at any point: Keycloak
+stores its realm, users and sessions there, so the container stays even if the application
+persisted nothing of its own. And the six fixture-backed screens have no edge leaving them at all,
+which is the honest shape of the product today.
 
 ### Sign-in
 

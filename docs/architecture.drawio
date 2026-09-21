@@ -1,0 +1,177 @@
+<mxfile host="app.diagrams.net" agent="VisionOne" version="24.0.0">
+  <diagram id="visionone-architecture" name="VisionOne — current architecture">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1250" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="VisionOne — current architecture" style="text;html=1;fontSize=24;fontStyle=1;fontColor=#2A3547;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Solid = carries traffic today.   Dashed = built and wired, but idle." style="text;html=1;fontSize=13;fontColor=#5F6F85;" vertex="1" parent="1">
+          <mxGeometry x="40" y="54" width="700" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zclient" value="Browser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FB;strokeColor=#B1B7C3;dashed=1;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontSize=13;fontStyle=1;fontColor=#5F6F85;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="1520" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="spa" value="&lt;b&gt;SPA&lt;/b&gt;&lt;br&gt;React 18 · Vite 6 · Tailwind 3&lt;br&gt;react-oidc-context — auth code + PKCE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="140" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ovscreen" value="&lt;b&gt;Overview&lt;/b&gt;&lt;br&gt;the only screen that calls the API&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;fails if the API is down — the canary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="490" y="140" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="fixtures" value="&lt;b&gt;Growth · Leads · Front Desk&lt;br&gt;Calendar · Work &amp;amp; Content · Reports&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;945 lines of fixtures in the bundle — no network call&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="910" y="140" width="620" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="caddy" value="&lt;b&gt;Caddy&lt;/b&gt;   —   TLS · serves the SPA · reverse proxy&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;demo deployment only; local development hits :5173, :8080 and :8180 directly&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="300" width="800" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="keycloak" value="&lt;b&gt;Keycloak 26&lt;/b&gt;&lt;br&gt;:8180&lt;br&gt;&lt;br&gt;realm: visionone&lt;br&gt;custom login theme&lt;br&gt;CSS-only over keycloak.v2&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;the only place a credential&lt;br&gt;is ever entered&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=top;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="430" width="300" height="250" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zapi" value="Spring Boot API   :8080   —   modular monolith" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4FAF3;strokeColor=#82B366;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontSize=13;fontStyle=1;fontColor=#4F7942;" vertex="1" parent="1">
+          <mxGeometry x="420" y="410" width="1140" height="460" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" value="&lt;b&gt;①&lt;/b&gt;  auth.SecurityConfig&lt;br&gt;validate JWT · map realm roles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="450" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="&lt;b&gt;②&lt;/b&gt;  OrganizationContextInterceptor&lt;br&gt;resolve {orgId} · check membership" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="525" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="&lt;b&gt;③&lt;/b&gt;  tenant-scoped repositories&lt;br&gt;every query bound to organization_id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="600" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="layersnote" value="three independent layers — no single&lt;br&gt;missed check exposes another tenant" style="text;html=1;fontSize=10;fontColor=#5F6F85;align=center;" vertex="1" parent="1">
+          <mxGeometry x="450" y="660" width="290" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="controllers" value="&lt;b&gt;Controllers&lt;/b&gt;&lt;br&gt;/me · /meta · /overview&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;the entire REST surface&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="790" y="450" width="290" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ovsvc" value="&lt;b&gt;OverviewService&lt;/b&gt;&lt;br&gt;&lt;br&gt;LeadMetrics · AppointmentMetrics&lt;br&gt;GrowthFinance · WorkActivity&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;injected by interface — reference&lt;br&gt;counters report these unused, wrongly&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="790" y="545" width="290" height="145" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ports" value="&lt;b&gt;integration — ports&lt;/b&gt;&lt;br&gt;&lt;br&gt;SchedulingProvider   ← Healthie&lt;br&gt;VoiceProvider&lt;br&gt;AdvertisingProvider&lt;br&gt;AnalyticsProvider&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#B85450&quot;&gt;&lt;b&gt;all four report DEMO&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;this port is the PHI boundary:&lt;br&gt;an external ref, a time and a status —&lt;br&gt;never a patient name&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=11;verticalAlign=top;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="450" width="410" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eventing" value="&lt;b&gt;eventing&lt;/b&gt;   —   &lt;font color=&quot;#B85450&quot;&gt;no callers&lt;/font&gt;&lt;br&gt;DomainEventPublisher  →  outbox_event  →  OutboxRelay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="730" width="630" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="auditc" value="&lt;b&gt;audit&lt;/b&gt;&lt;br&gt;AuditEventConsumer&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;the only consumer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="730" width="410" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;&lt;br&gt;keycloak DB — realm, users, sessions&lt;br&gt;visionone DB — 19 tables, 13 queried today&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;not optional at any point: Keycloak lives here, so the&lt;br&gt;container stays even if the application stored nothing&lt;/font&gt;" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=15;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="70" y="920" width="620" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="&lt;b&gt;Kafka 3.9&lt;/b&gt;&lt;br&gt;:9092&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#B85450&quot;&gt;opt-in compose profile&lt;br&gt;no traffic&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;excluded from the demo deploy&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="920" width="310" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ext" value="&lt;b&gt;External systems&lt;/b&gt;&lt;br&gt;&lt;br&gt;Healthie · voice · ad platforms · analytics&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#B85450&quot;&gt;none connected —&lt;br&gt;every adapter is a Demo* class&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="920" width="380" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_spa_kc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673A6;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="spa" target="keycloak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_spa_kc_l" value="redirect to sign in,&lt;br&gt;back with ?code" style="edgeLabel;html=1;fontSize=10;fontColor=#9673A6;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_spa_kc">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_ov_caddy" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ovscreen" target="caddy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ov_caddy_l" value="GET /api/v1/orgs/{orgId}/overview&lt;br&gt;Authorization: Bearer" style="edgeLabel;html=1;fontSize=10;fontColor=#4F7942;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_ov_caddy">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_caddy_kc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673A6;strokeWidth=2;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="caddy" target="keycloak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_caddy_kc_l" value="/realms/*" style="edgeLabel;html=1;fontSize=10;fontColor=#9673A6;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_caddy_kc">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_caddy_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="caddy" target="l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_caddy_api_l" value="/api/*" style="edgeLabel;html=1;fontSize=10;fontColor=#4F7942;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_caddy_api">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_l1_l2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="l1" target="l2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_l2_l3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="l2" target="l3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_l2_ctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="l2" target="controllers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ctrl_ov" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="controllers" target="ovsvc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ov_l3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82B366;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ovsvc" target="l3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_l3_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="l3" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_l3_pg_l" value="JdbcClient / JPA" style="edgeLabel;html=1;fontSize=10;fontColor=#B8860B;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_l3_pg">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_kc_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="keycloak" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_kc_pg_l" value="its own schema" style="edgeLabel;html=1;fontSize=10;fontColor=#B8860B;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_kc_pg">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_ev_kafka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B1B7C3;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="eventing" target="kafka">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_kafka_audit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B1B7C3;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="auditc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_audit_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B85450;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="auditc" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_audit_pg_l" value="audit_event — back into the&lt;br&gt;same database it came from" style="edgeLabel;html=1;fontSize=10;fontColor=#B85450;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_audit_pg">
+          <mxGeometry x="0.4" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_ports_ext" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B1B7C3;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ports" target="ext">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="Legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;fontColor=#2A3547;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1150" width="1460" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="green — live, carries traffic today" style="text;html=1;fontSize=11;fontColor=#4F7942;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1182" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="dashed grey — built and wired, but idle" style="text;html=1;fontSize=11;fontColor=#5F6F85;" vertex="1" parent="1">
+          <mxGeometry x="350" y="1182" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="yellow — fixtures compiled into the bundle" style="text;html=1;fontSize=11;fontColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1182" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="purple — identity     ·     orange — persistence" style="text;html=1;fontSize=11;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="950" y="1182" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="Descriptive, not aspirational: this is what runs at the current commit. Update it when the six fixture-backed screens gain a backend." style="text;html=1;fontSize=11;fontColor=#5F6F85;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1202" width="1180" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
