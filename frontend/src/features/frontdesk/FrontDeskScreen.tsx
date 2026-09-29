@@ -123,11 +123,11 @@ function FrontDeskView({
         </div>
         <div className="flex items-center gap-2">
           <MonthPicker />
-          <Badge tone={d.dataSource === 'LIVE' ? 'positive' : 'demo'}>
+          <Badge tone={d.dataSource === 'LIVE' ? 'positive' : 'pending'}>
             {d.dataSource === 'LIVE'
               ? 'Live provider'
               : d.dataSource === 'DEMO'
-                ? 'Synthetic data'
+                ? 'Not connected'
                 : d.dataSource === 'ERROR'
                   ? 'Provider error'
                   : 'Not connected'}
@@ -448,8 +448,7 @@ function FrontDeskView({
 
       <p className="reveal text-xs text-muted-foreground" style={{ '--i': 9 } as CSSProperties}>
         Call records are masked before they reach this screen and carry no conversation content.
-        Phase 1 runs on a demo voice adapter; a live provider connects in Phase 2 behind the same
-        interface.
+        The badge above states whether a live provider is connected.
       </p>
     </div>
   );

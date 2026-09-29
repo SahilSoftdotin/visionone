@@ -23,7 +23,6 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { ArrowBadge, IconChip, PersonCell, StatusPill } from '@/components/ui/Chips';
@@ -80,7 +79,6 @@ export function OverviewScreen() {
         <div className="space-y-5">
           <header className="reveal flex flex-wrap items-baseline justify-between gap-2">
             <PanelHeading title="Overview" subtitle={formatMonth(data.periodMonth)} />
-            <Badge tone="demo">Demo data</Badge>
           </header>
 
           {/* Row 1 - six tinted tiles. */}

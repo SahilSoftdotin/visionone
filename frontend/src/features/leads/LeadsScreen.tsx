@@ -209,7 +209,6 @@ function LeadsView({
         </div>
         <div className="flex items-center gap-2">
           <MonthPicker />
-          <Badge tone="demo">Synthetic data</Badge>
         </div>
       </header>
 
@@ -391,7 +390,7 @@ function LeadsView({
         {data.editable
           ? ' Vision Digital Lab moves leads; the practice reads them.'
           : ' The pipeline is a record of what Vision did, so it is read-only here.'}{' '}
-        Names are synthetic and service interest is a broad category. VisionOne is a growth
+        Service interest is a broad category, never a diagnosis. VisionOne is a growth
         platform, not an EHR: no medical history, diagnoses, labs or notes are stored.
       </p>
 

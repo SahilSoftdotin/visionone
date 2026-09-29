@@ -94,13 +94,13 @@ export function CalendarScreen() {
         </div>
         <div className="flex items-center gap-3">
           <MonthPicker />
-          <Badge tone={dataSource === 'LIVE' ? 'positive' : 'demo'}>
+          <Badge tone={dataSource === 'LIVE' ? 'positive' : 'pending'}>
             {dataSource === 'LIVE'
               ? 'Live scheduling'
               : dataSource === 'ERROR'
                 ? 'Provider error'
                 : dataSource === 'DEMO'
-                  ? 'Synthetic data'
+                  ? 'Not connected'
                   : 'Not connected'}
           </Badge>
         </div>
@@ -260,9 +260,9 @@ export function CalendarScreen() {
       </Card>
 
       <p className="reveal text-xs text-muted-foreground" style={{ '--i': 5 } as CSSProperties}>
-        Names are synthetic and no clinical information is stored. The calendar records that a
-        booking happened and which channel produced it, not what it was for. A live scheduling
-        connection arrives in Phase 2 behind the SchedulingProvider interface.
+        No clinical information is stored. The calendar records that a booking happened and which
+        channel produced it, never what it was for, and patients appear as a first name and an
+        initial.
       </p>
 
       {openDay && (

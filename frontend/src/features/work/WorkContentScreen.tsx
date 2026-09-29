@@ -173,7 +173,6 @@ function WorkContentView({
               : 'What Vision is doing, and what needs you'}
           </p>
         </div>
-        <Badge tone="demo">Synthetic data</Badge>
       </header>
 
       {/* What needs the client, first. Everything else is reporting. */}

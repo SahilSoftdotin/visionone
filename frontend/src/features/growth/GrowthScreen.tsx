@@ -70,7 +70,6 @@ function GrowthPlanView({ plan, orgId, month }: { plan: PlanView; orgId: string;
         </div>
         <div className="flex items-center gap-2">
           <MonthPicker />
-          <Badge tone="demo">Synthetic data</Badge>
         </div>
       </header>
 
@@ -296,7 +295,7 @@ function GrowthPlanView({ plan, orgId, month }: { plan: PlanView; orgId: string;
         style={{ '--i': 8 } as React.CSSProperties}
       >
         Spend is entered by Vision Digital Lab; leads and bookings are counted from VisionOne&rsquo;s
-        own records. Live Google Ads, Meta and Search Console connections arrive in Phase 2 and will
+        own records. Live Google Ads, Meta and Search Console connections will
         replace the spend source without changing this screen.
       </p>
     </div>

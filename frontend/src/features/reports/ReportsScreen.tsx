@@ -2,7 +2,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, FileText, HelpCircle, Lightbulb, ListChecks } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatCount, formatMoney, formatMonth, formatPercent } from '@/lib/format';
@@ -134,7 +133,6 @@ function ReportsHeader({
       <div className="flex items-center gap-2">
         {canGenerate && <NewReportButton orgId={orgId} reports={reports} />}
         <ReportPicker reports={reports} selectedMonth={month} />
-        <Badge tone="demo">Demo data</Badge>
       </div>
     </header>
   );
@@ -374,8 +372,7 @@ function ReportView({
 
       <p className="reveal text-xs text-muted-foreground" style={{ '--i': 8 } as CSSProperties}>
         This report is composed from the same figures as the rest of VisionOne rather than
-        recalculating them, so it cannot disagree with the dashboard. Every figure is synthetic in
-        Phase 1.
+        recalculating them, so it cannot disagree with the dashboard.
       </p>
     </div>
   );
