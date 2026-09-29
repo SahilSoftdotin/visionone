@@ -24,7 +24,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          # The issuer is the PUBLIC origin, because that is what lands in the token's iss claim
+          # and what the browser talked to. It is validated as a string, not fetched.
           issuer-uri: ${VISIONONE_OIDC_ISSUER:http://localhost:8180/realms/visionone}
+          # The signing keys are fetched over whatever network path this process can actually
+          # reach, which behind a reverse proxy is not the public one: inside the api container
+          # "localhost" is the api container, so discovery against the public issuer gets
+          # Connection refused and every token is rejected with a bare 401. Setting this makes
+          # Spring skip discovery entirely and still apply the issuer validator above.
+          jwk-set-uri: ${VISIONONE_OIDC_JWK_SET_URI:http://localhost:8180/realms/visionone/protocol/openid-connect/certs}
 
 server:
   port: 8080

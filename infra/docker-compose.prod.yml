@@ -71,6 +71,11 @@ services:
       VISIONONE_DB_USER: visionone
       VISIONONE_DB_PASSWORD: ${POSTGRES_PASSWORD}
       VISIONONE_OIDC_ISSUER: https://${DOMAIN}/realms/visionone
+      # Signing keys come straight from Keycloak on the internal network. The issuer above stays
+      # the public HTTPS origin - it is the value in the token and it is still checked - but the
+      # API must not try to FETCH it: inside this container "localhost" is this container, and
+      # even with a real domain it would mean leaving the host over TLS to come straight back in.
+      VISIONONE_OIDC_JWK_SET_URI: http://keycloak:8180/realms/visionone/protocol/openid-connect/certs
       # Same origin through Caddy, so this is belt and braces rather than load-bearing.
       VISIONONE_CORS_ORIGINS: https://${DOMAIN}
       # Hourly rather than the 1s and 5s that suit a laptop. A Healthie webhook still lands
