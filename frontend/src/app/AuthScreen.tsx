@@ -81,7 +81,16 @@ export function AuthScreen({
             <span className="font-semibold text-foreground">
               Practices are onboarded by Vision Digital Lab
             </span>{' '}
-            — speak to your account contact.
+            —{' '}
+            {/* There is no self-registration: the realm has it disabled and an account is created
+                with a practice, not by one. So the only honest destination is a conversation. */}
+            <a
+              href="https://visiondigitallab.com/contact"
+              className="font-semibold text-primary-text underline underline-offset-2 hover:opacity-80"
+            >
+              talk to our team
+            </a>
+            .
           </p>
         </div>
       </div>

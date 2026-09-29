@@ -25,8 +25,10 @@ Everything is one origin, which is why there is no CORS configuration to get wro
 
 - A small VPS. 2 vCPU / 4 GB is comfortable; 2 GB works if nothing else runs on it. Ubuntu 24.04.
 - Docker Engine and the Compose plugin.
-- A hostname — say `demo.visiondigitallab.com` — with an **A record already pointing at the
-  server's IP**. Caddy requests the certificate on first start, so DNS has to resolve before then
+- A hostname — `app.visiondigitallab.com` — with an **A record already pointing at the server's
+  IP**. A subdomain rather than a path on the marketing site, deliberately: `visiondigitallab.com`
+  runs HubSpot, and a path would share an origin with it, so any script the marketing site loads
+  could read the session token out of the portal's storage. A subdomain is a separate origin. Caddy requests the certificate on first start, so DNS has to resolve before then
   or the first boot fails.
 - Ports 80 and 443 open. Port 80 is not optional: Let's Encrypt validates over it.
 
