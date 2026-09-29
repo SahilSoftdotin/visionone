@@ -27,7 +27,18 @@ Everything is one origin, which is why there is no CORS configuration to get wro
 ## What you need first
 
 - A small VPS. 2 vCPU / 4 GB is comfortable; 2 GB works if nothing else runs on it. Ubuntu 24.04.
-- Docker Engine and the Compose plugin.
+  Put it in **US East** - THRIVE's organization row is `America/New_York`, and the people using this
+  every day are at the practice, not in the timezone administering it.
+- Docker Engine and the Compose plugin, a firewall, swap, and log rotation. One script does all of
+  it, and is safe to re-run:
+
+  ```bash
+  ssh root@<ip> 'bash -s' < scripts/provision-server.sh
+  ```
+
+  It opens only 22, 80 and 443. Note that a published Docker port bypasses UFW entirely, so adding
+  `ports:` to a service in the compose file puts it on the internet no matter what the firewall
+  says - which is exactly why only Caddy publishes anything.
 - A hostname — `app.visiondigitallab.com` — with an **A record already pointing at the server's
   IP**. A subdomain rather than a path on the marketing site, deliberately: `visiondigitallab.com`
   runs HubSpot, and a path would share an origin with it, so any script the marketing site loads
