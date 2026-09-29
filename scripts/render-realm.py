@@ -50,11 +50,37 @@ def main() -> None:
     # moment the realm is reachable from anywhere but this machine.
     realm["sslRequired"] = "external"
 
+    # Lock out password guessing. Keycloak's default is OFF, so without this the sign-in page is an
+    # unlimited guessing endpoint the moment it has a public hostname. Temporary lockout rather than
+    # permanent: permanentLockout lets anyone lock Gary out of his own dashboard by guessing badly
+    # at his username thirty times.
+    realm["bruteForceProtected"] = True
+    realm["permanentLockout"] = False
+    realm["failureFactor"] = 10
+    realm["waitIncrementSeconds"] = 60
+    realm["maxFailureWaitSeconds"] = 900
+
+    # "Forgot password?" is rendered whenever this is true, and it sends mail. There is no SMTP
+    # server configured, so on a public host the link is a dead end that errors in the user's face.
+    # Two accounts, both provisioned by us, so the recovery path is asking us.
+    if not realm.get("smtpServer"):
+        realm["resetPasswordAllowed"] = False
+
     for client in realm.get("clients", []):
         if client.get("clientId") == "visionone-web":
             client["redirectUris"] = [f"{origin}/*"]
             client["webOrigins"] = [origin]
             client["rootUrl"] = origin
+            # Sign-out is validated against its own list, not redirectUris. Miss this and the
+            # Sign Out button lands on Keycloak's "Invalid redirect uri" page - a failure that
+            # only ever appears on the deployed host, because locally the dev value is correct.
+            client.setdefault("attributes", {})["post.logout.redirect.uris"] = f"{origin}/*"
+            # No password grant in production. It is on locally because it makes a token
+            # obtainable with curl, but on a public host it is a password-guessing endpoint that
+            # skips the login page entirely - so it skips the theme, the flow, and anything the
+            # browser gives us. The app uses the authorization code flow with PKCE and never
+            # needs this. Verify a deployed sign-in in a browser instead.
+            client["directAccessGrantsEnabled"] = False
 
     missing, weak = [], []
     for user in realm.get("users", []):
