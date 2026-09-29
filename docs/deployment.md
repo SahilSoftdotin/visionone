@@ -1,10 +1,13 @@
-# Deploying the demo
+# Deploying VisionOne
 
-What this deploys is a **demo**. Six of the seven screens — Growth, Leads, Front Desk, Calendar,
-Work & Content, Reports — render from fixtures compiled into the JavaScript bundle. The API is three
-endpoints (`/me`, `/meta`, `/overview`), and all four provider ports report `DEMO`. Overview is the
-only screen that talks to the backend. That is a fine thing to show a client; it is not the product,
-and the UI labels it as such rather than implying otherwise.
+Every screen is served by the API: 30 endpoints across 15 controllers, reading Postgres through the
+tenant-scoped repositories. Nothing renders from fixtures compiled into the bundle any more.
+
+What is still standing in is the **data**, not the code. The four provider ports — scheduling,
+voice, advertising, analytics — report `DEMO`, and the figures come from `db/demo/R__demo_seed.sql`
+rather than from Healthie. Going live is a profile change plus a real adapter, not a rewrite: the
+`demo` profile is what pins those ports, and the two connection-status badges in the UI are the only
+place the app says so.
 
 One host, four containers, one public port.
 
@@ -63,6 +66,28 @@ committed realm is never modified, so local development keeps working, and no re
 written to a tracked file. The renderer refuses to run on a missing or short password rather than
 quietly publishing a weak one.
 
+It also hardens what Keycloak leaves soft, because the defaults are tuned for a laptop:
+
+| Rendered for production | Why |
+|---|---|
+| `bruteForceProtected: true`, temporary lockout after 10 failures | Keycloak's default is **off**. Without it the sign-in page is an unlimited password-guessing endpoint the moment it has a public name. Temporary, not permanent: permanent lockout lets anyone lock Gary out of his own dashboard. |
+| `directAccessGrantsEnabled: false` | The password grant skips the login page, the theme and the flow. The app uses authorization code + PKCE and never needs it. It stays on locally, where it is how a token is obtained with `curl`. |
+| `resetPasswordAllowed: false` while no SMTP is configured | Otherwise "Forgot password?" is rendered on the page and errors when clicked. Two accounts, both provisioned by us; the recovery path is asking us. |
+| `post.logout.redirect.uris` rewritten to the real origin | Sign-out is validated against its own list, not `redirectUris`. Miss it and the Sign Out button lands on Keycloak's "Invalid redirect uri" page — a failure that appears only on the deployed host. |
+
+## Why the API is told where the keys are
+
+`VISIONONE_OIDC_JWK_SET_URI` points at `http://keycloak:8180/...` on the internal network, while
+`VISIONONE_OIDC_ISSUER` stays the public `https://<DOMAIN>/realms/visionone`.
+
+Both are needed and they are not the same thing. The issuer is what lands in the token's `iss`
+claim and it is still validated — set it to the wrong value and every token is rejected. But the API
+must not try to *fetch* it: inside the `api` container `localhost` is the `api` container, so
+discovery against the public issuer gets `Connection refused` and every request comes back a bare
+`401` with a valid token in hand. Even with a real domain it would mean leaving the host over TLS
+only to come straight back in through Caddy. Setting `jwk-set-uri` makes Spring skip discovery and
+fetch the keys directly, and it keeps applying the issuer validator.
+
 ## Reaching the Keycloak admin console
 
 It is deliberately not routed publicly. It holds every account in the realm and does not need to be
@@ -104,8 +129,11 @@ select event_type, attempts, last_error from outbox_event where published_at is 
 
 ## Things this does not do
 
-- **No CI.** Deploys are `git pull && make deploy` on the box. Worth automating once the backend is
-  real; automating a pipeline against three endpoints that are about to change is premature.
-- **No backups.** It is seeded demo data that Flyway recreates from scratch, so there is nothing to
-  lose. This stops being true the moment anyone enters something they care about.
+- **No CI.** Deploys are `git pull && make deploy` on the box. Worth automating; with one host and
+  one client it is not yet the thing most worth automating.
+- **No backups.** Today the data is the seed, which Flyway recreates from scratch, so there is
+  nothing to lose. **This stops being true the day Healthie data starts arriving**, and the
+  attribution Vision records by hand on the Calendar exists nowhere else at all — Healthie does not
+  hold it, so a lost volume loses it permanently. Set up `pg_dump` to somewhere off the box before
+  that day, not after it.
 - **No staging environment.** One box, one URL.
