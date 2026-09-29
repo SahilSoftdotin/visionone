@@ -73,6 +73,13 @@ services:
       VISIONONE_OIDC_ISSUER: https://${DOMAIN}/realms/visionone
       # Same origin through Caddy, so this is belt and braces rather than load-bearing.
       VISIONONE_CORS_ORIGINS: https://${DOMAIN}
+      # Hourly rather than the 1s and 5s that suit a laptop. A Healthie webhook still lands
+      # immediately - the endpoint verifies it, writes one inbox row and returns in milliseconds,
+      # which is what keeps Healthie from retiring the subscription. Only the drain waits, and a
+      # marketing dashboard does not need a booking to appear within five seconds of being made.
+      # Override either if something turns out to want lower latency; both are plain properties.
+      VISIONONE_EVENTING_INBOX_INTERVAL_MS: ${VISIONONE_EVENTING_INBOX_INTERVAL_MS:-3600000}
+      VISIONONE_EVENTING_DISPATCHER_INTERVAL_MS: ${VISIONONE_EVENTING_DISPATCHER_INTERVAL_MS:-3600000}
     depends_on:
       postgres:
         condition: service_healthy
