@@ -8,16 +8,18 @@ import {
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
-import { leadsDemo } from '@/lib/demoData';
-import { contentDemo, frontDeskDemo, workDemo } from '@/lib/demoOperations';
 import { cn } from '@/lib/utils';
+import type { ContentListResponse, LeadListResponse, WorkListResponse } from '@/lib/types';
+import { useShellContent, useShellFrontDesk, useShellLeads, useShellWork } from './useAppData';
 
 /**
  * What needs the practice, derived rather than stored.
  *
- * Every item is computed from the same fixtures the screens read, so the badge cannot claim
- * something the screen then fails to show. Each one links to where it can be acted on - a
- * notification that only announces is a notification people learn to ignore.
+ * Every item is computed from the same queries the screens read - the same query keys, so the same
+ * cache - which means the badge cannot claim something the screen then fails to show. Each one
+ * links to where it can be acted on; a notification that only announces is one people learn to
+ * ignore. Nothing is shown for a source that has not loaded: a bell that guesses and then corrects
+ * itself teaches people not to trust the number.
  */
 
 type Tone = 'primary' | 'caution' | 'critical';
@@ -26,7 +28,13 @@ interface Note {
   id: string;
   title: string;
   detail: string;
+  /** Category filter only. Shareable and safe to log. */
   to: string;
+  /**
+   * The single row this is about, when there is exactly one. Travels in history state, never in
+   * the URL - see useRowFocus for why a lead or call id must not be in an address bar.
+   */
+  focus?: string;
   icon: LucideIcon;
   tone: Tone;
 }
@@ -37,76 +45,117 @@ const toneClass: Record<Tone, string> = {
   critical: 'bg-critical-soft text-critical-text',
 };
 
-function build(orgId: string): Note[] {
+function build(
+  orgId: string,
+  leads: LeadListResponse | undefined,
+  work: WorkListResponse | undefined,
+  content: ContentListResponse | undefined,
+  frontDesk:
+    | {
+        summary: { missed: number; afterHours: number };
+        outcomeCounts: { outcome: string; count: number }[];
+      }
+    | undefined,
+): Note[] {
   const at = (p: string) => `/orgs/${orgId}/${p}`;
+  /**
+   * Where a notification lands: the status, which filters the list to what the notification is
+   * about. Only the category goes in the URL. The row, when there is exactly one, is returned
+   * separately and travels in history state.
+   */
+  const filtered = (path: string, param: string, status: string) =>
+    `${at(path)}?${new URLSearchParams({ [param]: status }).toString()}`;
+
+  /** The one row this notification is about, or undefined when it covers several. */
+  const only = (ids: string[]) => (ids.length === 1 ? ids[0] : undefined);
+  const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
   const out: Note[] = [];
 
-  const awaitingReview = contentDemo.filter((c) => c.status === 'CLIENT_REVIEW');
+  const awaitingReview = (content?.items ?? []).filter((c) => c.status === 'CLIENT_REVIEW');
   if (awaitingReview.length > 0) {
     out.push({
       id: 'content-review',
-      title: `${awaitingReview.length} item${awaitingReview.length === 1 ? '' : 's'} need your review`,
+      title: `${awaitingReview.length} ${plural(awaitingReview.length, 'item', 'items')} need your review`,
       detail: awaitingReview.map((c) => c.title).join(' · '),
-      to: at('work'),
+      to: filtered('work', 'content', 'CLIENT_REVIEW'),
+      focus: only(awaitingReview.map((c) => c.id)),
       icon: FileText,
       tone: 'caution',
     });
   }
 
-  const waiting = workDemo.filter((w) => w.status === 'WAITING_FOR_CLIENT');
+  const waiting = (work?.items ?? []).filter((w) => w.status === 'WAITING_FOR_CLIENT');
   if (waiting.length > 0) {
     out.push({
       id: 'work-waiting',
-      title: `${waiting.length} task${waiting.length === 1 ? '' : 's'} blocked on the practice`,
-      detail: waiting.map((w) => w.clientDependency ?? w.title).join(' · '),
-      to: at('work'),
+      title: `${waiting.length} ${plural(waiting.length, 'task', 'tasks')} waiting on the practice`,
+      detail: waiting.map((w) => w.title).join(' · '),
+      to: filtered('work', 'work', 'WAITING_FOR_CLIENT'),
+      focus: only(waiting.map((w) => w.id)),
       icon: TriangleAlert,
       tone: 'caution',
     });
   }
 
-  const blocked = workDemo.filter((w) => w.status === 'BLOCKED');
+  const blocked = (work?.items ?? []).filter((w) => w.status === 'BLOCKED');
   if (blocked.length > 0) {
     out.push({
       id: 'work-blocked',
-      title: `${blocked.length} task${blocked.length === 1 ? '' : 's'} blocked`,
+      title: `${blocked.length} ${plural(blocked.length, 'task', 'tasks')} blocked`,
       detail: blocked.map((w) => w.title).join(' · '),
-      to: at('work'),
+      to: filtered('work', 'work', 'BLOCKED'),
+      focus: only(blocked.map((w) => w.id)),
       icon: TriangleAlert,
       tone: 'critical',
     });
   }
 
-  const unassigned = leadsDemo.filter((l) => l.status === 'NEW');
+  const unassigned = (leads?.leads ?? []).filter((l) => l.status === 'NEW');
   if (unassigned.length > 0) {
     out.push({
       id: 'leads-new',
-      title: `${unassigned.length} new lead${unassigned.length === 1 ? '' : 's'} unassigned`,
+      title: `${unassigned.length} new ${plural(unassigned.length, 'lead', 'leads')} unassigned`,
       detail: unassigned.map((l) => `${l.name} · ${l.source}`).join(' · '),
-      to: at('leads'),
+      to: filtered('leads', 'status', 'NEW'),
+      focus: only(unassigned.map((l) => l.id)),
       icon: UserPlus,
       tone: 'primary',
     });
   }
 
-  const never = leadsDemo.filter((l) => l.responseMinutes === null && l.status !== 'DUPLICATE');
+  const never = (leads?.leads ?? []).filter(
+    (l) => l.responseMinutes === null && l.status !== 'DUPLICATE',
+  );
   if (never.length > 0) {
     out.push({
       id: 'leads-noresponse',
-      title: `${never.length} lead${never.length === 1 ? '' : 's'} never answered`,
+      title: `${never.length} ${plural(never.length, 'lead', 'leads')} never answered`,
       detail: 'No first response recorded',
+      // No status describes "never answered", so this lands on the unfiltered list.
       to: at('leads'),
+      focus: only(never.map((l) => l.id)),
       icon: TriangleAlert,
       tone: 'critical',
     });
   }
 
-  if (frontDeskDemo.missed > 0) {
+  /*
+   * Two different numbers live here and must not be confused. summary.missed counts every call
+   * nobody picked up, which is the MISSED outcome plus VOICEMAIL, and is what the "Unanswered"
+   * tile shows. This notification links to the MISSED filter, so it counts and names MISSED -
+   * saying "18" while landing on a list of 12 is how a reader stops believing the tray.
+   */
+  const rangOut = frontDesk?.outcomeCounts.find((o) => o.outcome === 'MISSED')?.count ?? 0;
+  if (rangOut > 0) {
+    const voicemail = frontDesk?.outcomeCounts.find((o) => o.outcome === 'VOICEMAIL')?.count ?? 0;
     out.push({
       id: 'calls-missed',
-      title: `${frontDeskDemo.missed} missed calls this month`,
-      detail: `${frontDeskDemo.afterHours} calls arrived outside published hours`,
-      to: at('front-desk'),
+      title: `${rangOut} ${plural(rangOut, 'call', 'calls')} rang out this month`,
+      detail: voicemail > 0
+        ? `${voicemail} more went to voicemail · ${frontDesk?.summary.afterHours ?? 0} arrived outside published hours`
+        : `${frontDesk?.summary.afterHours ?? 0} calls arrived outside published hours`,
+      // A count, never one call, so there is no row to name - only the outcome to filter by.
+      to: filtered('front-desk', 'outcome', 'MISSED'),
       icon: PhoneMissed,
       tone: 'critical',
     });
@@ -121,7 +170,12 @@ export function Notifications() {
   const [open, setOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
 
-  const notes = build(orgId);
+  const leads = useShellLeads(orgId);
+  const work = useShellWork(orgId);
+  const content = useShellContent(orgId);
+  const frontDesk = useShellFrontDesk(orgId);
+
+  const notes = build(orgId, leads.data, work.data, content.data, frontDesk.data);
 
   useEffect(() => {
     if (!open) return;
@@ -177,7 +231,8 @@ export function Notifications() {
                       type="button"
                       onClick={() => {
                         setOpen(false);
-                        navigate(n.to);
+                        // The row id rides in history state, so it never reaches the address bar or a log.
+                        navigate(n.to, n.focus ? { state: { focus: n.focus } } : undefined);
                       }}
                       className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted"
                     >
@@ -204,7 +259,7 @@ export function Notifications() {
           )}
 
           <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
-            Derived from this month&rsquo;s demo data.
+            Derived from this month&rsquo;s data, not stored.
           </p>
         </div>
       )}

@@ -87,14 +87,14 @@ class ModuleBoundaryTest {
     }
 
     @Test
-    @DisplayName("nothing outside eventing publishes to Kafka directly")
-    void onlyEventingTouchesKafka() {
+    @DisplayName("no module depends on a message broker")
+    void nothingDependsOnABroker() {
+        // Postgres is the queue: outbox_event on the way out, inbox_event on the way in. This test
+        // is what stops a broker reappearing by accident, one import at a time.
         ArchRule rule = noClasses()
-                .that()
-                .resideOutsideOfPackage(ROOT + ".eventing..")
                 .should()
                 .dependOnClassesThat()
-                .resideInAPackage("org.springframework.kafka.core..")
+                .resideInAnyPackage("org.springframework.kafka..", "org.apache.kafka..")
                 .allowEmptyShould(true);
         rule.check(classes);
     }

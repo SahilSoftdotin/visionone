@@ -18,6 +18,27 @@ public class WorkActivityService implements WorkActivity {
     }
 
     @Override
+    public java.util.List<CompletedWork> completedIn(UUID organizationId, Instant from, Instant to) {
+        return jdbc.sql("""
+                select title, category, business_reason, completed_at
+                from work_item
+                where organization_id = :orgId
+                  and status = 'COMPLETED'
+                  and completed_at >= :from and completed_at < :to
+                order by completed_at desc
+                """)
+                .param("orgId", organizationId)
+                .param("from", java.sql.Timestamp.from(from))
+                .param("to", java.sql.Timestamp.from(to))
+                .query((rs, rowNum) -> new CompletedWork(
+                        rs.getString("title"),
+                        rs.getString("category"),
+                        rs.getString("business_reason"),
+                        rs.getTimestamp("completed_at").toInstant().toString()))
+                .list();
+    }
+
+    @Override
     public ActivityCounts countsFor(UUID organizationId, Instant from, Instant to) {
         // Completed is windowed to the period; in-progress and waiting are current state,
         // because "what needs my attention" is a question about now, not about last month.

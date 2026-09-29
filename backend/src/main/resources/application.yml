@@ -20,24 +20,6 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-  kafka:
-    bootstrap-servers: ${VISIONONE_KAFKA:localhost:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
-      retries: 3
-    consumer:
-      group-id: visionone
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      properties:
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-        spring.json.trusted.packages: com.visiondigitallab.visionone.*
-        spring.json.value.default.type: com.visiondigitallab.visionone.eventing.api.EventEnvelope
-    listener:
-      missing-topics-fatal: false   # The API must start and serve every screen with Kafka down.
   security:
     oauth2:
       resourceserver:
@@ -53,10 +35,16 @@ visionone:
   cors:
     allowed-origins: ${VISIONONE_CORS_ORIGINS:http://localhost:5173}
   eventing:
-    relay:
+    # Postgres is the queue. The dispatcher drains outbox_event to the in-process handlers;
+    # the inbox processor drains webhooks that arrived from a provider.
+    dispatcher:
       enabled: true
       interval-ms: 1000
       batch-size: 100
+    inbox:
+      enabled: true
+      interval-ms: 5000
+      batch-size: 50
 
 management:
   endpoints:
@@ -68,9 +56,6 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
-  health:
-    kafka:
-      enabled: false    # Kafka being down degrades eventing, it does not make VisionOne unhealthy.
   tracing:
     sampling:
       probability: 1.0

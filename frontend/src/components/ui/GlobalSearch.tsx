@@ -13,17 +13,25 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { growthDemo, leadsDemo } from '@/lib/demoData';
-import { contentDemo, workDemo } from '@/lib/demoOperations';
-import { appointmentsDemo } from '@/lib/demoCalendar';
 import { cn } from '@/lib/utils';
+import {
+  useShellCalendar,
+  useShellContent,
+  useShellGrowth,
+  useShellLeads,
+  useShellWork,
+} from './useAppData';
 
 /**
- * Search across every screen, over the same fixtures the screens render.
+ * Search across every screen, over the same data the screens render.
  *
- * The index is built from what is already loaded rather than from a separate search service: at
- * this size a linear scan is instant, and a second source of truth would be a second thing to
- * disagree with the dashboard. When these move to the API the index moves with them.
+ * The index is built client-side from the screens' own queries - the same query keys, so the same
+ * cache - rather than from a separate search service: at this size a linear scan is instant, and a
+ * second source of truth would be a second thing to disagree with the dashboard. The queries run
+ * only once the palette is opened, and a screen already visited costs nothing.
+ *
+ * Scope is the current month, which is what every screen opens on. Searching history belongs to a
+ * server-side endpoint once there is enough history to need one.
  */
 
 interface Hit {
@@ -35,7 +43,17 @@ interface Hit {
   icon: LucideIcon;
 }
 
-function buildIndex(orgId: string): Hit[] {
+const lower = (v: string) => v.toLowerCase().replace(/_/g, ' ');
+
+interface Sources {
+  leads: ReturnType<typeof useShellLeads>['data'];
+  work: ReturnType<typeof useShellWork>['data'];
+  content: ReturnType<typeof useShellContent>['data'];
+  calendar: ReturnType<typeof useShellCalendar>['data'];
+  growth: ReturnType<typeof useShellGrowth>['data'];
+}
+
+function buildIndex(orgId: string, src: Sources): Hit[] {
   const at = (path: string) => `/orgs/${orgId}/${path}`;
 
   const screens: Hit[] = [
@@ -97,52 +115,54 @@ function buildIndex(orgId: string): Hit[] {
     },
   ];
 
-  const leads: Hit[] = leadsDemo.map((l) => ({
+  const leads: Hit[] = (src.leads?.leads ?? []).map((l) => ({
     id: `lead-${l.id}`,
-    title: l.name,
-    subtitle: `${l.serviceInterest} · ${l.source} · ${l.status.toLowerCase().replace(/_/g, ' ')}`,
+    title: `${l.name} · ${l.reference}`,
+    subtitle: `${l.serviceInterest} · ${l.source} · ${lower(l.status)}`,
     group: 'Leads',
     to: at('leads'),
     icon: Users,
   }));
 
-  const appointments: Hit[] = appointmentsDemo.map((a) => ({
-    id: `appt-${a.id}`,
-    title: a.patient,
-    subtitle: `${a.date} ${a.time} · ${a.serviceInterest} · ${a.status.toLowerCase()}`,
-    group: 'Appointments',
-    to: `${at('calendar')}?month=${a.date.slice(0, 7)}`,
-    icon: CalendarDays,
-  }));
+  const appointments: Hit[] = (src.calendar?.days ?? []).flatMap((d) =>
+    d.appointments.map((a) => ({
+      id: `appt-${a.id}`,
+      title: a.label,
+      subtitle: `${d.date} ${a.time} · ${a.serviceCategory ?? 'appointment'} · ${lower(a.status)}`,
+      group: 'Appointments',
+      to: `${at('calendar')}?month=${d.date.slice(0, 7)}`,
+      icon: CalendarDays,
+    })),
+  );
 
-  const work: Hit[] = workDemo.map((w) => ({
+  const work: Hit[] = (src.work?.items ?? []).map((w) => ({
     id: `work-${w.id}`,
     title: w.title,
-    subtitle: `${w.category.toLowerCase().replace(/_/g, ' ')} · ${w.status.toLowerCase().replace(/_/g, ' ')}`,
+    subtitle: `${lower(w.category)} · ${lower(w.status)}`,
     group: 'Work',
     to: at('work'),
     icon: FileText,
   }));
 
-  const content: Hit[] = contentDemo.map((c) => ({
+  const content: Hit[] = (src.content?.items ?? []).map((c) => ({
     id: `content-${c.id}`,
     title: c.title,
-    subtitle: `${c.type.toLowerCase().replace(/_/g, ' ')} · ${c.status.toLowerCase().replace(/_/g, ' ')}`,
+    subtitle: `${lower(c.contentType)} · ${lower(c.status)}`,
     group: 'Content',
     to: at('work'),
     icon: FileText,
   }));
 
   const growth: Hit[] = [
-    ...growthDemo.campaigns.map((c) => ({
+    ...(src.growth?.campaigns ?? []).map((c) => ({
       id: `camp-${c.id}`,
       title: c.name,
-      subtitle: `campaign · ${c.status.toLowerCase()}`,
+      subtitle: `campaign · ${lower(c.status)}`,
       group: 'Growth',
       to: at('growth'),
       icon: TrendingUp,
     })),
-    ...growthDemo.allocations.map((a) => ({
+    ...(src.growth?.allocations ?? []).map((a) => ({
       id: `chan-${a.channelCode}`,
       title: a.displayName,
       subtitle: `channel · ${a.leads} leads · ${a.booked} booked`,
@@ -163,7 +183,24 @@ export function GlobalSearch() {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const index = useMemo(() => buildIndex(orgId), [orgId]);
+  // Held back until the palette opens; after that they stay cached with the screens.
+  const leads = useShellLeads(orgId, open);
+  const work = useShellWork(orgId, open);
+  const content = useShellContent(orgId, open);
+  const calendar = useShellCalendar(orgId, open);
+  const growth = useShellGrowth(orgId, open);
+
+  const index = useMemo(
+    () =>
+      buildIndex(orgId, {
+        leads: leads.data,
+        work: work.data,
+        content: content.data,
+        calendar: calendar.data,
+        growth: growth.data,
+      }),
+    [orgId, leads.data, work.data, content.data, calendar.data, growth.data],
+  );
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

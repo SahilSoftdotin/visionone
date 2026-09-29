@@ -1,9 +1,8 @@
-.PHONY: up up-eventing down api web seed test build logs realm reset help deploy deploy-logs deploy-down
+.PHONY: up down api web seed test build logs realm reset help deploy deploy-logs deploy-down
 
 help:
 	@echo "VisionOne - Phase 1"
 	@echo "  make up     Start Postgres and Keycloak"
-	@echo "  make up-eventing  ...and Kafka, when you need the outbox"
 	@echo "  make api    Run the Spring Boot API on :8080"
 	@echo "  make web    Run the Vite dev server on :5173"
 	@echo "  make test   Backend and frontend test suites"
@@ -20,11 +19,6 @@ up:
 	docker compose -f infra/docker-compose.yml up -d
 	@echo "Waiting for Postgres and Keycloak to become healthy..."
 	@docker compose -f infra/docker-compose.yml ps
-
-# Kafka is opt-in: the API is healthy without a broker, so it is not worth a gigabyte by default.
-up-eventing:
-	docker compose -f infra/docker-compose.yml --profile eventing up -d
-	@docker compose -f infra/docker-compose.yml --profile eventing ps
 
 down:
 	docker compose -f infra/docker-compose.yml down

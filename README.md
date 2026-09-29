@@ -49,17 +49,14 @@ Only the host side moves. Everything inside the compose network still talks to 5
 `infra/keycloak/visionone-realm.json` on first start, so authentication is version-controlled
 rather than clicked together.
 
-**Kafka is opt-in.** The API reports readiness `UP` without a broker and its Kafka health
-indicator is disabled on purpose, so working on the screens or the API does not need a gigabyte of
-RAM sitting idle. Start it when you are exercising the outbox:
+**Two containers, not four.** There is no message broker. Postgres is the queue: events leaving
+VisionOne wait in `outbox_event`, webhooks arriving from a provider wait in `inbox_event`, and a
+poller drains each. To see what is pending:
 
+```sql
+select event_type, attempts, last_error from outbox_event where published_at is null;
+select source, event_type, attempts, last_error from inbox_event where processed_at is null;
 ```
-make up-eventing
-# or: docker compose -f infra/docker-compose.yml --profile eventing up -d
-```
-
-Kafka UI on :8081 needs the broker too, so it takes both profiles:
-`docker compose -f infra/docker-compose.yml --profile eventing --profile tools up -d`
 
 ### 2. Start the API
 
@@ -125,8 +122,8 @@ Docker must be running.
   dash. Showing `$0.00` would be flattering and false.
 - **Month boundaries use the organization's timezone.** A lead created at 11pm on the 31st belongs
   to that month in the client's reckoning, not the server's.
-- **Kafka is never on the read path.** With the broker down, every screen loads and every write
-  succeeds; outbox rows drain when it returns.
+- **Events are never on the read path.** Every screen is a synchronous read of PostgreSQL. If the
+  dispatcher stops, screens and writes carry on and outbox rows accumulate until it runs again.
 - **Integration status is shown verbatim.** `DEMO` means synthetic. VisionOne never displays a
   connection as working when it is not.
 - **No PHI.** No medical history, diagnoses, labs, medications or clinical notes. `service_interest`

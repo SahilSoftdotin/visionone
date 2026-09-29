@@ -2,6 +2,7 @@ package com.visiondigitallab.visionone.reporting.internal;
 
 import com.visiondigitallab.visionone.appointment.api.AppointmentMetrics;
 import com.visiondigitallab.visionone.common.Money;
+import com.visiondigitallab.visionone.frontdesk.api.FrontDeskMetrics;
 import com.visiondigitallab.visionone.growth.api.GrowthFinance;
 import com.visiondigitallab.visionone.lead.api.LeadMetrics;
 import com.visiondigitallab.visionone.reporting.api.OverviewResponse;
@@ -30,10 +31,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class OverviewService {
 
+    /** The Overview shows the newest few leads; the Leads screen is where the rest live. */
+    private static final int RECENT_LEADS = 5;
+
     private final LeadMetrics leadMetrics;
     private final AppointmentMetrics appointmentMetrics;
     private final GrowthFinance growthFinance;
     private final WorkActivity workActivity;
+    private final FrontDeskMetrics frontDeskMetrics;
     private final JdbcClient jdbc;
 
     public OverviewService(
@@ -41,11 +46,13 @@ public class OverviewService {
             AppointmentMetrics appointmentMetrics,
             GrowthFinance growthFinance,
             WorkActivity workActivity,
+            FrontDeskMetrics frontDeskMetrics,
             JdbcClient jdbc) {
         this.leadMetrics = leadMetrics;
         this.appointmentMetrics = appointmentMetrics;
         this.growthFinance = growthFinance;
         this.workActivity = workActivity;
+        this.frontDeskMetrics = frontDeskMetrics;
         this.jdbc = jdbc;
     }
 
@@ -93,6 +100,8 @@ public class OverviewService {
                         investment.remaining(),
                         investment.utilizationPercent()),
                 activity(orgId, from, to),
+                frontDeskMetrics.activityFor(orgId, from, to, zone),
+                leadMetrics.recentIn(orgId, from, to, RECENT_LEADS),
                 currentRecommendation(orgId, month.atDay(1)).orElse(null));
     }
 

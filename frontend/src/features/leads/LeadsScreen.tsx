@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -12,13 +12,19 @@ import { ArrowUpDown, Clock, Search, UserCheck, Users, Zap } from 'lucide-react'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useRowFocus } from '@/lib/useRowFocus';
+import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
+import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
+import { Skeleton } from '@/components/ui/Skeleton';
 import {
   LEAD_STATUSES,
-  leadResponseSummary,
-  leadsDemo,
+  type LeadListResponse,
   type LeadRow,
   type LeadStatus,
-} from '@/lib/demoData';
+} from '@/lib/types';
+import { useLeads } from './useLeads';
+import { LeadDetailPanel } from './LeadDetailPanel';
 import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +34,7 @@ import { cn } from '@/lib/utils';
  * A lightweight pipeline: filter, view, and see what happened. Deliberately not a CRM - no
  * sequences, no automation, no clinical intake. Service interest is a broad category only.
  *
- * Every row here is synthetic. See lib/demoData.ts.
+ * Rows come from VisionOne's own records. Names are synthetic; no contact details are stored.
  */
 
 const statusTone: Record<LeadStatus, 'neutral' | 'positive' | 'caution' | 'critical'> = {
@@ -45,19 +51,80 @@ const statusTone: Record<LeadStatus, 'neutral' | 'positive' | 'caution' | 'criti
 const prettyStatus = (s: LeadStatus) => s.toLowerCase().replace(/_/g, ' ');
 
 export function LeadsScreen() {
+  const { orgId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  const month = searchParams.get('month') ?? currentMonthKey();
+  const { data, isLoading, error, refetch } = useLeads(orgId, month);
+
+  return (
+    <DataStateBoundary
+      isLoading={isLoading}
+      error={error}
+      skeleton={<LeadsSkeleton />}
+      onRetry={() => void refetch()}
+    >
+      {data && <LeadsView data={data} orgId={orgId} month={month} />}
+    </DataStateBoundary>
+  );
+}
+
+function LeadsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-9 w-32" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[104px]" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+    </div>
+  );
+}
+
+function LeadsView({
+  data,
+  orgId,
+  month,
+}: {
+  data: LeadListResponse;
+  orgId: string;
+  month: string;
+}) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
+  // In the URL so a notification can point at it and a filtered view can be shared.
+  const [statusParam, setStatusParam] = useSearchParams();
+  const rawStatus = statusParam.get('status');
+  const status: LeadStatus | 'ALL' =
+    rawStatus && (LEAD_STATUSES as string[]).includes(rawStatus)
+      ? (rawStatus as LeadStatus)
+      : 'ALL';
+  const setStatus = (next: LeadStatus | 'ALL') => {
+    const params = new URLSearchParams(statusParam);
+    if (next === 'ALL') params.delete('status');
+    else params.set('status', next);
+    setStatusParam(params, { replace: true });
+  };
+  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
+  const focusId = useRowFocus();
 
+  // A notification that names one lead opens it, rather than leaving the reader to find the
+  // highlighted row and click it themselves.
+  useEffect(() => {
+    if (focusId) setOpenLeadId(focusId);
+  }, [focusId]);
+
+  const all = data.leads;
   const rows = useMemo(
-    () => (status === 'ALL' ? leadsDemo : leadsDemo.filter((l) => l.status === status)),
-    [status],
+    () => (status === 'ALL' ? all : all.filter((l) => l.status === status)),
+    [status, all],
   );
 
   const columns = useMemo<ColumnDef<LeadRow>[]>(
     () => [
       {
-        accessorKey: 'id',
+        accessorKey: 'reference',
         header: 'Lead',
         cell: (c) => (
           <span className="font-mono text-xs font-medium text-muted-foreground">
@@ -129,10 +196,7 @@ export function LeadsScreen() {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const booked = leadsDemo.filter((l) => l.booked).length;
-  const qualified = leadsDemo.filter((l) =>
-    ['QUALIFIED', 'APPOINTMENT_REQUESTED', 'BOOKED', 'ATTENDED'].includes(l.status),
-  ).length;
+  const { summary } = data;
 
   return (
     <div className="space-y-6">
@@ -140,32 +204,41 @@ export function LeadsScreen() {
         <div>
           <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Leads</h1>
           <p className="text-sm text-muted-foreground">
-            {formatCount(leadsDemo.length)} enquiries this period
+            {formatCount(summary.total)} enquiries this period
           </p>
         </div>
-        <Badge tone="demo">Demo data</Badge>
+        <div className="flex items-center gap-2">
+          <MonthPicker />
+          <Badge tone="demo">Synthetic data</Badge>
+        </div>
       </header>
 
       <section aria-label="Lead summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           {
             label: 'Total leads',
-            value: formatCount(leadsDemo.length),
+            value: formatCount(summary.total),
             icon: Users,
             hint: 'this period',
           },
           {
             label: 'Qualified',
-            value: formatCount(qualified),
+            value: formatCount(summary.qualified),
             icon: UserCheck,
             hint: 'reached qualified+',
           },
-          { label: 'Booked', value: formatCount(booked), icon: Zap, hint: 'appointments made' },
+          { label: 'Booked', value: formatCount(summary.booked), icon: Zap, hint: 'appointments made' },
           {
             label: 'Median response',
-            value: `${leadResponseSummary.medianMinutes}m`,
+            value:
+              summary.medianResponseMinutes === null
+                ? '\u2014'
+                : `${summary.medianResponseMinutes}m`,
             icon: Clock,
-            hint: `${leadResponseSummary.underFifteenPercent}% under 15m`,
+            hint:
+              summary.underFifteenMinutesPercent === null
+                ? 'no responses yet'
+                : `${summary.underFifteenMinutesPercent}% under 15m`,
           },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as React.CSSProperties}>
@@ -211,7 +284,7 @@ export function LeadsScreen() {
             {(['ALL', ...LEAD_STATUSES] as const).map((s) => {
               const active = status === s;
               const count =
-                s === 'ALL' ? leadsDemo.length : leadsDemo.filter((l) => l.status === s).length;
+                s === 'ALL' ? all.length : all.filter((l) => l.status === s).length;
               return (
                 <button
                   key={s}
@@ -266,7 +339,22 @@ export function LeadsScreen() {
                 {table.getRowModel().rows.map((row, i) => (
                   <tr
                     key={row.id}
-                    className="reveal border-b border-border last:border-0 transition-colors hover:bg-primary/[0.04]"
+                    id={`row-${row.original.id}`}
+                    tabIndex={0}
+                    aria-label={`Open ${row.original.reference}`}
+                    onClick={() => setOpenLeadId(row.original.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setOpenLeadId(row.original.id);
+                      }
+                    }}
+                    className={cn(
+                      'reveal cursor-pointer border-b border-border last:border-0 transition-colors',
+                      'hover:bg-primary/[0.04] focus-visible:outline focus-visible:outline-2',
+                      'focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
+                      focusId === row.original.id && 'bg-primary-soft',
+                    )}
                     style={{ '--i': Math.min(i, 10) } as React.CSSProperties}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -299,9 +387,23 @@ export function LeadsScreen() {
         className="reveal text-xs text-muted-foreground"
         style={{ '--i': 6 } as React.CSSProperties}
       >
+        Select a lead to see every stage it passed through.
+        {data.editable
+          ? ' Vision Digital Lab moves leads; the practice reads them.'
+          : ' The pipeline is a record of what Vision did, so it is read-only here.'}{' '}
         Names are synthetic and service interest is a broad category. VisionOne is a growth
         platform, not an EHR: no medical history, diagnoses, labs or notes are stored.
       </p>
+
+      {openLeadId && (
+        <LeadDetailPanel
+          orgId={orgId}
+          month={month}
+          leadId={openLeadId}
+          editable={data.editable}
+          onClose={() => setOpenLeadId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * The organization this request is operating on, resolved once and verified once.
  *
- * <p>Request-scoped. A Kafka consumer has no request and therefore no context: consumers read
+ * <p>Request-scoped. An event handler has no request and therefore no context: handlers read
  * the organization id from the event envelope and pass it explicitly.
  */
 public record OrganizationContext(

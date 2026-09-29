@@ -6,6 +6,11 @@
 -- are stored. Nothing here is clinical.
 --
 -- Repeatable migration: it runs when its checksum changes and is a no-op once data exists.
+--
+-- Every insert is guarded, either by the IF EXISTS check at the top of its DO block or by an
+-- ON CONFLICT clause. recommendation and monthly_report sit outside any DO block, so they had
+-- neither: editing this file re-ran them and startup died on recommendation_pkey. A repeatable
+-- migration that only works on an empty database is a repeatable migration in name only.
 
 DO $$
 DECLARE
@@ -62,7 +67,8 @@ CROSS JOIN (VALUES
 -- ---------------------------------------------------------------- leads
 -- 180 leads, 60 per month, distributed across channels by a fixed weighting.
 INSERT INTO lead (id, organization_id, channel_source_id, display_name, contact_hash,
-                  service_interest, status, created_at, first_response_at, booked_at)
+                  service_interest, status, created_at, first_response_at, booked_at,
+                  owner_membership_id)
 SELECT
     ('0199a1d0-1000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
     org,
@@ -82,8 +88,14 @@ SELECT
            'IV_THERAPY','GENERAL_ENQUIRY'])[((i * 5) % 6) + 1],
     s.status,
     ts.created_at,
-    CASE WHEN s.rank >= 1 THEN ts.created_at + make_interval(mins => 12 + (i * 17) % 260) END,
-    CASE WHEN s.rank >= 4 THEN ts.created_at + make_interval(hours => 26 + (i * 11) % 90) END
+    CASE WHEN s.rank >= 1 THEN ts.created_at + CASE
+             -- Answered live at the desk.
+             WHEN (i * 31) % 100 < 36 THEN make_interval(mins => 2 + (i * 7) % 13)
+             -- Picked up later from voicemail or a form.
+             ELSE make_interval(mins => 22 + (i * 17) % 200) END END,
+    CASE WHEN s.rank >= 4 THEN ts.created_at + make_interval(hours => 26 + (i * 11) % 90) END,
+    -- Untouched leads stay unassigned; anything worked on has an owner.
+    CASE WHEN s.rank >= 1 THEN '0199a1d0-0002-7000-8000-000000000001'::uuid END
 FROM generate_series(0, 179) AS i
 CROSS JOIN LATERAL (
     SELECT (CASE i / 60 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
@@ -257,7 +269,7 @@ CROSS JOIN LATERAL (
 
 -- Content. Three items are waiting on Gary, which is what Week 3's approval demo needs.
 INSERT INTO content_item (id, organization_id, title, content_type, status, author_name,
-                          draft_url, published_url, published_at)
+                          draft_url, published_url, published_at, summary)
 SELECT
     ('0199a1d0-5000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
     org,
@@ -268,17 +280,24 @@ SELECT
     CASE WHEN c.status <> 'PUBLISHED' THEN 'https://drafts.visiondigitallab.com/thrive/' || i END,
     CASE WHEN c.status =  'PUBLISHED' THEN 'https://thrivelongevitycenter.com/insights/' || i END,
     CASE WHEN c.status =  'PUBLISHED'
-         THEN (CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END) + make_interval(days => (i * 4) % 25) END
+         THEN (CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END) + make_interval(days => (i * 4) % 25) END,
+    c.summary
 FROM generate_series(0, 23) AS i
 CROSS JOIN LATERAL (
     SELECT
       (ARRAY['What a longevity panel actually measures','Five signs it is time to review your hormones',
              'Inside a THRIVE first visit','Sleep, recovery and biological age',
              'Why we test before we treat','Metabolic health after 40',
-             'IV therapy: what the evidence supports','Choosing a longevity clinic'])[(i % 8) + 1]
-        || ' (' || (i + 1)::text || ')' AS title,
+             'IV therapy: what the evidence supports'])[(i % 7) + 1] AS title,
       (ARRAY['BLOG','SOCIAL_POST','SHORT_VIDEO','GOOGLE_BUSINESS_POST','BLOG','FAQ',
              'LANDING_PAGE','SOCIAL_POST'])[(i % 8) + 1] AS content_type,
+      (ARRAY['What the panel covers, what it does not, and how long results take.',
+             'Short post pointing at the longevity panel explainer.',
+             'Ninety seconds inside a first visit, filmed at the clinic.',
+             'Profile post on sleep and recovery, aimed at local search.',
+             'Why testing comes before treatment, in plain language.',
+             'Carousel on metabolic health after forty.',
+             'What the evidence actually supports, and what it does not.'])[(i % 7) + 1] AS summary,
       CASE
         WHEN i % 8 IN (0, 4) THEN 'PUBLISHED'
         WHEN i % 8 = 1       THEN 'CLIENT_REVIEW'
@@ -322,19 +341,124 @@ VALUES
   'Creative fatigue is the most likely explanation. Spending into it buys progressively less, and the landing page is where the paid traffic lands anyway.',
   'We expect a lower cost per lead once new creative is live. The size of the change is unknown until we test it.',
   'Approve pausing Meta spend for two weeks.',
-  'OPEN', NULL);
+  'OPEN', NULL)
+ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- monthly reports
+-- next_actions and decisions_required hold one item per line; the API splits on newlines. A
+-- textarea is what Vision actually writes these in, and a JSON array in a text column would be a
+-- schema pretending to be something it is not.
+--
+-- payload_json is deliberately left at its '{}' default here rather than hand-written: the figures
+-- belong to the generator, and a payload typed out in a seed file is the one number in VisionOne
+-- that nothing checks. A report with no frozen payload reads as not-yet-generated and the API
+-- composes its figures live, which in a synthetic dataset gives the same answer generation would.
 INSERT INTO monthly_report (id, organization_id, period_month, status, key_learning, next_actions,
                             decisions_required, generated_at)
 VALUES
  ('0199a1d0-7000-7000-8000-000000000001',
   '0199a1d0-0000-7000-8000-000000000001', date '2026-07-01', 'SHARED',
   'Paid search brings volume; local search brings efficiency. The mix matters more than the total.',
-  'Shift budget toward local search. Begin the hormone content cluster.',
-  'Approve the August budget shift.', timestamptz '2026-08-01 08:00:00+00'),
+  E'Shift budget toward local search.\nBegin the hormone content cluster.\nAdd call tracking to the paid search landing pages.',
+  E'Approve the August budget shift.', timestamptz '2026-08-01 08:00:00+00'),
  ('0199a1d0-7000-7000-8000-000000000002',
   '0199a1d0-0000-7000-8000-000000000001', date '2026-08-01', 'SHARED',
   'Missed and after-hours calls are the largest single source of lost opportunity we can currently see.',
-  'Run the after-hours AI Front Desk pilot. Publish the remaining hormone articles.',
-  'Confirm the after-hours pilot.', timestamptz '2026-09-01 08:00:00+00');
+  E'Run the after-hours AI Front Desk pilot.\nPublish the remaining hormone articles.\nReview the three highest-cost paid search terms.',
+  E'Confirm the after-hours pilot.\nDecide whether Saturday morning hours are worth trialling.',
+  timestamptz '2026-09-01 08:00:00+00'),
+ -- September is still open: a DRAFT report, narrative half written, figures not yet frozen. The
+ -- client cannot see this one, which is the point of having the status.
+ ('0199a1d0-7000-7000-8000-000000000003',
+  '0199a1d0-0000-7000-8000-000000000001', date '2026-09-01', 'DRAFT',
+  'Early signal: the after-hours pilot is converting, but the sample is still too small to act on.',
+  E'Hold the pilot for a second month before drawing a conclusion.',
+  NULL, NULL)
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------- campaigns
+-- Paid channels carry campaigns; organic and referral do not. Leads are attributed
+-- deterministically by position within their channel, so campaign counts are real rather
+-- than asserted. Campaign-level SPEND is deliberately absent: Phase 1 budgets by channel,
+-- and the Google Ads adapter fills per-campaign spend in Phase 2.
+DO $$
+DECLARE
+    org uuid := '0199a1d0-0000-7000-8000-000000000001';
+BEGIN
+
+IF EXISTS (SELECT 1 FROM campaign WHERE organization_id = org) THEN
+    RETURN;
+END IF;
+
+INSERT INTO campaign (id, organization_id, channel_source_id, name, status, started_on, ended_on) VALUES
+ ('0199a1d0-0008-7000-8000-000000000001', org, '0199a1d0-0001-7000-8000-000000000001',
+  'Hormone Therapy - 25mi radius', 'ACTIVE', date '2026-07-01', NULL),
+ ('0199a1d0-0008-7000-8000-000000000002', org, '0199a1d0-0001-7000-8000-000000000001',
+  'Longevity Program - Brand', 'ACTIVE', date '2026-07-01', NULL),
+ ('0199a1d0-0008-7000-8000-000000000003', org, '0199a1d0-0001-7000-8000-000000000005',
+  'Longevity Panel - Retargeting', 'PAUSED', date '2026-07-15', date '2026-09-10'),
+ ('0199a1d0-0008-7000-8000-000000000004', org, '0199a1d0-0001-7000-8000-000000000005',
+  'Diagnostics - Cold Audience', 'ACTIVE', date '2026-08-01', NULL);
+
+WITH ranked AS (
+    SELECT l.id,
+           l.channel_source_id,
+           row_number() OVER (PARTITION BY l.channel_source_id ORDER BY l.created_at, l.id) AS n
+    FROM lead l
+    WHERE l.organization_id = org
+      AND l.channel_source_id IN ('0199a1d0-0001-7000-8000-000000000001',
+                                  '0199a1d0-0001-7000-8000-000000000005')
+)
+UPDATE lead l
+SET campaign_id = CASE
+        WHEN r.channel_source_id = '0199a1d0-0001-7000-8000-000000000001'
+             THEN CASE WHEN r.n % 3 = 0 THEN '0199a1d0-0008-7000-8000-000000000002'::uuid
+                       ELSE '0199a1d0-0008-7000-8000-000000000001'::uuid END
+        ELSE CASE WHEN r.n % 2 = 0 THEN '0199a1d0-0008-7000-8000-000000000004'::uuid
+                  ELSE '0199a1d0-0008-7000-8000-000000000003'::uuid END
+    END
+FROM ranked r
+WHERE l.id = r.id;
+
+END $$;
+
+-- ---------------------------------------------------------------- front desk and calendar detail
+-- Fills the columns V12 added on the rows seeded above.
+--
+-- Note the division by 60 in every modulo. The seeded timestamps sit on whole minutes, so their
+-- epoch is always a multiple of 60 and `epoch % 3` is constantly zero - which silently made every
+-- answered call an AI Front Desk call and every appointment exactly 30 minutes. Measured, not
+-- assumed: the distributions below are checked, not hoped for.
+DO $$
+DECLARE org uuid := '0199a1d0-0000-7000-8000-000000000001';
+BEGIN
+
+IF NOT EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
+    RETURN;
+END IF;
+
+-- Who answered. A missed call went to voicemail; the AI desk takes the after-hours traffic,
+-- which is the pilot the August recommendation proposed.
+UPDATE call SET handled_by = CASE
+        WHEN NOT answered THEN 'VOICEMAIL'
+        WHEN after_hours  THEN 'AI_FRONT_DESK'
+        WHEN ((extract(epoch from started_at)::bigint / 60) % 3) = 0 THEN 'AI_FRONT_DESK'
+        ELSE 'PRACTICE_TEAM'
+    END
+WHERE organization_id = org AND handled_by IS NULL;
+
+-- Credit the AI Front Desk channel only for calls it actually handled. The rest stay uncredited:
+-- null is honest, "Direct" would be a guess.
+UPDATE call SET channel_source_id = '0199a1d0-0001-7000-8000-000000000004'
+WHERE organization_id = org AND handled_by = 'AI_FRONT_DESK' AND channel_source_id IS NULL;
+
+UPDATE appointment_reference a SET
+    display_label = split_part(l.display_name, ' ', 1) || ' '
+                    || left(split_part(l.display_name, ' ', 2), 1) || '.',
+    duration_minutes = 30 + 15 * ((extract(epoch from a.requested_at)::bigint / 60) % 3),
+    service_category = l.service_interest,
+    channel_source_id = l.channel_source_id
+FROM lead l
+WHERE a.lead_id = l.id AND a.organization_id = org AND a.display_label IS NULL;
+
+END $$;

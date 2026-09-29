@@ -12,7 +12,13 @@ import {
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
-import { frontDeskDemo, type CallRow } from '@/lib/demoOperations';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { StatusFilter } from '@/components/ui/StatusFilter';
+import { useUrlFilter } from '@/lib/useUrlFilter';
+import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
+import { useFrontDesk } from './useFrontDesk';
 import { formatCount, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -24,23 +30,89 @@ import { cn } from '@/lib/utils';
  * where the highest-intent enquiries land.
  */
 
-const outcomeTone: Record<CallRow['outcome'], 'neutral' | 'positive' | 'caution' | 'critical'> = {
+// The database distinguishes more outcomes than the fixture did, so every one has a tone.
+const outcomeTone: Record<string, 'neutral' | 'positive' | 'caution' | 'critical'> = {
   BOOKED: 'positive',
-  ENQUIRY: 'neutral',
+  ENQUIRY_ANSWERED: 'neutral',
+  MESSAGE_TAKEN: 'neutral',
   TRANSFERRED: 'neutral',
   RESCHEDULED: 'caution',
   CANCELLED: 'caution',
   MISSED: 'critical',
+  VOICEMAIL: 'critical',
 };
+
+/** Declaration order, matching CallOutcome on the server, so the pill row is stable. */
+const OUTCOME_ORDER = [
+  'BOOKED',
+  'ENQUIRY_ANSWERED',
+  'MESSAGE_TAKEN',
+  'TRANSFERRED',
+  'MISSED',
+  'VOICEMAIL',
+  'CANCELLED',
+  'RESCHEDULED',
+] as const;
+
+type Outcome = (typeof OUTCOME_ORDER)[number];
 
 /** Published hours: Mon-Thu 10-5, Fri 9-3. Everything else is the gap. */
 const OPEN_FROM = 9;
 const OPEN_TO = 17;
 
 export function FrontDeskScreen() {
-  const d = frontDeskDemo;
-  const peak = Math.max(...d.hourly);
-  const answerRate = (d.answered / d.totalCalls) * 100;
+  const { orgId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  const month = searchParams.get('month') ?? currentMonthKey();
+  const [outcome, setOutcome] = useUrlFilter<Outcome>('outcome', OUTCOME_ORDER);
+  const { data, isLoading, error, refetch } = useFrontDesk(orgId, month, outcome);
+
+  return (
+    <DataStateBoundary
+      isLoading={isLoading}
+      error={error}
+      skeleton={<FrontDeskSkeleton />}
+      onRetry={() => void refetch()}
+    >
+      {data && <FrontDeskView d={data} outcome={outcome} onOutcome={setOutcome} />}
+    </DataStateBoundary>
+  );
+}
+
+function FrontDeskSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-9 w-40" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-[104px]" />
+        ))}
+      </div>
+      <Skeleton className="h-56" />
+      <Skeleton className="h-72" />
+    </div>
+  );
+}
+
+type FrontDeskData = NonNullable<ReturnType<typeof useFrontDesk>['data']>;
+
+function FrontDeskView({
+  d,
+  outcome,
+  onOutcome,
+}: {
+  d: FrontDeskData;
+  outcome: Outcome | null;
+  onOutcome: (next: Outcome | null) => void;
+}) {
+  const peak = Math.max(...d.hourly, 1);
+
+  // The server sends a list; the filter wants a lookup. Counts are the whole month either way.
+  const outcomeCounts = Object.fromEntries(
+    d.outcomeCounts.map((o) => [o.outcome, o.count]),
+  ) as Partial<Record<Outcome, number>>;
+  // A month with no calls is not a zero answer rate, it is no answer rate.
+  const answerRate = d.totalCalls === 0 ? null : (d.answered / d.totalCalls) * 100;
 
   return (
     <div className="space-y-6">
@@ -49,7 +121,18 @@ export function FrontDeskScreen() {
           <h1 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Front Desk</h1>
           <p className="text-sm text-muted-foreground">Call performance and booked outcomes</p>
         </div>
-        <Badge tone="demo">Demo data</Badge>
+        <div className="flex items-center gap-2">
+          <MonthPicker />
+          <Badge tone={d.dataSource === 'LIVE' ? 'positive' : 'demo'}>
+            {d.dataSource === 'LIVE'
+              ? 'Live provider'
+              : d.dataSource === 'DEMO'
+                ? 'Synthetic data'
+                : d.dataSource === 'ERROR'
+                  ? 'Provider error'
+                  : 'Not connected'}
+          </Badge>
+        </div>
       </header>
 
       <section aria-label="Call volume" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -64,13 +147,16 @@ export function FrontDeskScreen() {
             label: 'Answered',
             value: formatCount(d.answered),
             icon: Zap,
-            hint: `${answerRate.toFixed(0)}% answer rate`,
+            hint: answerRate === null ? 'no calls yet' : `${answerRate.toFixed(0)}% answer rate`,
           },
           {
-            label: 'Missed',
+            // "Unanswered", not "Missed": this counts every call nobody picked up, which is
+            // MISSED plus VOICEMAIL. Calling it Missed put a different number under the same word
+            // as the MISSED filter pill directly below it.
+            label: 'Unanswered',
             value: formatCount(d.missed),
             icon: PhoneMissed,
-            hint: 'went unanswered',
+            hint: 'missed or voicemail',
           },
           {
             label: 'After hours',
@@ -99,18 +185,22 @@ export function FrontDeskScreen() {
             <span className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary))]" aria-hidden />
-                Open
+                Opening hours
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-critical" aria-hidden />
-                Nobody answers
+                Outside hours
               </span>
             </span>
           }
         />
         <CardBody>
+          {/* Columns stretch to the full chart height and each bar is positioned absolutely inside
+              its column. A percentage height only resolves against a parent with a definite
+              height; with items-end the columns shrank to their content and every bar drew at
+              zero height, leaving only the hour labels. */}
           <div
-            className="flex h-44 items-end gap-1"
+            className="flex h-44 gap-1"
             role="img"
             aria-label={`Call volume by hour of day. ${d.afterHours} of ${d.totalCalls} calls arrive outside published hours.`}
           >
@@ -119,7 +209,7 @@ export function FrontDeskScreen() {
               return (
                 <div
                   key={hour}
-                  className="group/bar relative flex flex-1 flex-col items-center gap-1"
+                  className="group/bar relative flex h-full flex-1 flex-col items-center gap-1"
                 >
                   {/* A styled tooltip rather than the native title attribute, which waits a
                       second before appearing and cannot be themed. */}
@@ -137,15 +227,17 @@ export function FrontDeskScreen() {
                       />
                       {count} {count === 1 ? 'call' : 'calls'}
                       <span className="font-semibold text-foreground">
-                        {open ? '· answered' : '· nobody answers'}
+                        {/* Time of day, not outcome: open-hours calls can be missed, and the
+                            AI Front Desk answers some that arrive outside them. */}
+                        {open ? '· opening hours' : '· outside hours'}
                       </span>
                     </p>
                   </div>
 
-                  <div className="flex w-full flex-1 items-end">
+                  <div className="relative w-full flex-1">
                     <div
                       className={cn(
-                        'w-full rounded-t-full transition-all duration-200 ease-out',
+                        'absolute inset-x-0 bottom-0 rounded-t-full transition-all duration-200 ease-out',
                         open
                           ? 'bg-gradient-to-t from-[hsl(var(--primary))] to-[hsl(199_89%_52%)]'
                           : 'bg-gradient-to-t from-critical/70 to-critical/40',
@@ -154,9 +246,10 @@ export function FrontDeskScreen() {
                       style={{ height: `${Math.max((count / peak) * 100, 3)}%` }}
                     />
                   </div>
-                  {hour % 4 === 0 && (
-                    <span className="text-[10px] tabular-nums text-muted-foreground">{hour}</span>
-                  )}
+                  {/* Every column keeps a label row, so all bars share one baseline. */}
+                  <span className="h-3.5 text-[10px] leading-none tabular-nums text-muted-foreground">
+                    {hour % 4 === 0 ? hour : ''}
+                  </span>
                 </div>
               );
             })}
@@ -248,7 +341,9 @@ export function FrontDeskScreen() {
                   Average duration
                 </p>
                 <p className="text-lg font-semibold tabular-nums">
-                  {Math.floor(d.averageDurationSeconds / 60)}m {d.averageDurationSeconds % 60}s
+                  {d.averageDurationSeconds === null
+                    ? '\u2014'
+                    : `${Math.floor(d.averageDurationSeconds / 60)}m ${d.averageDurationSeconds % 60}s`}
                 </p>
               </div>
             </div>
@@ -259,9 +354,24 @@ export function FrontDeskScreen() {
       <Card className="reveal" style={{ '--i': 8 } as CSSProperties}>
         <CardHeader
           title="Recent calls"
-          action={<span className="text-xs text-muted-foreground">Numbers masked</span>}
+          action={
+            <span className="text-xs text-muted-foreground">
+              The {d.recent.length} most recent · numbers masked
+            </span>
+          }
         />
         <CardBody className="px-0 py-0">
+          <div className="px-5 pb-3 sm:px-6">
+            <StatusFilter
+              label="Filter recent calls by outcome"
+              order={OUTCOME_ORDER}
+              counts={outcomeCounts}
+              tones={outcomeTone as Record<Outcome, 'neutral' | 'positive' | 'caution' | 'critical'>}
+              total={d.totalCalls}
+              selected={outcome}
+              onSelect={onOutcome}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] text-sm">
               <caption className="sr-only">Recent call activity with outcome and handler</caption>

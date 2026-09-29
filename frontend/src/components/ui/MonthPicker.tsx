@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FloatingMenu } from './FloatingMenu';
 
 /**
  * Period selector for a screen that reads `?month=YYYY-MM`.
@@ -36,28 +37,13 @@ function monthsThisYear(): { key: string; label: string }[] {
 export function MonthPicker() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   const wrapper = useRef<HTMLDivElement>(null);
 
   const options = monthsThisYear();
   const selected = searchParams.get('month') ?? currentMonthKey();
   const label = options.find((o) => o.key === selected)?.label ?? selected;
 
-  // A menu that stays open after a click elsewhere is a menu people fight with.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (wrapper.current && !wrapper.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   const choose = (key: string) => {
     const next = new URLSearchParams(searchParams);
@@ -87,11 +73,11 @@ export function MonthPicker() {
         />
       </button>
 
-      {open && (
+      <FloatingMenu anchorRef={wrapper} open={open} onClose={close}>
         <ul
           role="listbox"
           aria-label="Choose a month"
-          className="absolute right-0 z-30 mt-1.5 max-h-72 w-48 overflow-auto rounded-lg border border-border bg-card p-1 elev-lg"
+          className="max-h-72 w-48 overflow-auto rounded-lg border border-border bg-card p-1 elev-lg"
         >
           {options.map((o) => {
             const active = o.key === selected;
@@ -116,7 +102,7 @@ export function MonthPicker() {
             );
           })}
         </ul>
-      )}
+      </FloatingMenu>
     </div>
   );
 }

@@ -2,7 +2,12 @@ import { Activity, Radio, Target, TrendingUp, Wallet } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
-import { growthDemo } from '@/lib/demoData';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
+import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useGrowthPlan } from './useGrowthPlan';
+import { BudgetEditor } from './BudgetEditor';
 import { formatCount, formatMoney, formatMonth } from '@/lib/format';
 import { useCountUp } from '@/lib/useCountUp';
 import { cn } from '@/lib/utils';
@@ -13,10 +18,45 @@ import { cn } from '@/lib/utils';
  * Plan vs actual, where the money went, and what it produced. One screen rather than a separate
  * application per marketing channel: a channel is a row, not a product.
  *
- * Every figure here is synthetic. See lib/demoData.ts.
+ * Spend is entered by Vision Digital Lab; leads and bookings are counted from VisionOne's own
+ * records. The figures are synthetic because the data is, not because the screen is.
  */
 export function GrowthScreen() {
-  const plan = growthDemo;
+  const { orgId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  const month = searchParams.get('month') ?? currentMonthKey();
+  const { plan, isLoading, error, refetch } = useGrowthPlan(orgId, month);
+
+  return (
+    <DataStateBoundary
+      isLoading={isLoading}
+      error={error}
+      skeleton={<GrowthSkeleton />}
+      onRetry={() => void refetch()}
+    >
+      {plan && <GrowthPlanView plan={plan} orgId={orgId} month={month} />}
+    </DataStateBoundary>
+  );
+}
+
+type PlanView = NonNullable<ReturnType<typeof useGrowthPlan>['plan']>;
+
+function GrowthSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-9 w-40" />
+      <Skeleton className="h-44" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[104px]" />
+        ))}
+      </div>
+      <Skeleton className="h-72" />
+    </div>
+  );
+}
+
+function GrowthPlanView({ plan, orgId, month }: { plan: PlanView; orgId: string; month: string }) {
   const util = useCountUp(plan.utilizationPercent);
 
   return (
@@ -28,7 +68,10 @@ export function GrowthScreen() {
             {formatMonth(plan.periodMonth)} · plan {plan.status.toLowerCase()}
           </p>
         </div>
-        <Badge tone="demo">Demo data</Badge>
+        <div className="flex items-center gap-2">
+          <MonthPicker />
+          <Badge tone="demo">Synthetic data</Badge>
+        </div>
       </header>
 
       {/* The one figure this screen exists to answer: is the budget on track? */}
@@ -246,28 +289,30 @@ export function GrowthScreen() {
         </CardBody>
       </Card>
 
+      {plan.editable && <BudgetEditor key={month} plan={plan} orgId={orgId} month={month} />}
+
       <p
         className="reveal text-xs text-muted-foreground"
         style={{ '--i': 8 } as React.CSSProperties}
       >
-        Phase 1 uses manual and synthetic figures. Live Google Ads, Meta and Search Console
-        connections arrive in Phase 2 and will replace this screen&rsquo;s source without changing
-        its shape.
+        Spend is entered by Vision Digital Lab; leads and bookings are counted from VisionOne&rsquo;s
+        own records. Live Google Ads, Meta and Search Console connections arrive in Phase 2 and will
+        replace the spend source without changing this screen.
       </p>
     </div>
   );
 }
 
-function totalLeads(p: typeof growthDemo): number {
+function totalLeads(p: PlanView): number {
   return p.allocations.reduce((sum, a) => sum + a.leads, 0);
 }
 
-function totalBooked(p: typeof growthDemo): number {
+function totalBooked(p: PlanView): number {
   return p.allocations.reduce((sum, a) => sum + a.booked, 0);
 }
 
-function blendedCpl(p: typeof growthDemo) {
+function blendedCpl(p: PlanView) {
   const leads = totalLeads(p);
   if (leads === 0) return null;
-  return { amountMinor: Math.round(p.actualTotal.amountMinor / leads), currency: 'USD' };
+  return { amountMinor: Math.round(p.actualTotal.amountMinor / leads), currency: p.currency };
 }

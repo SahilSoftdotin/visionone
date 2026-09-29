@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CalendarCheck, CalendarX, Clock, Repeat } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -6,12 +6,16 @@ import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { StatusPill } from '@/components/ui/Chips';
 import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
-import {
-  appointmentsDemo,
-  appointmentsOn,
-  isoDate,
-  type AppointmentStatus,
-} from '@/lib/demoCalendar';
+import { useParams } from 'react-router-dom';
+import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useCalendar } from './useCalendar';
+import { DayPanel } from './DayPanel';
+
+/** Local, because it is a date formatting concern rather than a data one. */
+function isoDate(year: number, monthIndex: number, day: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
 import { formatCount, formatMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +27,7 @@ import { cn } from '@/lib/utils';
  * booking happened and where it came from, not what it was for.
  */
 
-const statusTone: Record<AppointmentStatus, 'primary' | 'positive' | 'caution' | 'critical'> = {
+const statusTone: Record<string, 'primary' | 'positive' | 'caution' | 'critical'> = {
   BOOKED: 'primary',
   ATTENDED: 'positive',
   RESCHEDULED: 'caution',
@@ -33,6 +37,7 @@ const statusTone: Record<AppointmentStatus, 'primary' | 'positive' | 'caution' |
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function CalendarScreen() {
+  const { orgId = '' } = useParams();
   const [searchParams] = useSearchParams();
   const requested = searchParams.get('month') ?? currentMonthKey();
   // A hand-edited ?month= can be anything. Fall back rather than rendering NaN cells.
@@ -52,15 +57,31 @@ export function CalendarScreen() {
     return out;
   }, [year, monthIndex]);
 
-  const inMonth = appointmentsDemo.filter((a) => a.date.startsWith(monthKey));
+  const calendar = useCalendar(orgId, monthKey);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const { appointmentsOn, summary, dataSource } = calendar;
+
   const counts = {
-    booked: inMonth.filter((a) => a.status === 'BOOKED').length,
-    attended: inMonth.filter((a) => a.status === 'ATTENDED').length,
-    rescheduled: inMonth.filter((a) => a.status === 'RESCHEDULED').length,
-    cancelled: inMonth.filter((a) => a.status === 'CANCELLED').length,
+    booked: summary?.booked ?? 0,
+    attended: summary?.attended ?? 0,
+    rescheduled: summary?.rescheduled ?? 0,
+    cancelled: summary?.cancelled ?? 0,
   };
 
   const todayIso = new Date().toISOString().slice(0, 10);
+
+  if (calendar.isLoading || calendar.error) {
+    return (
+      <DataStateBoundary
+        isLoading={calendar.isLoading}
+        error={calendar.error}
+        skeleton={<CalendarSkeleton />}
+        onRetry={() => void calendar.refetch()}
+      >
+        <div />
+      </DataStateBoundary>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -73,7 +94,15 @@ export function CalendarScreen() {
         </div>
         <div className="flex items-center gap-3">
           <MonthPicker />
-          <Badge tone="demo">Demo data</Badge>
+          <Badge tone={dataSource === 'LIVE' ? 'positive' : 'demo'}>
+            {dataSource === 'LIVE'
+              ? 'Live scheduling'
+              : dataSource === 'ERROR'
+                ? 'Provider error'
+                : dataSource === 'DEMO'
+                  ? 'Synthetic data'
+                  : 'Not connected'}
+          </Badge>
         </div>
       </header>
 
@@ -120,12 +149,26 @@ export function CalendarScreen() {
               return (
                 <div
                   key={iso}
+                  role={has ? 'button' : undefined}
+                  tabIndex={has ? 0 : undefined}
+                  aria-label={has ? `${items.length} appointments on ${iso}` : undefined}
+                  onClick={has ? () => setOpenDay(iso) : undefined}
+                  onKeyDown={
+                    has
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setOpenDay(iso);
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     // z-0 plus a raise on hover: without it the popover is painted under the grid
                     // cells that follow it in document order, so it appears not to work at all.
                     'group relative z-0 min-h-[92px] rounded-lg border p-2 transition-all duration-150 hover:z-40',
                     has
-                      ? 'border-primary/20 bg-primary-soft/60 hover:-translate-y-0.5 hover:border-primary/40 hover:elev-md'
+                      ? 'cursor-pointer border-primary/20 bg-primary-soft/60 hover:-translate-y-0.5 hover:border-primary/40 hover:elev-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'
                       : 'border-border bg-card',
                     isToday && 'ring-2 ring-primary ring-offset-1',
                   )}
@@ -196,6 +239,11 @@ export function CalendarScreen() {
                           </li>
                         ))}
                       </ul>
+                      <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                        {calendar.editable
+                          ? 'Click to credit a channel · times are managed in the scheduling system'
+                          : 'Managed in the scheduling system'}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -203,7 +251,7 @@ export function CalendarScreen() {
             })}
           </div>
 
-          {inMonth.length === 0 && (
+          {calendar.appointments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No appointments booked in this month.
             </p>
@@ -216,6 +264,32 @@ export function CalendarScreen() {
         booking happened and which channel produced it, not what it was for. A live scheduling
         connection arrives in Phase 2 behind the SchedulingProvider interface.
       </p>
+
+      {openDay && (
+        <DayPanel
+          orgId={orgId}
+          month={monthKey}
+          date={openDay}
+          appointments={calendar.appointmentsOn(openDay)}
+          editable={calendar.editable}
+          channels={calendar.channels}
+          onClose={() => setOpenDay(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CalendarSkeleton() {
+  return (
+    <div className="space-y-5">
+      <Skeleton className="h-9 w-36" />
+      <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[104px]" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
     </div>
   );
 }

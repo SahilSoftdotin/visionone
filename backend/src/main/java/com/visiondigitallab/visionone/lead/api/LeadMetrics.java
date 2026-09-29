@@ -24,6 +24,15 @@ public interface LeadMetrics {
 
     List<SourceCounts> countsBySource(UUID organizationId, Instant from, Instant to);
 
+    /**
+     * The most recently created leads in the window, newest first, excluding duplicates.
+     *
+     * <p>Returns the same {@link LeadListResponse.LeadRow} the Leads screen renders rather than a
+     * trimmed-down copy: the Overview's five-row table and the Leads table showing different
+     * columns for the same lead is exactly the kind of small inconsistency that costs trust.
+     */
+    List<LeadListResponse.LeadRow> recentIn(UUID organizationId, Instant from, Instant to, int limit);
+
     record Funnel(long leads, long qualified, long appointmentRequested, long booked) {}
 
     record SourceCounts(String channelCode, long leads, long qualified, long booked) {}

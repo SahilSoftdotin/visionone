@@ -38,9 +38,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Eventing
-    implementation("org.springframework.kafka:spring-kafka")
-
     // Caching - Caffeine only in Phase 1
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("com.github.ben-manes.caffeine:caffeine")
@@ -53,7 +50,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
     // API docs -> the frontend's TypeScript types are generated from this spec
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${property("springdocVersion")}")
@@ -64,10 +60,8 @@ dependencies {
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:kafka")
     testImplementation("org.wiremock:wiremock-standalone:3.10.0")
     testImplementation("com.tngtech.archunit:archunit-junit5:${property("archunitVersion")}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

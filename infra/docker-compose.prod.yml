@@ -1,12 +1,12 @@
-# The demo deployment: one host, four containers, one public port.
+# The demo deployment: one host, three containers, one public port.
 #
 # Differences from docker-compose.yml, which stays the local development stack:
 #   - Nothing but Caddy publishes a port. Postgres, Keycloak and the API are reachable only on the
 #     internal network, so the database is not on the internet because someone forgot a firewall.
 #   - Every credential comes from .env.prod. No password is written in this file.
 #   - Keycloak runs `start`, not `start-dev`, behind a proxy that terminates TLS.
-#   - No Kafka. It is off the read path by design and its health indicator is already disabled, so
-#     a demo box does not need to spend a gigabyte of RAM on a broker nobody will look at.
+#   - Three containers, not four. Events travel in-process, drained from outbox_event by a poller,
+#     so there is no broker to run here or anywhere else.
 
 name: visionone-prod
 
@@ -73,10 +73,6 @@ services:
       VISIONONE_OIDC_ISSUER: https://${DOMAIN}/realms/visionone
       # Same origin through Caddy, so this is belt and braces rather than load-bearing.
       VISIONONE_CORS_ORIGINS: https://${DOMAIN}
-      # There is no broker here, and without this the audit consumer retries localhost:9092 about
-      # once a second forever - measured, not assumed. The app is healthy either way; this just
-      # stops it filling the disk with warnings and burning CPU on a small box.
-      SPRING_KAFKA_LISTENER_AUTO_STARTUP: "false"
     depends_on:
       postgres:
         condition: service_healthy

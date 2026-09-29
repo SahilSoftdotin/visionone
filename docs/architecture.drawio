@@ -61,18 +61,15 @@
           <mxGeometry x="1120" y="450" width="410" height="240" as="geometry" />
         </mxCell>
 
-        <mxCell id="eventing" value="&lt;b&gt;eventing&lt;/b&gt;   —   &lt;font color=&quot;#B85450&quot;&gt;no callers&lt;/font&gt;&lt;br&gt;DomainEventPublisher  →  outbox_event  →  OutboxRelay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="eventing" value="&lt;b&gt;eventing&lt;/b&gt;   —   &lt;font color=&quot;#5F6F85&quot;&gt;Postgres is the queue&lt;/font&gt;&lt;br&gt;DomainEventPublisher  →  outbox_event  →  OutboxDispatcher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="450" y="730" width="630" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="auditc" value="&lt;b&gt;audit&lt;/b&gt;&lt;br&gt;AuditEventConsumer&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;the only consumer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="auditc" value="&lt;b&gt;audit&lt;/b&gt;&lt;br&gt;AuditEventHandler&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;the only handler&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1120" y="730" width="410" height="60" as="geometry" />
         </mxCell>
 
         <mxCell id="pg" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;&lt;br&gt;keycloak DB — realm, users, sessions&lt;br&gt;visionone DB — 19 tables, 13 queried today&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;not optional at any point: Keycloak lives here, so the&lt;br&gt;container stays even if the application stored nothing&lt;/font&gt;" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=15;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="70" y="920" width="620" height="200" as="geometry" />
-        </mxCell>
-        <mxCell id="kafka" value="&lt;b&gt;Kafka 3.9&lt;/b&gt;&lt;br&gt;:9092&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#B85450&quot;&gt;opt-in compose profile&lt;br&gt;no traffic&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#5F6F85&quot;&gt;excluded from the demo deploy&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="760" y="920" width="310" height="200" as="geometry" />
         </mxCell>
         <mxCell id="ext" value="&lt;b&gt;External systems&lt;/b&gt;&lt;br&gt;&lt;br&gt;Healthie · voice · ad platforms · analytics&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#B85450&quot;&gt;none connected —&lt;br&gt;every adapter is a Demo* class&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1150" y="920" width="380" height="200" as="geometry" />
@@ -135,12 +132,6 @@
           <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
         </mxCell>
 
-        <mxCell id="e_ev_kafka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B1B7C3;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="eventing" target="kafka">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e_kafka_audit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B1B7C3;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="auditc">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
         <mxCell id="e_audit_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B85450;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="auditc" target="pg">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -209,7 +200,7 @@
         <mxCell id="lab6" value="&lt;b&gt;7&lt;/b&gt;&amp;nbsp;&amp;nbsp;DOMAIN MODULES" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#2A3547;" vertex="1" parent="1"><mxGeometry x="76" y="1036" width="194" height="128" as="geometry" /></mxCell>
         <mxCell id="n6_0" value="&lt;b&gt;lead &#183; growth &#183; work&lt;br&gt;appointment &#183; tenant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;metrics services behind api interfaces&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="294" y="1054" width="424" height="92" as="geometry" /></mxCell>
         <mxCell id="n6_1" value="&lt;b&gt;eventing&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;publisher &#8594; outbox_event &#8594; relay&lt;br&gt;&lt;i&gt;no callers&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="742" y="1054" width="424" height="92" as="geometry" /></mxCell>
-        <mxCell id="n6_2" value="&lt;b&gt;audit&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;AuditEventConsumer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="1054" width="424" height="92" as="geometry" /></mxCell>
+        <mxCell id="n6_2" value="&lt;b&gt;audit&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;AuditEventHandler&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="1054" width="424" height="92" as="geometry" /></mxCell>
         <mxCell id="band7" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFBFD;strokeColor=#DFE5EF;" vertex="1" parent="1"><mxGeometry x="60" y="1208" width="1580" height="128" as="geometry" /></mxCell>
         <mxCell id="lab7" value="&lt;b&gt;8&lt;/b&gt;&amp;nbsp;&amp;nbsp;PERSISTENCE&lt;br&gt;&lt;font color=&quot;#5F6F85&quot; style=&quot;font-size:10px&quot;&gt;split by access style, not by module&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#2A3547;" vertex="1" parent="1"><mxGeometry x="76" y="1208" width="194" height="128" as="geometry" /></mxCell>
         <mxCell id="n7_0" value="&lt;b&gt;JPA repositories &#215;5&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Organization &#183; Membership&lt;br&gt;AuditEvent &#183; Outbox &#183; Processed&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="294" y="1226" width="312" height="92" as="geometry" /></mxCell>
@@ -219,7 +210,6 @@
         <mxCell id="band8" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFBFD;strokeColor=#DFE5EF;" vertex="1" parent="1"><mxGeometry x="60" y="1380" width="1580" height="128" as="geometry" /></mxCell>
         <mxCell id="lab8" value="&lt;b&gt;9&lt;/b&gt;&amp;nbsp;&amp;nbsp;DATA" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#2A3547;" vertex="1" parent="1"><mxGeometry x="76" y="1380" width="194" height="128" as="geometry" /></mxCell>
         <mxCell id="n8_0" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;visionone &#8212; 19 tables, 13 queried&lt;br&gt;keycloak &#8212; realm, users, sessions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="294" y="1398" width="649" height="92" as="geometry" /></mxCell>
-        <mxCell id="n8_1" value="&lt;b&gt;Kafka 3.9&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;opt-in compose profile &#183; no traffic&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="967" y="1398" width="649" height="92" as="geometry" /></mxCell>
         <mxCell id="band9" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFBFD;strokeColor=#DFE5EF;" vertex="1" parent="1"><mxGeometry x="60" y="1552" width="1580" height="104" as="geometry" /></mxCell>
         <mxCell id="lab9" value="&lt;b&gt;10&lt;/b&gt;&amp;nbsp;&amp;nbsp;EXTERNAL" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#2A3547;" vertex="1" parent="1"><mxGeometry x="76" y="1552" width="194" height="104" as="geometry" /></mxCell>
         <mxCell id="n9_0" value="&lt;b&gt;Healthie &#183; voice &#183; ad platforms &#183; analytics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;none connected &#8212; every adapter is a Demo* class&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B1B7C3;dashed=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="294" y="1570" width="1322" height="68" as="geometry" /></mxCell>

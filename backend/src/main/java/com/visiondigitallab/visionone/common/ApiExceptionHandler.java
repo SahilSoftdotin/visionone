@@ -11,6 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** RFC 9457 problem+json for every error the API returns. */
 @RestControllerAdvice
@@ -22,6 +23,23 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ProblemDetail onNotFound(NotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setType(URI.create(BASE + "not-found"));
+        problem.setTitle("Not found");
+        return problem;
+    }
+
+    /**
+     * A URL that maps to nothing.
+     *
+     * Without this the catch-all below turns a typo into a 500 and logs a stack trace, so an
+     * unmapped path reads as a server fault in the logs and tells the caller nothing useful.
+     * Spring raises this for any request the dispatcher cannot match once static resource
+     * handling has had its turn.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail onNoHandler(NoResourceFoundException ex) {
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "No endpoint for this path");
         problem.setType(URI.create(BASE + "not-found"));
         problem.setTitle("Not found");
         return problem;
@@ -59,6 +77,14 @@ public class ApiExceptionHandler {
                 .getFieldErrors()
                 .forEach(error -> violations.add(new Violation(error.getField(), error.getDefaultMessage())));
         problem.setProperty("violations", violations);
+        return problem;
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ProblemDetail onConflict(ConflictException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setType(URI.create(BASE + "conflict"));
+        problem.setTitle("Conflict");
         return problem;
     }
 

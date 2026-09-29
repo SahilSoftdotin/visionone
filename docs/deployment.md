@@ -87,16 +87,18 @@ Note that the SPA's OIDC settings are **inlined at build time** by Vite — they
 configuration. Changing `DOMAIN` therefore requires rebuilding the `web` image, which `make deploy`
 does anyway.
 
-## No Kafka here
+## No broker, anywhere
 
-The local stack runs a broker; this one does not. Kafka is off the read path by design, its health
-indicator is already disabled in `application.yml`, and the demo writes nothing that needs to drain.
-Skipping it saves roughly a gigabyte of RAM on a small box.
+Events travel in-process, drained from `outbox_event` by a scheduled poller, so there is nothing to
+run here that is not also run locally. This used to need
+`SPRING_KAFKA_LISTENER_AUTO_STARTUP=false` to stop the audit consumer retrying `localhost:9092`
+once a second on a box with no broker; that workaround is gone with the broker.
 
-The compose file sets `SPRING_KAFKA_LISTENER_AUTO_STARTUP=false`. Without it the audit consumer
-retries `localhost:9092` about once a second indefinitely — I measured this by running the image
-against the live stack. Readiness reports `UP` either way; the setting just stops the log filling
-with warnings. Remove it if you add a broker back.
+If a deployed instance looks like it is not processing events, the queue is a table:
+
+```sql
+select event_type, attempts, last_error from outbox_event where published_at is null;
+```
 
 ## Things this does not do
 

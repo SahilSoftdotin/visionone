@@ -36,12 +36,11 @@ flowchart TB
         CTRL["<b>Controllers</b><br/>/me · /meta · /overview<br/><i>the entire REST surface</i>"]
         OVS["<b>OverviewService</b><br/>LeadMetrics · AppointmentMetrics<br/>GrowthFinance · WorkActivity"]
         PORTS["<b>integration ports</b><br/>Scheduling ← Healthie · Voice<br/>Advertising · Analytics<br/><b>all four report DEMO</b>"]
-        EV["<b>eventing</b> — no callers<br/>publisher → outbox_event → relay"]
-        AUD["<b>audit</b><br/>AuditEventConsumer"]
+        EV["<b>eventing</b> — no callers<br/>publisher → outbox_event → dispatcher"]
+        AUD["<b>audit</b><br/>AuditEventHandler"]
     end
 
-    PG[("<b>PostgreSQL 17</b><br/>keycloak DB · visionone DB<br/>19 tables, 13 queried today")]
-    KAFKA["<b>Kafka 3.9</b><br/>opt-in profile · no traffic"]
+    PG[("<b>PostgreSQL 17</b><br/>keycloak DB · visionone DB<br/>19 tables, 15 queried today")]
     EXT["<b>External systems</b><br/>Healthie · voice · ads · analytics<br/>none connected"]
 
     SPA -. "redirect to sign in, back with ?code" .-> KC
@@ -55,8 +54,7 @@ flowchart TB
     OVS --> L3
     L3 -- "JdbcClient / JPA" --> PG
     KC -- "its own schema" --> PG
-    EV -.-> KAFKA
-    KAFKA -.-> AUD
+    EV -.-> AUD
     AUD -. "audit_event — back into the<br/>same database it came from" .-> PG
     PORTS -.-> EXT
 
@@ -73,7 +71,7 @@ flowchart TB
     class FIX fixture
     class KC ident
     class PG,PORTS data
-    class EV,AUD,KAFKA,EXT idle
+    class EV,AUD,EXT idle
     class CADDY edge
 ```
 
@@ -136,7 +134,7 @@ flowchart TB
         direction LR
         MODS["<b>lead · growth · work<br/>appointment · tenant</b><br/>metrics services behind api interfaces"]
         EVT["<b>eventing</b><br/>publisher → outbox → relay<br/><i>no callers</i>"]
-        AUDM["<b>audit</b><br/>AuditEventConsumer"]
+        AUDM["<b>audit</b><br/>AuditEventHandler"]
     end
 
     subgraph PERS["8 · PERSISTENCE"]
@@ -150,7 +148,6 @@ flowchart TB
     subgraph DATA["9 · DATA"]
         direction LR
         PG[("<b>PostgreSQL 17</b><br/>visionone — 19 tables<br/>keycloak — realm, users, sessions")]
-        KAFKA["<b>Kafka 3.9</b><br/><i>opt-in · no traffic</i>"]
     end
 
     subgraph EXT["10 · EXTERNAL"]
@@ -181,8 +178,7 @@ flowchart TB
     JDBC --> PG
     FLY --> PG
     KC --> PG
-    EVT -.-> KAFKA
-    KAFKA -.-> AUDM
+    EVT -.-> AUDM
     AUDM -.-> JPA
 
     classDef ui fill:#DAE8FC,stroke:#6C8EBF,color:#16304F
@@ -198,7 +194,7 @@ flowchart TB
     class FIXUI fixture
     class KC ident
     class PG,PORTS data
-    class EVT,AUDM,KAFKA,EXTS idle
+    class EVT,AUDM,EXTS idle
     class CADDY edgec
 ```
 
@@ -278,19 +274,37 @@ verbatim rather than implying a connection. The port is the PHI boundary:
 `appointment_reference` holds an external ref, timestamps and a status, never a patient name or
 anything clinical.
 
-### Eventing, wired but not yet used
+### Eventing: Postgres is the queue
+
+There is no broker. A row in `outbox_event` with a null `published_at` *is* an undelivered
+message, and `FOR UPDATE SKIP LOCKED` lets more than one instance drain the table safely.
 
 ```
-   (no callers)
+  growth / lead / work / content
         ┊
-        ┄┄▶ DomainEventPublisher ┄┄▶ outbox_event ┄┄▶ OutboxRelay ┄┄▶ Kafka
+        ┄┄▶ DomainEventPublisher ┄┄▶ outbox_event ┄┄▶ OutboxDispatcher
+              (same transaction)      (published_at null)        ┊
+                                                                 ┄┄▶ DomainEventHandler
                                                                         ┊
-                     audit_event  ◀┄┄  AuditEventConsumer  ◀┄┄──────────┘
+                                                      audit_event  ◀┄┄──┘
+
+  Healthie / voice provider
+        ┊
+        ┄┄▶ webhook endpoint ┄┄▶ inbox_event ┄┄▶ 200 OK (milliseconds)
+                                (processed_at null)
+                                      ┊
+                                      ┄┄▶ InboxProcessor ┄┄▶ InboxHandler
 ```
 
-Dashed because there are currently no `.publish(...)` call sites, and the single consumer writes
-back to the same database the event came from. The pipeline is complete and correct; it is ahead
-of the writes that will feed it. Follow "Adding an event" below when adding the first one.
+A row is marked published only once every interested handler succeeded. If one fails, the row
+stays unpublished and is retried, and handlers that already ran are skipped by their own
+`processed_event` row — which is why idempotency is keyed per consumer group.
+
+Kafka was removed: it carried messages from one process to the same process, at the cost of a
+container, a monthly bill and a slower test suite. Because `DomainEventPublisher` and the envelope
+never named a transport, it can return behind the same interface the day something outside
+VisionOne needs to consume events. `ModuleBoundaryTest` fails the build if a broker dependency
+reappears before then.
 
 ### Which tables are live
 
@@ -308,14 +322,14 @@ Not yet queried, and the screen each is waiting on:
 | `call` | Front Desk |
 | `campaign` | Growth |
 | `content_item` | Work & Content |
-| `metric_snapshot`, `monthly_report` | Reports |
+| `monthly_report` | Reports |
 | `integration_connection` | provider status |
 
 ## Module dependency rules
 
 1. Any module may depend on `auth`, `tenant` and `eventing`. Those three depend on nothing above.
 2. No module imports another module's `internal`, `domain` or `repository` package. Cross-module
-   reads go through `api` interfaces or through Kafka.
+   reads go through `api` interfaces or through a domain event.
 3. `reporting` and `audit` are read-only consumers. Neither writes another module's tables.
 4. No cyclic dependency between modules.
 5. Controllers never return JPA entities.
@@ -330,15 +344,17 @@ Not yet queried, and the screen each is waiting on:
 | 2 | `tenant.internal.OrganizationContextInterceptor` | Resolves `{orgId}` and checks membership |
 | 3 | Tenant-scoped repositories | Every query constrained by organization |
 
-A Kafka consumer has no request and therefore no context. Consumers read `organizationId` from
-the event envelope and pass it explicitly. A consumer reaching for the ambient context is a
-tenant-isolation bug.
+An event handler has no request and therefore no context. Handlers read `organizationId` from the
+envelope and pass it explicitly. A handler reaching for the ambient context is a tenant-isolation
+bug.
 
 ## Adding an event
 
-1. Add a constant to `EventType`, with its topic.
+1. Add a constant to `EventType`. There is no topic to choose; `outbox_event.aggregate_type`
+   already records which aggregate it belongs to.
 2. Publish through `DomainEventPublisher` inside the transaction that made the change.
-3. Consume with `@KafkaListener`, wrapping the work in `IdempotentConsumer.once(...)`.
+3. Implement `DomainEventHandler` — declare a consumer group and the event types you want. The
+   dispatcher finds it and wraps every call in `IdempotentConsumer.once(...)` for you.
 4. Add a replay test: the same event twice must not double the derived number.
 
 Do not add an event for ordinary CRUD. If the caller needs the result in the same request, it is

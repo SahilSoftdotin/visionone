@@ -1,5 +1,6 @@
 package com.visiondigitallab.visionone.lead.internal;
 
+import com.visiondigitallab.visionone.lead.api.LeadListResponse;
 import com.visiondigitallab.visionone.lead.api.LeadMetrics;
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +42,24 @@ public class LeadMetricsService implements LeadMetrics {
                 .param("to", java.sql.Timestamp.from(to))
                 .query(Long.class)
                 .single();
+    }
+
+    @Override
+    public List<LeadListResponse.LeadRow> recentIn(
+            UUID organizationId, Instant from, Instant to, int limit) {
+        return jdbc.sql(LeadQueryService.ROW_SELECT + """
+                 where l.organization_id = :orgId
+                   and l.created_at >= :from and l.created_at < :to
+                   and l.status <> 'DUPLICATE'
+                 order by l.created_at desc
+                 limit :limit
+                """)
+                .param("orgId", organizationId)
+                .param("from", java.sql.Timestamp.from(from))
+                .param("to", java.sql.Timestamp.from(to))
+                .param("limit", limit)
+                .query(LeadQueryService::toRow)
+                .list();
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.visiondigitallab.visionone.reporting.api;
 
 import com.visiondigitallab.visionone.common.Money;
+import com.visiondigitallab.visionone.frontdesk.api.FrontDeskMetrics;
+import com.visiondigitallab.visionone.lead.api.LeadListResponse;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -19,6 +21,10 @@ public record OverviewResponse(
         List<SourcePerformance> sourcePerformance,
         Investment investment,
         VisionActivity visionActivity,
+        FrontDeskMetrics.CallActivity frontDesk,
+        // The newest few leads, for the panel at the foot of the screen. The same row type the
+        // Leads screen renders, so the two tables cannot describe one lead differently.
+        List<LeadListResponse.LeadRow> recentLeads,
         Recommendation recommendation) {
 
     /** Each figure carries the prior month so a tile can show direction without a second call. */

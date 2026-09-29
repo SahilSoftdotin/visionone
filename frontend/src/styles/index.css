@@ -167,6 +167,10 @@
   }
 
   /* Staggered entrance, kept from the previous theme. */
+  /* The fill-mode keeps the final transform, which gives every revealed section its own stacking
+     context; later sections paint over earlier ones, whatever their z-index. Any dropdown or
+     popover must therefore render through components/ui/FloatingMenu (a portal to the body)
+     rather than as an absolutely positioned child - otherwise it hides behind the next panel. */
   .reveal {
     opacity: 0;
     animation: reveal-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;

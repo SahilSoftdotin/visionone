@@ -4,12 +4,13 @@ spring:
       ddl-auto: validate
   flyway:
     locations: classpath:db/migration
-  kafka:
-    listener:
-      auto-startup: false
 visionone:
   cors:
     allowed-origins: http://localhost:5173
   eventing:
-    relay:
+    # Tests drive the dispatcher explicitly where they need it, so the scheduler stays off and a
+    # test can assert on unpublished outbox rows without racing it.
+    dispatcher:
+      enabled: false
+    inbox:
       enabled: false

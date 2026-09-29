@@ -29,9 +29,7 @@ import { KpiTile, TILE_TONES } from '@/components/KpiTile';
 import { ArrowBadge, IconChip, PersonCell, StatusPill } from '@/components/ui/Chips';
 import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
 import { ChartTooltip, hoverCursor } from '@/components/charts/ChartTooltip';
-import { formatCount, formatMoney, formatMonth, formatPercent } from '@/lib/format';
-import { leadsDemo, type LeadStatus } from '@/lib/demoData';
-import { frontDeskDemo } from '@/lib/demoOperations';
+import { EM_DASH, formatCount, formatMoney, formatMonth, formatPercent } from '@/lib/format';
 import { useOverview } from './useOverview';
 import { OverviewSkeleton } from './OverviewSkeleton';
 import { RecommendationCard } from './RecommendationCard';
@@ -289,15 +287,15 @@ export function OverviewScreen() {
                     <IconChip icon={PhoneCall} tone="secondary" className="rounded-full" />
                   </div>
                   <p className="mt-3 text-2xl font-bold tabular-nums tracking-[-0.02em]">
-                    {formatCount(frontDeskDemo.answered)}
+                    {formatCount(data.frontDesk.summary.answered)}
                   </p>
                   <div className="mt-2">
-                    <ArrowBadge up label={`${frontDeskDemo.afterHours} after hours`} />
+                    <ArrowBadge up label={`${data.frontDesk.summary.afterHours} after hours`} />
                   </div>
                 </CardBody>
                 <div className="h-20 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={frontDeskDemo.hourly.map((v, i) => ({ i, v }))}>
+                    <AreaChart data={data.frontDesk.hourly.map((v, i) => ({ i, v }))}>
                       <Tooltip
                         cursor={hoverCursor}
                         content={
@@ -499,19 +497,29 @@ export function OverviewScreen() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leadsDemo.slice(0, 5).map((l) => (
+                    {data.recentLeads.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-5 py-6 text-center text-muted-foreground sm:px-6"
+                        >
+                          No leads yet this period.
+                        </td>
+                      </tr>
+                    )}
+                    {data.recentLeads.map((l) => (
                       <tr key={l.id} className="border-b border-border last:border-0">
                         <td className="px-5 py-3.5 sm:px-6">
                           <PersonCell name={l.name} role={l.serviceInterest} />
                         </td>
                         <td className="px-3 py-3.5 text-muted-foreground">{l.source}</td>
                         <td className="px-3 py-3.5">
-                          <StatusPill tone={statusTone[l.status as LeadStatus] ?? 'neutral'}>
+                          <StatusPill tone={statusTone[l.status] ?? 'neutral'}>
                             {l.status.toLowerCase().replace(/_/g, ' ')}
                           </StatusPill>
                         </td>
                         <td className="px-5 py-3.5 text-right tabular-nums sm:px-6">
-                          {l.responseMinutes === null ? '—' : `${l.responseMinutes}m`}
+                          {l.responseMinutes === null ? EM_DASH : `${l.responseMinutes}m`}
                         </td>
                       </tr>
                     ))}
