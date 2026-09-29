@@ -1,0 +1,20 @@
+# The build context is transferred to the Docker daemon on every build, and COPY . . lands in the
+# image. Without this, 244 MB of node_modules built for Windows is copied over the Linux ones npm ci
+# just installed. It happens to work - Docker merges directories, so the linux rollup and esbuild
+# binaries survive and the win32 ones are simply never loaded - but it is luck, not design, and it
+# costs about two and a half minutes of context transfer per build.
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Vite reads .env.local for every mode. The Dockerfile passes the real values as build args, and
+# process.env wins over the files, so the bundle is currently correct - but shipping a file that
+# points at localhost:8180 into the image that builds the production bundle is a trap left armed.
+.env
+.env.*
+
+Dockerfile
+.dockerignore
+*.log
+.DS_Store

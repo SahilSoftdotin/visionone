@@ -1,0 +1,7 @@
+# Only gradle/, the wrapper, the build files and src are needed - see Dockerfile. Everything here is
+# regenerated inside the image, and sending it wastes context transfer on every build.
+build
+.gradle
+Dockerfile
+.dockerignore
+*.log
