@@ -26,7 +26,37 @@ Everything is one origin, which is why there is no CORS configuration to get wro
 
 ## What you need first
 
-- A small VPS. 2 vCPU / 4 GB is comfortable; 2 GB works if nothing else runs on it. Ubuntu 24.04.
+- A small VPS, Ubuntu 24.04. **2 vCPU / 4 GB is the recommendation; 2 GB genuinely works.** Measured,
+  with every screen served and a real sign-in done:
+
+  | Container | Anonymous memory | Total used | `mem_limit` |
+  |---|---|---|---|
+  | Keycloak | 435 MB | 589 MB | 640m |
+  | API | 329 MB | 334 MB | 448m |
+  | Postgres | 28 MB | 56 MB | 192m |
+  | Caddy + SPA | 17 MB | 21 MB | 64m |
+  | **Total** | **809 MB** | **1000 MB** | **1344m** |
+
+  The anonymous column is the one that matters for sizing: it is memory that cannot be reclaimed. The
+  difference between it and "total used" is page cache, which the kernel drops under pressure - so
+  Keycloak sitting at 92% of its cap is not distress.
+
+  Keycloak is the floor here and it does not move. Its heap is pinned at 192m and its anonymous
+  memory is still 435 MB, because ~245 MB of that is metaspace, code cache, thread stacks and Quarkus
+  native allocation. Capping it at 448m and 512m were both tried: each ran at 94-97% of cap, survived,
+  and had nothing left for a spike.
+
+  CPU was 0.5% across all four while serving, so CPU is not the constraint at one client's traffic.
+  Those `mem_limit` lines are not decoration: both JVMs size their heap with
+  `-XX:MaxRAMPercentage=70`, which reads the *container* limit only when one exists. Without them
+  each would aim at 70% of the whole host and the kernel would kill one of them.
+
+  What argues for 4 GB rather than 2 GB is the **build**, not the app: `make deploy` compiles both
+  images on the box while the old stack is still serving. The image build is capped to a 512 MB
+  Gradle heap (`GRADLE_OPTS` in `backend/Dockerfile`), verified to produce the jar inside a hard 1 GB
+  container, so 2 GB plus the provisioning script's swap does work - it just leans on swap during a
+  rebuild. Every figure above is also with the provider ports stubbed; a real Healthie sync will move
+  them up.
   Put it in **US East** - THRIVE's organization row is `America/New_York`, and the people using this
   every day are at the practice, not in the timezone administering it.
 - Docker Engine and the Compose plugin, a firewall, swap, and log rotation. One script does all of
@@ -120,6 +150,13 @@ make deploy
 ```
 
 Compose rebuilds only what changed. Postgres data lives in a named volume and survives.
+
+`make deploy` finishes by running `make prune`, which drops dangling images and trims the build cache
+to 2 GB. That is not tidiness: Docker's build cache is unbounded and reached 6.5 GB on a development
+machine after a handful of builds. On a 40 GB disk it is the thing that fills it, and a full disk
+takes Postgres down with it. 2 GB is kept so the next deploy still reuses the dependency layers
+instead of re-downloading Gradle's whole graph. Only *dangling* images are pruned, so rolling back to
+the previously tagged image stays possible.
 
 Note that the SPA's OIDC settings are **inlined at build time** by Vite — they are not runtime
 configuration. Changing `DOMAIN` therefore requires rebuilding the `web` image, which `make deploy`

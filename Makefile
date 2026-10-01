@@ -1,4 +1,4 @@
-.PHONY: up down api web seed test build logs realm reset help deploy deploy-logs deploy-down
+.PHONY: up down api web seed test build logs realm reset help deploy deploy-logs deploy-down prune
 
 help:
 	@echo "VisionOne - Phase 1"
@@ -13,6 +13,7 @@ help:
 	@echo "  make deploy       Render the realm and bring the stack up"
 	@echo "  make deploy-logs  Follow logs"
 	@echo "  make deploy-down  Stop the demo stack"
+	@echo "  make prune        Reclaim disk from old images and build cache"
 	@echo "  make reset  Stop the stack and delete all data"
 
 up:
@@ -50,6 +51,17 @@ deploy:
 	set -a && . ./infra/.env.prod && set +a && python3 scripts/render-realm.py
 	docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml up -d --build
 	docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml ps
+	@$(MAKE) --no-print-directory prune
+
+# Reclaim what a build leaves behind. Docker's build cache is unbounded by default and reached
+# 6.5 GB on a development machine after a handful of builds - on a 40 GB VPS that is the thing that
+# fills the disk, and a full disk takes Postgres down with it. 2 GB is kept so the next deploy still
+# reuses the dependency layers rather than re-downloading Gradle's whole graph.
+# Images are pruned dangling-only, so a rollback to the previous tagged image stays possible.
+prune:
+	-docker image prune -f
+	-docker builder prune -f --keep-storage=2GB
+	@docker system df
 
 deploy-logs:
 	docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml logs -f
