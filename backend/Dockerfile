@@ -4,6 +4,13 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 
+# gradle.properties asks for a 2 GB heap, which is right on a 16 GB laptop and wrong on the box this
+# gets built on: `make deploy` compiles here while the old stack is still serving. Overriding it in
+# the image rather than editing gradle.properties keeps local builds fast and makes the server build
+# fit a small VPS. Verified: this exact setting builds the jar inside a hard 1 GB container.
+# parallel=false too - rare deploys do not need the speed, and predictable memory is worth more.
+ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=256m -Dorg.gradle.parallel=false"
+
 # Dependencies resolve in their own layer. They change far less often than source, so editing a
 # Java file reuses the cached Gradle graph instead of re-downloading it.
 COPY gradle gradle
