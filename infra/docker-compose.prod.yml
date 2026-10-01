@@ -14,6 +14,9 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    # Measured at 51 MB serving this dataset, and shared_buffers defaults to 128 MB, so 192m is
+    # headroom rather than hope. Raise it when a real Healthie sync makes the working set bigger.
+    mem_limit: 192m
     environment:
       POSTGRES_USER: visionone
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
@@ -30,8 +33,21 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
+    # kc.sh sizes the heap with -XX:MaxRAMPercentage=70, which reads the CONTAINER limit only if
+    # there is one. Without this line it reads the whole host: on a 4 GB VPS Keycloak would aim at a
+    # 2.8 GB heap, the API would do the same, and the kernel would kill one of them.
+    #
+    # Keycloak gets an ABSOLUTE heap rather than a percentage, because a percentage expands to fill
+    # whatever cap it is given. But the heap is not what makes this container big: measured, its
+    # anonymous memory is ~438 MB with the heap pinned at 192m, so roughly 245 MB is metaspace, code
+    # cache, thread stacks and Quarkus native allocation. That floor does not move when you shrink
+    # the heap - tried at 448m and 512m and both ran at 94-97% of the cap, surviving but with no
+    # room for a spike. 640m is the honest number for this image; the pinned heap is what turns the
+    # extra into real headroom rather than something the JVM immediately claims.
+    mem_limit: 640m
     command: ["start", "--import-realm", "--http-port=8180"]
     environment:
+      JAVA_OPTS_KC_HEAP: "-Xms96m -Xmx192m"
       # Keycloak builds absolute URLs (issuer, redirects, the theme's asset paths) from this, so it
       # must be the public HTTPS origin even though Caddy speaks plain HTTP to the container.
       KC_HOSTNAME: https://${DOMAIN:?set DOMAIN in .env.prod}
@@ -63,6 +79,11 @@ services:
     build:
       context: ../backend
     restart: unless-stopped
+    # The Dockerfile sets -XX:MaxRAMPercentage=70 and its comment says the heap is sized "from the
+    # container's limit, not the host's". That only became true once this line existed. Measured
+    # 328 MB while serving every screen, of which 325 MB is anonymous. 448m leaves the JVM a 313m
+    # heap and still ran at 65% of the cap under eight passes over every endpoint.
+    mem_limit: 448m
     environment:
       # "The instance Gary is shown": seeded dataset, no dev endpoints, all four provider ports
       # reporting DEMO rather than pretending to be connected.
@@ -104,6 +125,8 @@ services:
         VITE_OIDC_AUTHORITY: https://${DOMAIN}/realms/visionone
         VITE_OIDC_REDIRECT_URI: https://${DOMAIN}/
     restart: unless-stopped
+    # Caddy serving static files and proxying two upstreams. Measured 16 MB.
+    mem_limit: 64m
     ports:
       - "80:80"
       - "443:443"
