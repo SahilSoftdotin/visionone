@@ -76,6 +76,11 @@ services:
       start_period: 60s
 
   api:
+    # Built by .github/workflows/images.yml and pulled here. `build:` stays so the stack can still be
+    # brought up from source locally with `up --build`; on the server `make deploy` pulls instead,
+    # because compiling a Spring Boot jar on one shared core takes twenty minutes and does it while
+    # the old container is still serving the client.
+    image: ${IMAGE_REGISTRY:-ghcr.io/sahilsoftdotin}/visionone-api:${IMAGE_TAG:-latest}
     build:
       context: ../backend
     restart: unless-stopped
@@ -119,6 +124,10 @@ services:
       start_period: 40s
 
   web:
+    # Same as api. Note this image is hostname-specific: Vite inlines the OIDC authority and redirect
+    # URI at build time, so the workflow bakes app.visiondigitallab.com in. The build args below only
+    # apply when building locally.
+    image: ${IMAGE_REGISTRY:-ghcr.io/sahilsoftdotin}/visionone-web:${IMAGE_TAG:-latest}
     build:
       context: ../frontend
       args:

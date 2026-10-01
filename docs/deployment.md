@@ -51,12 +51,16 @@ Everything is one origin, which is why there is no CORS configuration to get wro
   `-XX:MaxRAMPercentage=70`, which reads the *container* limit only when one exists. Without them
   each would aim at 70% of the whole host and the kernel would kill one of them.
 
-  What argues for 4 GB rather than 2 GB is the **build**, not the app: `make deploy` compiles both
-  images on the box while the old stack is still serving. The image build is capped to a 512 MB
-  Gradle heap (`GRADLE_OPTS` in `backend/Dockerfile`), verified to produce the jar inside a hard 1 GB
-  container, so 2 GB plus the provisioning script's swap does work - it just leans on swap during a
-  rebuild. Every figure above is also with the provider ports stubbed; a real Healthie sync will move
-  them up.
+  **2 GB is comfortable now that nothing is compiled here.** `make deploy` pulls images GitHub Actions
+  already built, so the box never runs Gradle or Vite, and the old argument for 4 GB - needing room to
+  compile while still serving - is gone. One shared core is fine too: CPU while serving measured 0.5%.
+
+  `make deploy-build` still exists for building on the box if GitHub is unreachable. That path is
+  capped to a 512 MB Gradle heap (`GRADLE_OPTS` in `backend/Dockerfile`) and verified to produce the
+  jar inside a hard 1 GB container, so it does work on 2 GB - it just leans on swap and takes twenty
+  minutes or more on one core.
+
+  Every figure above is with the provider ports stubbed; a real Healthie sync will move them up.
   Put it in **US East** - THRIVE's organization row is `America/New_York`, and the people using this
   every day are at the practice, not in the timezone administering it.
 - Docker Engine and the Compose plugin, a firewall, swap, and log rotation. One script does all of
@@ -85,6 +89,9 @@ cd visionone
 cp infra/.env.prod.example infra/.env.prod
 # Fill every blank. Generate each secret with: openssl rand -base64 24
 nano infra/.env.prod
+
+# The repository is private, so its images are too. One token, one scope: read:packages.
+echo <TOKEN> | docker login ghcr.io -u SahilSoftdotin --password-stdin
 
 make deploy
 ```
@@ -142,14 +149,39 @@ docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml \
 
 then open `http://localhost:8180/admin` with `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD`.
 
+## Where the images come from
+
+`.github/workflows/images.yml` builds both on every push to `main` that touches `backend/`,
+`frontend/` or the workflow itself, and pushes them to GHCR as
+`ghcr.io/sahilsoftdotin/visionone-api` and `-web`, tagged with the full commit SHA and `latest`.
+
+The server pulls. It does not compile. That is the whole point: this box is one shared core, and
+building a Spring Boot jar on it takes twenty minutes while the old container is still answering the
+client. GitHub does the same work in a few minutes, and a private repository gets 2,000 free Linux
+minutes a month against roughly 6 per deploy.
+
+**The tests gate the publish.** The backend suite runs against a real Postgres through Testcontainers
+on the runner, and the frontend's lint and tests run beside it; a failure means no image is pushed, so
+a broken commit cannot reach the server by being deployed. Before this, nothing stopped it.
+
+Two things worth knowing:
+
+- **The web image is specific to one hostname.** Vite inlines the OIDC authority and redirect URI at
+  build time, so `app.visiondigitallab.com` is baked in by the workflow. Moving the portal means
+  editing the workflow and rebuilding, not changing an environment variable.
+- **Rolling back is a tag.** Set `IMAGE_TAG` in `.env.prod` to the previous commit's full SHA and run
+  `make deploy`. Nothing is rebuilt, so the rollback is the exact artifact that was running before.
+
 ## Updating
 
 ```bash
-git pull
-make deploy
+git pull          # for the compose file, the Makefile and the realm - not for code
+make deploy       # pulls the images Actions published, then restarts what changed
 ```
 
-Compose rebuilds only what changed. Postgres data lives in a named volume and survives.
+Wait for the workflow to go green before running this, or you will pull the previous `latest`.
+
+Compose restarts only what changed. Postgres data lives in a named volume and survives.
 
 `make deploy` finishes by running `make prune`, which drops dangling images and trims the build cache
 to 2 GB. That is not tidiness: Docker's build cache is unbounded and reached 6.5 GB on a development
@@ -177,8 +209,9 @@ select event_type, attempts, last_error from outbox_event where published_at is 
 
 ## Things this does not do
 
-- **No CI.** Deploys are `git pull && make deploy` on the box. Worth automating; with one host and
-  one client it is not yet the thing most worth automating.
+- **No automatic deploy.** Pushing to main builds and publishes the images, but nothing tells the
+  server to pull them - `make deploy` stays a command someone runs. Deliberate at one client: a
+  deploy should be a decision, not a side effect of a commit.
 - **No backups.** Today the data is the seed, which Flyway recreates from scratch, so there is
   nothing to lose. **This stops being true the day Healthie data starts arriving**, and the
   attribution Vision records by hand on the Calendar exists nowhere else at all — Healthie does not
