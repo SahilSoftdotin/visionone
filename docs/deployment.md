@@ -90,7 +90,8 @@ cp infra/.env.prod.example infra/.env.prod
 # Fill every blank. Generate each secret with: openssl rand -base64 24
 nano infra/.env.prod
 
-# The repository is private, so its images are too. One token, one scope: read:packages.
+# Package visibility is separate from repository visibility: the repo is public, the images are
+# not. One token, one scope: read:packages.
 echo <TOKEN> | docker login ghcr.io -u SahilSoftdotin --password-stdin
 
 make deploy
