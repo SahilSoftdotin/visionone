@@ -26,7 +26,10 @@ timedatectl set-timezone UTC
 say "Swap"
 # 4 GB of RAM running a JVM, Keycloak and Postgres has no headroom for a spike. Swap is not a
 # substitute for memory, it is what stops the kernel killing Postgres to save the JVM.
-if ! swapon --show | grep -q '/swapfile'; then
+# Exact match on the device name, not a substring. This image ships a 512 MB /home/swapfile,
+# which grep '/swapfile' matches - so this block was skipped and the box was left with a
+# quarter of the intended swap, while the script reported success.
+if ! swapon --show=NAME --noheadings | grep -qx '/swapfile'; then
   fallocate -l 2G /swapfile
   chmod 600 /swapfile
   mkswap /swapfile >/dev/null
@@ -94,11 +97,25 @@ say "Key-only SSH"
 if [ -s /root/.ssh/authorized_keys ]; then
   sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
   sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-  # Cloud images often re-enable passwords from a drop-in that wins over sshd_config.
+  # sshd takes the FIRST value it sees for a keyword, and /etc/ssh/sshd_config includes this
+  # directory near the top, before its own directives. Cloud images ship 50-cloud-init.conf
+  # containing "PasswordAuthentication yes", so a hardening file must sort BEFORE that to
+  # have any effect. A 99- file is read last and silently ignored: this script used to write
+  # one, print success, and leave password login enabled.
   mkdir -p /etc/ssh/sshd_config.d
-  printf 'PasswordAuthentication no\n' > /etc/ssh/sshd_config.d/99-no-passwords.conf
-  sshd -t && systemctl reload ssh
-  echo "passwords disabled - your key is the only way in, do not lose it"
+  rm -f /etc/ssh/sshd_config.d/99-no-passwords.conf
+  cat > /etc/ssh/sshd_config.d/00-visionone-hardening.conf <<'CONF'
+PasswordAuthentication no
+PermitRootLogin prohibit-password
+KbdInteractiveAuthentication no
+CONF
+  if ! sshd -t; then
+    echo 'REFUSING to reload: sshd config is invalid'; exit 1
+  fi
+  systemctl reload ssh
+  # Report what sshd resolved, not what we asked for. The old message was the lie that hid
+  # the bug: it printed success while cloud-init quietly kept passwords on.
+  echo "passwords: $(sshd -T | awk '/^passwordauthentication/{print $2}') - your key is the only way in, do not lose it"
 else
   echo "SKIPPED: no key in /root/.ssh/authorized_keys, so passwords are being left enabled"
   echo "         rather than locking you out. Add your key, then re-run this script."
