@@ -21,8 +21,7 @@ flowchart TB
     subgraph BROWSER["Browser"]
         direction LR
         SPA["<b>SPA</b><br/>React 18 · Vite 6 · Tailwind 3<br/>react-oidc-context — auth code + PKCE"]
-        OV["<b>Overview</b><br/>the only screen that calls the API<br/><i>fails if the API is down — the canary</i>"]
-        FIX["<b>Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports</b><br/>945 lines of fixtures in the bundle<br/><i>no network call at all</i>"]
+        SCREENS["<b>Seven screens</b><br/>Overview · Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports<br/><i>every one reads the API</i>"]
     end
 
     CADDY["<b>Caddy</b> — TLS · serves the SPA · reverse proxy<br/><i>demo deployment only; local dev hits the ports directly</i>"]
@@ -33,18 +32,18 @@ flowchart TB
         L1["<b>1</b> auth.SecurityConfig<br/>validate JWT · map realm roles"]
         L2["<b>2</b> OrganizationContextInterceptor<br/>resolve orgId · check membership"]
         L3["<b>3</b> tenant-scoped repositories<br/>every query bound to organization_id"]
-        CTRL["<b>Controllers</b><br/>/me · /meta · /overview<br/><i>the entire REST surface</i>"]
-        OVS["<b>OverviewService</b><br/>LeadMetrics · AppointmentMetrics<br/>GrowthFinance · WorkActivity"]
+        CTRL["<b>Controllers</b> — 15 classes, 30 endpoints<br/>a read controller per screen, plus<br/>an *AdminController for every write"]
+        OVS["<b>reporting</b> composes the other modules<br/>LeadMetrics · AppointmentMetrics · GrowthFinance<br/>WorkActivity · FrontDeskMetrics · ContentPublication"]
         PORTS["<b>integration ports</b><br/>Scheduling ← Healthie · Voice<br/>Advertising · Analytics<br/><b>all four report DEMO</b>"]
-        EV["<b>eventing</b> — no callers<br/>publisher → outbox_event → dispatcher"]
+        EV["<b>eventing</b><br/>publisher → outbox_event → dispatcher<br/><i>5 of 7 event types published</i>"]
         AUD["<b>audit</b><br/>AuditEventHandler"]
     end
 
-    PG[("<b>PostgreSQL 17</b><br/>keycloak DB · visionone DB<br/>19 tables, 15 queried today")]
+    PG[("<b>PostgreSQL 17</b><br/>keycloak DB · visionone DB<br/>19 tables, all of them read")]
     EXT["<b>External systems</b><br/>Healthie · voice · ads · analytics<br/>none connected"]
 
     SPA -. "redirect to sign in, back with ?code" .-> KC
-    OV -- "GET /orgs/:orgId/overview<br/>Bearer token" --> CADDY
+    SCREENS -- "/api/v1/orgs/:orgId/*<br/>Bearer token" --> CADDY
     CADDY -- "/realms/*" --> KC
     CADDY -- "/api/*" --> L1
     L1 --> L2
@@ -60,28 +59,28 @@ flowchart TB
 
     classDef ui fill:#DAE8FC,stroke:#6C8EBF,color:#16304F
     classDef live fill:#D5E8D4,stroke:#82B366,color:#1B3A17
-    classDef fixture fill:#FFF2CC,stroke:#D6B656,color:#5C4300
     classDef ident fill:#E1D5E7,stroke:#9673A6,color:#3D2B47
     classDef data fill:#FFE6CC,stroke:#D79B00,color:#5C4300
     classDef idle fill:#FFFFFF,stroke:#B1B7C3,stroke-dasharray:5 5,color:#5F6F85
     classDef edge fill:#F5F5F5,stroke:#666666,color:#333333
 
     class SPA ui
-    class OV,L1,L2,L3,CTRL,OVS live
-    class FIX fixture
+    class SCREENS,L1,L2,L3,CTRL,OVS live
     class KC ident
     class PG,PORTS data
-    class EV,AUD,EXT idle
+    class EV,AUD live
+    class EXT idle
     class CADDY edge
 ```
 
-Solid edges carry traffic today. Dashed edges are built, wired and idle — the eventing pipeline
-has no callers, and every provider adapter is a `Demo*` class.
+Solid edges carry traffic today. The dashed edge that still matters is the one leaving the provider
+ports: every adapter behind them is a `Demo*` class, so nothing external is connected.
 
 Two things the picture is meant to make obvious. Postgres is not optional at any point: Keycloak
-stores its realm, users and sessions there, so the container stays even if the application
-persisted nothing of its own. And the six fixture-backed screens have no edge leaving them at all,
-which is the honest shape of the product today.
+stores its realm, users and sessions there, so the container stays even if the application persisted
+nothing of its own. And what is still standing in is the **data**, not the code — the screens are real
+and read the database; the figures in that database come from `db/demo/R__demo_seed.sql` rather than
+from Healthie.
 
 ### The same system, by layer
 
@@ -99,8 +98,7 @@ flowchart TB
     subgraph CLIENT["1 · CLIENT — browser"]
         direction LR
         SHELL["<b>SPA shell</b><br/>React Router · AuthGate · AppShell"]
-        OVUI["<b>Overview screen</b><br/><i>live — calls the API</i>"]
-        FIXUI["<b>Six screens on fixtures</b><br/>Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports<br/><i>no network call</i>"]
+        SCREENSUI["<b>Seven screens</b><br/>Overview · Growth · Leads · Front Desk<br/>Calendar · Work &amp; Content · Reports<br/><i>all read the API</i>"]
     end
 
     subgraph EDGE["2 · EDGE — demo deployment only"]
@@ -133,7 +131,7 @@ flowchart TB
     subgraph DOM["7 · DOMAIN MODULES"]
         direction LR
         MODS["<b>lead · growth · work<br/>appointment · tenant</b><br/>metrics services behind api interfaces"]
-        EVT["<b>eventing</b><br/>publisher → outbox → relay<br/><i>no callers</i>"]
+        EVT["<b>eventing</b><br/>publisher → outbox → relay<br/><i>5 of 7 event types published</i>"]
         AUDM["<b>audit</b><br/>AuditEventHandler"]
     end
 
@@ -160,7 +158,7 @@ flowchart TB
     CLIENT ~~~ EDGE ~~~ IDENT ~~~ SEC ~~~ WEB ~~~ APP ~~~ DOM ~~~ PERS ~~~ DATA ~~~ EXT
 
     SHELL -. "redirect to sign in" .-> KC
-    OVUI --> CADDY
+    SCREENSUI --> CADDY
     CADDY -- "/api/*" --> SC
     CADDY -- "/realms/*" --> KC
     SC --> OCI
@@ -183,15 +181,13 @@ flowchart TB
 
     classDef ui fill:#DAE8FC,stroke:#6C8EBF,color:#16304F
     classDef live fill:#D5E8D4,stroke:#82B366,color:#1B3A17
-    classDef fixture fill:#FFF2CC,stroke:#D6B656,color:#5C4300
     classDef ident fill:#E1D5E7,stroke:#9673A6,color:#3D2B47
     classDef data fill:#FFE6CC,stroke:#D79B00,color:#5C4300
     classDef idle fill:#FFFFFF,stroke:#B1B7C3,stroke-dasharray:5 5,color:#5F6F85
     classDef edgec fill:#F5F5F5,stroke:#666666,color:#333333
 
     class SHELL ui
-    class OVUI,SC,OCI,SESSC,OVC,AEH,OVSVC,MODS,JPA,JDBC,CACHE,FLY live
-    class FIXUI fixture
+    class SCREENSUI,SC,OCI,SESSC,OVC,AEH,OVSVC,MODS,JPA,JDBC,CACHE,FLY live
     class KC ident
     class PG,PORTS data
     class EVT,AUDM,EXTS idle
@@ -203,10 +199,10 @@ security runs before any controller, so no endpoint can forget the membership ch
 by access style rather than by module: JPA where a row has identity and a lifecycle
 (`Organization`, `Membership`, and the eventing plumbing), `JdbcClient` where the work is
 aggregation and an ORM would only get in the way. Ten is drawn but not wired; every adapter behind
-the ports in layer six is a `Demo*` class.
+the ports in layer six is still a `Demo*` class.
 
-Layer seven is the only one with modules that are currently empty: `content` and `frontdesk` exist
-as packages holding the names for two of the fixture-backed screens.
+Every module in layer seven is populated now; `content` and `frontdesk` were the last two to be
+filled in, and carry 13 and 10 classes respectively.
 
 ### Sign-in
 
@@ -246,17 +242,25 @@ without a forked template.
 Injection is by interface, so the implementing classes are never named by another class. Static
 "who references this" tooling reports them as unused; they are not.
 
-### Screens without a backend
+### Where the data comes from
 
 ```
-  Growth · Leads · Front Desk · Calendar · Work & Content · Reports
-     └── import demoData.ts │ demoOperations.ts │ demoCalendar.ts
-            945 lines of fixtures, compiled into the bundle, zero API calls
+  Overview · Growth · Leads · Front Desk · Calendar · Work & Content · Reports
+     └── GET /api/v1/orgs/{orgId}/...          15 controllers, 30 endpoints
+            └──▶ tenant-scoped repositories ──▶ PostgreSQL
+                   └── rows from db/demo/R__demo_seed.sql
 ```
 
-Six of the seven screens render from fixtures. Overview is the only one that fails when the API is
-down, which makes it the useful canary. `content` and `frontdesk` exist as empty packages holding
-those names on the backend side.
+Every screen reads the database. The fixture modules this section used to describe
+(`demoData.ts`, `demoOperations.ts`, `demoCalendar.ts`) are gone, and so is the idea of Overview as
+the single canary — any screen now fails if the API is down.
+
+What is still synthetic is the **contents** of those tables. The seed holds three months for one
+organization, deterministically generated, and the four provider ports report `DEMO` rather than
+pretending to be connected. Going live is a profile change plus a real adapter, not new screens.
+
+One consequence worth knowing: the seed covers three fixed months, so on the first day of a new month
+the default view is empty until real data arrives.
 
 ### Provider ports
 
