@@ -48,6 +48,24 @@ public interface SchedulingProvider {
     List<AppointmentReference> appointments(UUID organizationId, LocalDate from, LocalDate to);
 
     /**
+     * One appointment by the provider's own id, or null if the provider no longer has it.
+     *
+     * <p>This is a deliberate widening of the port, reviewed rather than slipped in. It is needed
+     * because a webhook is a notification, not data: Healthie sends
+     * {@code {resource_id, resource_id_type, event_type}} and nothing else, so the only way to learn
+     * what actually changed is to ask. Returning the same {@link AppointmentReference} as the range
+     * query keeps the PHI boundary exactly where it was - this adds a way to ask about one booking,
+     * not a way to learn more about it.
+     *
+     * <p>Null means the provider says it is gone, which a caller should treat as a cancellation it
+     * can no longer read, not as an error.
+     *
+     * @throws SchedulingUnavailableException when the upstream cannot be reached, so "deleted" and
+     *     "we could not ask" stay distinguishable
+     */
+    AppointmentReference appointment(UUID organizationId, String externalRef);
+
+    /**
      * What VisionOne is allowed to know about an appointment.
      *
      * @param externalRef the provider's own id, so a sync is idempotent and a later change can be

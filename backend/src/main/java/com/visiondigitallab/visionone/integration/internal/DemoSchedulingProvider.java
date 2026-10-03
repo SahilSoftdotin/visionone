@@ -71,4 +71,32 @@ public class DemoSchedulingProvider implements SchedulingProvider {
         }
         return List.copyOf(out);
     }
+
+    /**
+     * The demo refs encode their own day - "DEMO-2026-10-03-0" - so one can be found by regenerating
+     * that single day and matching. Nothing in demo mode actually calls this, because the inbox only
+     * processes events from a real provider; implementing it properly anyway keeps the two adapters
+     * honestly interchangeable rather than leaving a hole that returns null and looks like a deletion.
+     */
+    @Override
+    public AppointmentReference appointment(UUID organizationId, String externalRef) {
+        if (externalRef == null || !externalRef.startsWith("DEMO-")) {
+            return null;
+        }
+        String body = externalRef.substring("DEMO-".length());
+        int lastDash = body.lastIndexOf('-');
+        if (lastDash < 0) {
+            return null;
+        }
+        LocalDate day;
+        try {
+            day = LocalDate.parse(body.substring(0, lastDash));
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
+        }
+        return appointments(organizationId, day, day).stream()
+                .filter(a -> externalRef.equals(a.externalRef()))
+                .findFirst()
+                .orElse(null);
+    }
 }

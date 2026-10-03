@@ -38,6 +38,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/meta").permitAll()
+                        // Provider webhooks cannot carry a VisionOne token - the signature is
+                        // their authentication, checked in the controller, which returns 401 and
+                        // records nothing when it fails. Permitting the path here is what lets
+                        // that check be the gate; it is not an unauthenticated write.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
