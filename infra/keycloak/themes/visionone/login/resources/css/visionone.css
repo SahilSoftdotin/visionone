@@ -70,6 +70,17 @@
   /* One measure for the brand, the form and the footer. Everything aligns to this. */
   --vo-measure: 25rem;
   --vo-gutter: clamp(1.5rem, 4vw, 3.5rem);
+
+  /* Vertical rhythm in vh, so the page compresses to fit rather than growing a scrollbar. A
+     sign-in page that scrolls hides the button that the whole page exists for, and it scrolls on
+     a laptop long before it scrolls on a phone - browser chrome takes the height, not the design.
+     Each of these keeps a floor so it degrades into something tight rather than something
+     collapsed. */
+  --vo-pad-page: clamp(1rem, 3vh, 2.5rem);
+  --vo-pad-main: clamp(0.75rem, 3vh, 3rem);
+  --vo-pad-body: clamp(1rem, 2.4vh, 2rem);
+  --vo-gap-field: clamp(0.75rem, 1.8vh, 1.125rem);
+  --vo-pad-footer: clamp(0.875rem, 2vh, 1.75rem);
 }
 
 /* ---------- page ---------- */
@@ -136,7 +147,7 @@ body#keycloak-bg::before {
   flex-direction: column;
   /* Symmetric. The gutter is the same on both sides and scales with the viewport, so the content
      sits in the middle of the panel instead of being pushed against its left edge. */
-  padding: 2.5rem var(--vo-gutter);
+  padding: var(--vo-pad-page) var(--vo-gutter);
   max-width: none;
   width: 100%;
   margin: 0;
@@ -172,7 +183,7 @@ body#keycloak-bg::before {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 3rem 0;
+  padding: var(--vo-pad-main) 0;
 }
 
 .vo-login-footer {
@@ -191,18 +202,24 @@ body#keycloak-bg::before {
   }
 }
 
-@media (max-width: 480px) {
-  .pf-v5-c-login__container > .pf-v5-c-login__main {
-    padding: 2rem 0;
+/* The page is sized to fit, so there is nothing to scroll. Guarded by a min-height: below this
+   the content genuinely cannot fit, and hiding the overflow there would put the Log In button
+   somewhere unreachable - which is a far worse bug than a scrollbar. */
+@media (min-height: 560px) {
+  html,
+  body#keycloak-bg {
+    height: 100%;
+    overflow: hidden;
   }
-}
 
-/* Short viewports: a laptop at 1280x585 has less height than the form wants once it is centred
-   with 3rem of air above and below. Stop centring and let it scroll rather than clipping it. */
-@media (max-height: 720px) {
-  .pf-v5-c-login__container > .pf-v5-c-login__main {
-    justify-content: flex-start;
-    padding: 2rem 0;
+  .pf-v5-c-login {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .pf-v5-c-login::after {
+    min-height: 0;
   }
 }
 
@@ -279,8 +296,9 @@ body#keycloak-bg::before {
 #kc-page-title {
   width: 100%;
   /* Was 2.25rem at line-height 1.5, which is a display size on a 24rem column with a gap under it
-     big enough to read as a missing element. */
-  font-size: clamp(1.75rem, 1.2rem + 1.4vw, 2.125rem);
+     big enough to read as a missing element. The vh term is what lets it shrink on a short
+     laptop instead of pushing the button off the screen. */
+  font-size: clamp(1.5rem, 1rem + 1.1vw + 0.6vh, 2.125rem);
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -294,7 +312,7 @@ body#keycloak-bg::before {
 #kc-page-title::after {
   content: 'Log in to your VisionOne account';
   display: block;
-  margin-top: 0.625rem;
+  margin-top: clamp(0.25rem, 1vh, 0.625rem);
   font-size: 0.9375rem;
   line-height: 1.5;
   font-weight: 400;
@@ -303,13 +321,13 @@ body#keycloak-bg::before {
 }
 
 .pf-v5-c-login__main-body {
-  padding: 2rem 0 0;
+  padding: var(--vo-pad-body) 0 0;
 }
 
 /* ---------- fields ---------- */
 
 .pf-v5-c-form {
-  --pf-v5-c-form--GridGap: 1.125rem;
+  --pf-v5-c-form--GridGap: var(--vo-gap-field);
 }
 
 /* PatternFly renders an options group between the password field and the submit button whether or
@@ -480,6 +498,40 @@ input#password:-webkit-autofill {
   background-color: transparent !important;
 }
 
+/* ---------- a rejected sign-in ---------- */
+
+/* There was no styling for this at all, which is why a wrong password produced a message and no
+   visible change to the fields. Keycloak sets pf-m-error on the username wrapper by itself, so
+   that is styled directly and works with JavaScript off; js/login-errors.js adds .vo-invalid to
+   the password group as well, because the realm does not disclose which of the two was wrong. */
+.pf-v5-c-form-control.pf-m-error,
+.pf-v5-c-input-group.vo-invalid,
+.pf-v5-c-form-control.vo-invalid {
+  border-color: var(--vo-critical);
+  background-color: #fffaf9;
+}
+
+.pf-v5-c-form-control.pf-m-error:focus-within,
+.pf-v5-c-input-group.vo-invalid:focus-within,
+.pf-v5-c-form-control.vo-invalid:focus-within {
+  border-color: var(--vo-critical);
+  box-shadow: 0 0 0 3px rgba(197, 57, 23, 0.16);
+}
+
+/* Hover must not repaint the border grey over the error. */
+.pf-v5-c-form-control.pf-m-error:hover,
+.pf-v5-c-input-group.vo-invalid:hover,
+.pf-v5-c-form-control.vo-invalid:hover {
+  border-color: var(--vo-critical);
+}
+
+.pf-v5-c-helper-text__item.pf-m-error,
+.pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text {
+  color: var(--vo-critical);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
 /* ---------- "Forgot password?" ---------- */
 
 /* Keycloak renders it as helper text hanging off the password field, so that is where it has to
@@ -491,10 +543,14 @@ input#password:-webkit-autofill {
 
 /* justify-content, not text-align. PatternFly makes both of these flex containers, so the anchor
    is a flex child and text-align on an ancestor does nothing to it - which is why the first
-   attempt at this left the link exactly where it was. */
-.pf-v5-c-form__helper-text,
-.pf-v5-c-form__helper-text .pf-v5-c-helper-text,
-.pf-v5-c-form__helper-text .pf-v5-c-helper-text__item {
+   attempt at this left the link exactly where it was.
+   
+   Scoped with :has(), because a failed sign-in puts its error message in a helper-text block of
+   exactly the same class. Unscoped, this right-aligned "Invalid username or password" too, which
+   reads as a layout fault rather than as an error. */
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']),
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']) .pf-v5-c-helper-text,
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']) .pf-v5-c-helper-text__item {
   display: flex;
   justify-content: flex-end;
 }
@@ -606,7 +662,7 @@ a:hover {
    what shows the page belongs to a real company: somewhere to click, and a privacy policy to
    read before typing a password. It is a real element now, from footer.ftl. */
 .vo-login-footer {
-  padding-top: 1.75rem;
+  padding-top: var(--vo-pad-footer);
   border-top: 1px solid var(--vo-border);
   font-size: 0.8125rem;
   color: var(--vo-muted);

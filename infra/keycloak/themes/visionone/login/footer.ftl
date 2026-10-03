@@ -26,7 +26,7 @@
     <li><a href="https://visiondigitallab.com/privacy" rel="noopener">Privacy</a></li>
     <li><a href="https://visiondigitallab.com/terms" rel="noopener">Terms</a></li>
     <li><a href="https://visiondigitallab.com/security" rel="noopener">Security</a></li>
-    <li><a href="mailto:hello@visiondigitallab.com">Contact</a></li>
+    <li><a href="https://visiondigitallab.com/contact" rel="noopener">Contact</a></li>
   </ul>
 </footer>
 </#macro>
