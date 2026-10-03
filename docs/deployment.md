@@ -221,6 +221,38 @@ the client, so the client stays in context throughout.
 Keycloak answers with nothing on success. A delivery failure is an `EmailException` in
 `docker compose logs keycloak`, so a silent return there means the mail went out.
 
+## Changing the login theme
+
+`infra/keycloak/themes` is a bind mount, so a theme change needs no image rebuild - `git pull` on
+the server is enough to put the new files in front of Keycloak.
+
+It does **not** need `docker compose restart keycloak`, and that is the trap. A restart reuses the
+same container, and Keycloak serves theme static resources out of its Quarkus augmentation cache,
+which lives in that container's writable layer and survives a restart. The symptom is specific and
+confusing: new and changed **templates** are picked up, so a brand new `footer.ftl` renders
+immediately, while a changed **stylesheet** keeps serving the old bytes. The file on disk is
+correct, the file inside the container is correct, and `/resources/.../visionone.css` still returns
+the previous version with `max-age=2592000` on it.
+
+Recreate the container instead:
+
+```bash
+cd /opt/visionone
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml   up -d --force-recreate keycloak
+```
+
+Safe to do at any time: every piece of Keycloak's state is in Postgres, and `--import-realm` skips
+a realm that already exists, so nothing is reset.
+
+Verify by fetching the stylesheet rather than by looking at the page, because the browser caches it
+for 30 days and a themed page can look updated while its CSS is a month stale:
+
+```bash
+curl -s https://<DOMAIN>/resources/<hash>/login/visionone/css/visionone.css | wc -c
+```
+
+The `<hash>` changes between Keycloak versions; read it out of the sign-in page's `<link>` tag.
+
 ## Where the images come from
 
 `.github/workflows/images.yml` builds both on every push to `main` that touches `backend/`,
