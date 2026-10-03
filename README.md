@@ -81,7 +81,7 @@ Open http://localhost:5173.
 
 | User | Password | Role | Sees |
 | --- | --- | --- | --- |
-| `gary` | `thrive123` | CLIENT_OWNER | The client experience |
+| `garyadams` | `thrive123` | CLIENT_OWNER | The client experience |
 | `sahil` | `vision123` | VISION_ADMIN | The same, plus the admin area from Week 2 |
 
 ---
