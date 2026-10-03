@@ -16,9 +16,17 @@ DO $$
 DECLARE
     org  uuid := '0199a1d0-0000-7000-8000-000000000001';
     cur  char(3) := 'USD';
-    m0   date := date '2026-07-01';
-    m1   date := date '2026-08-01';
-    m2   date := date '2026-09-01';
+    -- Anchored to the current month rather than to fixed dates. A dataset pinned to July-September
+    -- looks complete in September and shows an entirely empty dashboard in October, because every
+    -- month-scoped screen defaults to the current month in the organization's timezone. So the
+    -- window moves with the calendar: two complete months of history, plus the month in progress.
+    m2   date := date_trunc('month', CURRENT_DATE)::date;
+    m1   date := (date_trunc('month', CURRENT_DATE) - interval '1 month')::date;
+    m0   date := (date_trunc('month', CURRENT_DATE) - interval '2 months')::date;
+    -- How much of the current month has actually happened. The two complete months spread their
+    -- rows over 27 days; the current month can only spread over the days already elapsed, or the
+    -- seed dates leads and calls in the future - which reads as broken rather than as synthetic.
+    elapsed int := greatest(extract(day from CURRENT_DATE)::int, 1);
 BEGIN
 
 IF EXISTS (SELECT 1 FROM lead WHERE organization_id = org) THEN
@@ -88,18 +96,25 @@ SELECT
            'IV_THERAPY','GENERAL_ENQUIRY'])[((i * 5) % 6) + 1],
     s.status,
     ts.created_at,
-    CASE WHEN s.rank >= 1 THEN ts.created_at + CASE
+    -- least(..., now()) on both: these record things that have already happened. Without it a lead
+    -- that arrived this morning gets a response time tomorrow, because the offsets run to several
+    -- days and the current month's leads now sit within the last few days rather than months ago.
+    CASE WHEN s.rank >= 1 THEN least(ts.created_at + CASE
              -- Answered live at the desk.
              WHEN (i * 31) % 100 < 36 THEN make_interval(mins => 2 + (i * 7) % 13)
              -- Picked up later from voicemail or a form.
-             ELSE make_interval(mins => 22 + (i * 17) % 200) END END,
-    CASE WHEN s.rank >= 4 THEN ts.created_at + make_interval(hours => 26 + (i * 11) % 90) END,
+             ELSE make_interval(mins => 22 + (i * 17) % 200) END, now()) END,
+    CASE WHEN s.rank >= 4 THEN least(ts.created_at + make_interval(hours => 26 + (i * 11) % 90), now()) END,
     -- Untouched leads stay unassigned; anything worked on has an owner.
     CASE WHEN s.rank >= 1 THEN '0199a1d0-0002-7000-8000-000000000001'::uuid END
 FROM generate_series(0, 179) AS i
 CROSS JOIN LATERAL (
-    SELECT (CASE i / 60 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-           + make_interval(days => (i % 60) % 27, hours => 8 + (i % 11), mins => (i * 7) % 60) AS created_at
+    -- least(..., now()) because the day offset only gets the row into the right day: the hour
+    -- offset can still land it later this afternoon. A lead that has not arrived yet is the one
+    -- thing in a synthetic dataset a client would actually spot.
+    SELECT least((CASE i / 60 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
+           + make_interval(days => (i % 60) % (CASE WHEN i / 60 = 2 THEN elapsed ELSE 27 END),
+                           hours => 8 + (i % 11), mins => (i * 7) % 60), now()) AS created_at
 ) AS ts
 CROSS JOIN LATERAL (
     SELECT v.status, v.rank FROM (
@@ -130,7 +145,7 @@ SELECT
     l.id,
     CASE WHEN step.n = 0 THEN NULL ELSE ladder.stages[step.n] END,
     ladder.stages[step.n + 1],
-    l.created_at + make_interval(hours => step.n * 9),
+    least(l.created_at + make_interval(hours => step.n * 9), now()),
     'seed@visiondigitallab.com'
 FROM lead l
 CROSS JOIN LATERAL (
@@ -156,9 +171,11 @@ END $$;
 DO $$
 DECLARE
     org uuid := '0199a1d0-0000-7000-8000-000000000001';
-    m0  date := date '2026-07-01';
-    m1  date := date '2026-08-01';
-    m2  date := date '2026-09-01';
+    -- Same window as the block above, and for the same reason.
+    m2  date := date_trunc('month', CURRENT_DATE)::date;
+    m1  date := (date_trunc('month', CURRENT_DATE) - interval '1 month')::date;
+    m0  date := (date_trunc('month', CURRENT_DATE) - interval '2 months')::date;
+    elapsed int := greatest(extract(day from CURRENT_DATE)::int, 1);
 BEGIN
 
 IF EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
@@ -174,6 +191,8 @@ SELECT
     'DEMO-APPT-' || lpad((row_number() OVER (ORDER BY l.id))::text, 5, '0'),
     l.id,
     coalesce(l.booked_at, l.created_at),
+    -- Deliberately not clamped. An appointment five days after a booking made this week falls in
+    -- the future, which is exactly right: those are the upcoming bookings the Calendar is for.
     coalesce(l.booked_at, l.created_at) + interval '5 days',
     CASE WHEN l.status = 'ATTENDED' THEN 'ATTENDED' ELSE 'BOOKED' END,
     'DEMO'
@@ -207,8 +226,9 @@ SELECT
     'Caller ' || lpad(((i * 37) % 900 + 100)::text, 3, '0')
 FROM generate_series(0, 239) AS i
 CROSS JOIN LATERAL (
-    SELECT (CASE i / 80 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-           + make_interval(days => (i % 80) % 27, hours => hr, mins => (i * 13) % 60) AS started,
+    SELECT least((CASE i / 80 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
+           + make_interval(days => (i % 80) % (CASE WHEN i / 80 = 2 THEN elapsed ELSE 27 END),
+                           hours => hr, mins => (i * 13) % 60), now()) AS started,
            (i % 100) >= 18 AS answered,
            (hr < 9 OR hr >= 18) AS after_hours
     FROM (SELECT (i * 7) % 24 AS hr) h
@@ -229,8 +249,8 @@ SELECT
     w.status = 'WAITING_FOR_CLIENT',
     w.update_text,
     CASE WHEN w.status = 'COMPLETED'
-         THEN (CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-              + make_interval(days => (i * 5) % 25) END
+         THEN least((CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
+              + make_interval(days => (i * 5) % 25), now()) END
 FROM generate_series(0, 29) AS i
 CROSS JOIN LATERAL (
     SELECT
@@ -280,7 +300,8 @@ SELECT
     CASE WHEN c.status <> 'PUBLISHED' THEN 'https://drafts.visiondigitallab.com/thrive/' || i END,
     CASE WHEN c.status =  'PUBLISHED' THEN 'https://thrivelongevitycenter.com/insights/' || i END,
     CASE WHEN c.status =  'PUBLISHED'
-         THEN (CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END) + make_interval(days => (i * 4) % 25) END,
+         THEN least((CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
+                    + make_interval(days => (i * 4) % 25), now()) END,
     c.summary
 FROM generate_series(0, 23) AS i
 CROSS JOIN LATERAL (
@@ -317,25 +338,25 @@ INSERT INTO recommendation (id, organization_id, period_month, observation, prop
                             rationale, expected_effect, decision_required, status, decided_at)
 VALUES
  ('0199a1d0-6000-7000-8000-000000000001',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-07-01',
+  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
   'Google Ads produced the most leads but the highest cost per booked appointment. Google Maps produced fewer leads at roughly a third of the cost.',
   'Move $600 of the monthly budget from Google Ads to local search and Google Business Profile work.',
   'Map-sourced leads booked at a higher rate in July, and local search spend compounds rather than stopping when the budget stops.',
   'If the July pattern holds, we would expect cost per booked appointment to fall. This is a hypothesis to test over one month, not a guarantee.',
   'Approve the budget shift for August.',
-  'ACCEPTED', timestamptz '2026-07-28 14:10:00+00'),
+  'ACCEPTED', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date + interval '27 days 14 hours 10 minutes'),
 
  ('0199a1d0-6000-7000-8000-000000000002',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-08-01',
+  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
   'Roughly one call in five went unanswered, and a fifth of all calls arrived outside clinic hours.',
   'Pilot the AI Front Desk on after-hours calls only, for four weeks.',
   'After-hours calls are currently lost entirely. Handling them does not change how the clinic runs during the day.',
   'Recovering even half of the after-hours calls would be a meaningful increase in booked appointments. The pilot exists to find out whether that holds.',
   'Confirm the clinic is willing to run a four-week after-hours pilot.',
-  'ACCEPTED', timestamptz '2026-08-26 09:30:00+00'),
+  'ACCEPTED', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '25 days 9 hours 30 minutes'),
 
  ('0199a1d0-6000-7000-8000-000000000003',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-09-01',
+  '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date,
   'Meta click-through has fallen for three consecutive weeks on unchanged creative, while spend has held steady.',
   'Pause Meta spend for two weeks and reallocate it to the Longevity Program landing page rebuild and new creative.',
   'Creative fatigue is the most likely explanation. Spending into it buys progressively less, and the landing page is where the paid traffic lands anyway.',
@@ -357,20 +378,20 @@ INSERT INTO monthly_report (id, organization_id, period_month, status, key_learn
                             decisions_required, generated_at)
 VALUES
  ('0199a1d0-7000-7000-8000-000000000001',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-07-01', 'SHARED',
+  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, 'SHARED',
   'Paid search brings volume; local search brings efficiency. The mix matters more than the total.',
   E'Shift budget toward local search.\nBegin the hormone content cluster.\nAdd call tracking to the paid search landing pages.',
-  E'Approve the August budget shift.', timestamptz '2026-08-01 08:00:00+00'),
+  E'Approve the budget shift for the following month.', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '8 hours'),
  ('0199a1d0-7000-7000-8000-000000000002',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-08-01', 'SHARED',
+  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date, 'SHARED',
   'Missed and after-hours calls are the largest single source of lost opportunity we can currently see.',
   E'Run the after-hours AI Front Desk pilot.\nPublish the remaining hormone articles.\nReview the three highest-cost paid search terms.',
   E'Confirm the after-hours pilot.\nDecide whether Saturday morning hours are worth trialling.',
-  timestamptz '2026-09-01 08:00:00+00'),
+  date_trunc('month', CURRENT_DATE)::date + interval '8 hours'),
  -- September is still open: a DRAFT report, narrative half written, figures not yet frozen. The
  -- client cannot see this one, which is the point of having the status.
  ('0199a1d0-7000-7000-8000-000000000003',
-  '0199a1d0-0000-7000-8000-000000000001', date '2026-09-01', 'DRAFT',
+  '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date, 'DRAFT',
   'Early signal: the after-hours pilot is converting, but the sample is still too small to act on.',
   E'Hold the pilot for a second month before drawing a conclusion.',
   NULL, NULL)
@@ -392,13 +413,14 @@ END IF;
 
 INSERT INTO campaign (id, organization_id, channel_source_id, name, status, started_on, ended_on) VALUES
  ('0199a1d0-0008-7000-8000-000000000001', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Hormone Therapy - 25mi radius', 'ACTIVE', date '2026-07-01', NULL),
+  'Hormone Therapy - 25mi radius', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, NULL),
  ('0199a1d0-0008-7000-8000-000000000002', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Longevity Program - Brand', 'ACTIVE', date '2026-07-01', NULL),
+  'Longevity Program - Brand', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, NULL),
  ('0199a1d0-0008-7000-8000-000000000003', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Longevity Panel - Retargeting', 'PAUSED', date '2026-07-15', date '2026-09-10'),
+  'Longevity Panel - Retargeting', 'PAUSED', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date + interval '14 days',
+  ((date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '9 days')::date),
  ('0199a1d0-0008-7000-8000-000000000004', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Diagnostics - Cold Audience', 'ACTIVE', date '2026-08-01', NULL);
+  'Diagnostics - Cold Audience', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date, NULL);
 
 WITH ranked AS (
     SELECT l.id,
