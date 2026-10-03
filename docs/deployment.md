@@ -140,15 +140,49 @@ fetch the keys directly, and it keeps applying the issuer validator.
 ## Reaching the Keycloak admin console
 
 It is deliberately not routed publicly. It holds every account in the realm and does not need to be
-on the internet for a demo. Tunnel to it:
+on the internet.
+
+An earlier version of this section said to reach it with `ssh -L 8180:localhost:8180`. **That cannot
+work**, and it is worth saying why rather than quietly replacing it: Keycloak publishes no port to
+the host. Only Caddy does. Forwarding the host's 8180 forwards nothing, because nothing is listening
+there - the container is reachable on the Docker network and nowhere else, which is the point.
+
+Use `kcadm.sh` inside the container instead. No tunnel, no exposed port, no restart:
 
 ```bash
-ssh -L 8180:localhost:8180 user@your-server
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml \
-  exec keycloak /opt/keycloak/bin/kc.sh --version   # confirm it is up
+cd /opt/visionone
+set -a; . infra/.env.prod; set +a
+C="docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml"
+
+$C exec -T keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+  --server http://localhost:8180 --realm master \
+  --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" </dev/null
+
+# then whatever you came to do, for example
+$C exec -T keycloak /opt/keycloak/bin/kcadm.sh get users -r visionone </dev/null
+$C exec -T keycloak /opt/keycloak/bin/kcadm.sh set-password \
+  -r visionone --username gary --new-password '...' </dev/null
 ```
 
-then open `http://localhost:8180/admin` with `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD`.
+The `</dev/null` on each one is not decoration: `docker compose exec -T` reads stdin, and without it
+the first command swallows the rest of the script.
+
+## Changing a password
+
+Passwords live in Keycloak's database, not in `.env.prod`. The values there seed the realm on **first
+import only**, which is why editing them changes nothing on a running system - `--import-realm` skips
+a realm that already exists.
+
+So `set-password` above is the way: immediate, no redeploy, no restart. Note that the 12-character
+minimum enforced by `scripts/render-realm.py` does **not** apply here - that check runs at deploy
+time and governs only what gets seeded.
+
+Keep `.env.prod` in step with any change anyway, so a realm rebuilt from scratch comes back with the
+password you expect rather than one nobody remembers.
+
+There is no self-service "Forgot password?" yet, because it needs an SMTP server and there is none;
+the renderer disables the link rather than showing one that errors when clicked. Point the realm at a
+mail provider and the renderer turns it back on by itself.
 
 ## Where the images come from
 
