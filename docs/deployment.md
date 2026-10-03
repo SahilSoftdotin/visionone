@@ -101,7 +101,7 @@ make deploy
 First run takes a few minutes: Gradle resolves the backend's dependencies and Caddy waits on the
 certificate. Afterwards both layers are cached.
 
-Then open `https://<your DOMAIN>` and sign in as `gary` with the password you set.
+Then open `https://<your DOMAIN>` and sign in as `garyadams` with the password you set.
 
 ## Why the realm is rendered rather than used directly
 
@@ -121,7 +121,8 @@ It also hardens what Keycloak leaves soft, because the defaults are tuned for a 
 |---|---|
 | `bruteForceProtected: true`, temporary lockout after 10 failures | Keycloak's default is **off**. Without it the sign-in page is an unlimited password-guessing endpoint the moment it has a public name. Temporary, not permanent: permanent lockout lets anyone lock Gary out of his own dashboard. |
 | `directAccessGrantsEnabled: false` | The password grant skips the login page, the theme and the flow. The app uses authorization code + PKCE and never needs it. It stays on locally, where it is how a token is obtained with `curl`. |
-| `resetPasswordAllowed: false` while no SMTP is configured | Otherwise "Forgot password?" is rendered on the page and errors when clicked. Two accounts, both provisioned by us; the recovery path is asking us. |
+| `resetPasswordAllowed` follows whether SMTP is configured | The link and the mail server move together. Set `VISIONONE_SMTP_PASSWORD` and the realm gets an `smtpServer` block and the link; leave it blank and the link is not rendered at all. There is no state where "Forgot password?" is offered with nowhere to send to, which is what it used to do. |
+| `smtpServer` built from the environment | So it survives a realm rebuilt from an empty database. Configuring SMTP by hand in the admin console works until the day the volume is recreated, and then the recovery path is gone exactly when someone needs it. |
 | `post.logout.redirect.uris` rewritten to the real origin | Sign-out is validated against its own list, not `redirectUris`. Miss it and the Sign Out button lands on Keycloak's "Invalid redirect uri" page — a failure that appears only on the deployed host. |
 
 ## Why the API is told where the keys are
@@ -161,7 +162,7 @@ $C exec -T keycloak /opt/keycloak/bin/kcadm.sh config credentials \
 # then whatever you came to do, for example
 $C exec -T keycloak /opt/keycloak/bin/kcadm.sh get users -r visionone </dev/null
 $C exec -T keycloak /opt/keycloak/bin/kcadm.sh set-password \
-  -r visionone --username gary --new-password '...' </dev/null
+  -r visionone --username garyadams --new-password '...' </dev/null
 ```
 
 The `</dev/null` on each one is not decoration: `docker compose exec -T` reads stdin, and without it
@@ -173,16 +174,42 @@ Passwords live in Keycloak's database, not in `.env.prod`. The values there seed
 import only**, which is why editing them changes nothing on a running system - `--import-realm` skips
 a realm that already exists.
 
-So `set-password` above is the way: immediate, no redeploy, no restart. Note that the 12-character
+So `set-password` above is the way: immediate, no redeploy, no restart. Note that the 8-character
 minimum enforced by `scripts/render-realm.py` does **not** apply here - that check runs at deploy
 time and governs only what gets seeded.
 
 Keep `.env.prod` in step with any change anyway, so a realm rebuilt from scratch comes back with the
 password you expect rather than one nobody remembers.
 
-There is no self-service "Forgot password?" yet, because it needs an SMTP server and there is none;
-the renderer disables the link rather than showing one that errors when clicked. Point the realm at a
-mail provider and the renderer turns it back on by itself.
+## Self-service password reset
+
+This works in production. The realm sends through Resend over SMTP, so "Forgot password?" on the
+sign-in page emails a one-time link and the user sets their own password without us touching the
+server.
+
+Three things had to be true together, and all three are now in `scripts/render-realm.py` rather than
+clicked into the admin console, so they survive a realm rebuilt from an empty database:
+
+1. `smtpServer` configured - host `smtp.resend.com:587`, STARTTLS, username the literal `resend`,
+   password the Resend API key from `VISIONONE_SMTP_PASSWORD`.
+2. `resetPasswordAllowed: true`, which the renderer sets **only** when SMTP is present.
+3. Each account's `email` set to an address its owner actually reads, and `emailVerified: true` -
+   an unverified address cannot receive a reset. These come from `VISIONONE_DEMO_EMAIL_*` rather
+   than the committed realm, because the real addresses are not ours to publish in a public repo.
+
+The sending domain has to be verified with Resend before anything is delivered; `visiondigitallab.com`
+is, via a DKIM record at the registrar.
+
+To send someone a set-your-password link without waiting for them to ask:
+
+```bash
+echo '["UPDATE_PASSWORD"]' > /tmp/actions.json
+docker cp /tmp/actions.json "$($C ps -q keycloak)":/tmp/actions.json
+$C exec -T keycloak /opt/keycloak/bin/kcadm.sh update   users/<USER_ID>/execute-actions-email -r visionone -f /tmp/actions.json </dev/null
+```
+
+Keycloak answers with nothing on success. A delivery failure is an `EmailException` in
+`docker compose logs keycloak`, so a silent return there means the mail went out.
 
 ## Where the images come from
 
