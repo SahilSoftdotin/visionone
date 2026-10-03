@@ -205,8 +205,18 @@ To send someone a set-your-password link without waiting for them to ask:
 ```bash
 echo '["UPDATE_PASSWORD"]' > /tmp/actions.json
 docker cp /tmp/actions.json "$($C ps -q keycloak)":/tmp/actions.json
-$C exec -T keycloak /opt/keycloak/bin/kcadm.sh update   users/<USER_ID>/execute-actions-email -r visionone -f /tmp/actions.json </dev/null
+$C exec -T keycloak /opt/keycloak/bin/kcadm.sh update   'users/<USER_ID>/execute-actions-email?client_id=visionone-web&redirect_uri=https://app.visiondigitallab.com/'   -r visionone -f /tmp/actions.json </dev/null
 ```
+
+**The two query parameters are not optional.** Without them the action token carries no client, so
+when the person finishes setting their password Keycloak renders "Your account has been updated"
+with no link and no button - a dead end at the end of a flow they were emailed into. `info.ftl`
+only offers a way onward when it has `pageRedirectUri`, `actionUri` or `client.baseUrl`, and a
+clientless token gives it none of the three. The `redirect_uri` has to match the client's
+registered redirect URIs, which `https://app.visiondigitallab.com/` does.
+
+The "Forgot password?" link on the sign-in page does not have this problem: that flow starts from
+the client, so the client stays in context throughout.
 
 Keycloak answers with nothing on success. A delivery failure is an `EmailException` in
 `docker compose logs keycloak`, so a silent return there means the mail went out.
