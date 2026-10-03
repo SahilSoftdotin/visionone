@@ -45,7 +45,14 @@ services:
     # room for a spike. 640m is the honest number for this image; the pinned heap is what turns the
     # extra into real headroom rather than something the JVM immediately claims.
     mem_limit: 640m
-    command: ["start", "--import-realm", "--http-port=8180"]
+    # spi-theme-static-max-age: Keycloak serves theme CSS, fonts and images with a 30-day
+    # Cache-Control by default, and the resource path it serves them under only changes
+    # between Keycloak versions - not when a theme file changes. So a restyled login page
+    # reached nobody who had already visited it, including us, which is how a broken footer
+    # stayed broken on screen while the server was serving the fixed stylesheet. 60 seconds
+    # trades a few KB per sign-in for changes that actually arrive.
+    command: ["start", "--import-realm", "--http-port=8180",
+              "--spi-theme-static-max-age=60"]
     environment:
       JAVA_OPTS_KC_HEAP: "-Xms96m -Xmx192m"
       # Keycloak builds absolute URLs (issuer, redirects, the theme's asset paths) from this, so it
