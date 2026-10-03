@@ -1,9 +1,24 @@
--- Synthetic THRIVE dataset for the local and demo profiles.
+-- THRIVE dataset for the local and demo profiles.
 --
--- Deterministic by construction: every value derives from a row index, never from random().
--- The same seed produces the same dashboard every time, so a number questioned in a demo can be
--- reproduced and explained. Names are drawn from a fixed synthetic list and no contact details
--- are stored. Nothing here is clinical.
+-- Deterministic by construction: every value derives from a row index, never from random(). The
+-- same seed produces the same dashboard every time, so a number questioned in a demo can be
+-- reproduced and explained. Names are drawn from a fixed synthetic list and no contact details are
+-- stored. Nothing here is clinical.
+--
+-- The record starts when the engagement started, not three months earlier. ENGAGEMENT_START below
+-- is the one date that matters: the portal is a record of this engagement, so it shows nothing
+-- before the engagement existed, and it fills forward a day at a time from there. An earlier
+-- version carried three months of invented history that predated the relationship, which is a
+-- strange thing to hand a client who knows exactly when they signed.
+--
+-- Work items are the real ones. They are not synthetic and they are not padding: they are what
+-- Vision is actually doing for THRIVE this quarter, which is why there are three of them rather
+-- than thirty. Everything after them is authored in the product by Vision Admin, which is what
+-- the Work & Content screen is for.
+--
+-- There are deliberately NO content items. The content pipeline starts empty and fills as posts
+-- and articles are actually drafted, each one going to the practice for approval. A pipeline
+-- pre-populated with imaginary blog posts invites a client to approve something nobody wrote.
 --
 -- Repeatable migration: it runs when its checksum changes and is a no-op once data exists.
 --
@@ -16,17 +31,33 @@ DO $$
 DECLARE
     org  uuid := '0199a1d0-0000-7000-8000-000000000001';
     cur  char(3) := 'USD';
-    -- Anchored to the current month rather than to fixed dates. A dataset pinned to July-September
-    -- looks complete in September and shows an entirely empty dashboard in October, because every
-    -- month-scoped screen defaults to the current month in the organization's timezone. So the
-    -- window moves with the calendar: two complete months of history, plus the month in progress.
-    m2   date := date_trunc('month', CURRENT_DATE)::date;
-    m1   date := (date_trunc('month', CURRENT_DATE) - interval '1 month')::date;
-    m0   date := (date_trunc('month', CURRENT_DATE) - interval '2 months')::date;
-    -- How much of the current month has actually happened. The two complete months spread their
-    -- rows over 27 days; the current month can only spread over the days already elapsed, or the
-    -- seed dates leads and calls in the future - which reads as broken rather than as synthetic.
-    elapsed int := greatest(extract(day from CURRENT_DATE)::int, 1);
+
+    -- ENGAGEMENT_START. Change this one line to move the whole record.
+    --
+    -- Fixed rather than relative. A rolling window keeps the dashboard populated but it also
+    -- silently invents history: in January it would claim leads from the previous November. This
+    -- is a client-facing record, so it begins on a real date and grows.
+    start_on date := date '2026-10-01';
+
+    -- Days of the engagement that have actually happened. Floored at 1 so the seed still produces
+    -- something if it runs on or before the start date, which is what happens in a test.
+    days int := greatest((CURRENT_DATE - start_on) + 1, 1);
+
+    -- Volume per day, not per month. A cash-pay longevity clinic on a modest ad budget: a few
+    -- enquiries and a handful of calls a day. Deriving the totals from elapsed days is what keeps
+    -- the dataset honest on day three of an engagement - there is no way to show a full month of
+    -- activity three days in without dating most of it in the future.
+    leads_per_day int := 4;
+    calls_per_day int := 8;
+    lead_count int := days * leads_per_day;
+    call_count int := days * calls_per_day;
+
+    -- The plan runs to the end of the engagement's first calendar year. Plans are forward-looking,
+    -- so unlike leads and calls these legitimately sit in the future.
+    m0 date := date_trunc('month', start_on)::date;
+    m1 date := (date_trunc('month', start_on) + interval '1 month')::date;
+    m2 date := (date_trunc('month', start_on) + interval '2 months')::date;
+    this_month date := date_trunc('month', CURRENT_DATE)::date;
 BEGIN
 
 IF EXISTS (SELECT 1 FROM lead WHERE organization_id = org) THEN
@@ -44,9 +75,12 @@ ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- growth plans
 INSERT INTO growth_plan (id, organization_id, period_month, planned_total_minor, currency, notes) VALUES
- ('0199a1d0-0003-7000-8000-000000000001', org, m0, 500000, cur, 'Baseline month. Ads weighted to Longevity Program.'),
- ('0199a1d0-0003-7000-8000-000000000002', org, m1, 500000, cur, 'Shifted spend toward Google Maps after July local-search gains.'),
- ('0199a1d0-0003-7000-8000-000000000003', org, m2, 500000, cur, 'Current month. Meta budget held pending creative refresh.');
+ ('0199a1d0-0003-7000-8000-000000000001', org, m0, 500000, cur,
+  'First month of the engagement. Budget weighted to Google Ads and local search while the Longevity Program pages are rebuilt.'),
+ ('0199a1d0-0003-7000-8000-000000000002', org, m1, 500000, cur,
+  'Planned. Shifts toward local search and content once the first month of search data is in.'),
+ ('0199a1d0-0003-7000-8000-000000000003', org, m2, 500000, cur,
+  'Planned. Holds budget for the festive period, when enquiry volume in this category falls and cost per click rises.');
 
 -- Planned and actual per channel, per month. Actual is entered manually in Phase 1.
 INSERT INTO budget_allocation (id, organization_id, growth_plan_id, channel_source_id, planned_minor, actual_minor)
@@ -56,13 +90,22 @@ SELECT
     p.plan_id,
     c.channel_id,
     c.planned,
-    -- Spend lands close to plan but never exactly on it, and the current month is part-spent.
-    CASE WHEN p.n = 3 THEN (c.planned * 62) / 100 ELSE (c.planned * (92 + ((p.n * 7 + c.n * 3) % 9))) / 100 END
+    -- Three cases, and the third is the one that matters. A month already finished spent close to
+    -- plan. The month in progress has spent the fraction of it that has elapsed. A month that has
+    -- not started has spent nothing - showing a plausible-looking actual against a future month
+    -- would be inventing spend that no invoice will ever match.
+    CASE
+        WHEN p.month < this_month THEN (c.planned * (92 + ((p.n * 7 + c.n * 3) % 9))) / 100
+        WHEN p.month = this_month THEN
+            (c.planned * extract(day from CURRENT_DATE)::int)
+            / extract(day from (date_trunc('month', CURRENT_DATE) + interval '1 month - 1 day'))::int
+        ELSE 0
+    END
 FROM (VALUES
-        (1, '0199a1d0-0003-7000-8000-000000000001'::uuid),
-        (2, '0199a1d0-0003-7000-8000-000000000002'::uuid),
-        (3, '0199a1d0-0003-7000-8000-000000000003'::uuid)
-     ) AS p(n, plan_id)
+        (1, '0199a1d0-0003-7000-8000-000000000001'::uuid, m0),
+        (2, '0199a1d0-0003-7000-8000-000000000002'::uuid, m1),
+        (3, '0199a1d0-0003-7000-8000-000000000003'::uuid, m2)
+     ) AS p(n, plan_id, month)
 CROSS JOIN (VALUES
         (1, '0199a1d0-0001-7000-8000-000000000001'::uuid, 220000),  -- Google Ads
         (2, '0199a1d0-0001-7000-8000-000000000002'::uuid,  80000),  -- Organic Search
@@ -73,7 +116,8 @@ CROSS JOIN (VALUES
      ) AS c(n, channel_id, planned);
 
 -- ---------------------------------------------------------------- leads
--- 180 leads, 60 per month, distributed across channels by a fixed weighting.
+-- leads_per_day for every day of the engagement so far, distributed across channels by a fixed
+-- weighting.
 INSERT INTO lead (id, organization_id, channel_source_id, display_name, contact_hash,
                   service_interest, status, created_at, first_response_at, booked_at,
                   owner_membership_id)
@@ -96,9 +140,8 @@ SELECT
            'IV_THERAPY','GENERAL_ENQUIRY'])[((i * 5) % 6) + 1],
     s.status,
     ts.created_at,
-    -- least(..., now()) on both: these record things that have already happened. Without it a lead
-    -- that arrived this morning gets a response time tomorrow, because the offsets run to several
-    -- days and the current month's leads now sit within the last few days rather than months ago.
+    -- least(..., now()) on both: these record things that have already happened, and on an
+    -- engagement a few days old the offsets below would otherwise answer an enquiry tomorrow.
     CASE WHEN s.rank >= 1 THEN least(ts.created_at + CASE
              -- Answered live at the desk.
              WHEN (i * 31) % 100 < 36 THEN make_interval(mins => 2 + (i * 7) % 13)
@@ -107,25 +150,24 @@ SELECT
     CASE WHEN s.rank >= 4 THEN least(ts.created_at + make_interval(hours => 26 + (i * 11) % 90), now()) END,
     -- Untouched leads stay unassigned; anything worked on has an owner.
     CASE WHEN s.rank >= 1 THEN '0199a1d0-0002-7000-8000-000000000001'::uuid END
-FROM generate_series(0, 179) AS i
+FROM generate_series(0, lead_count - 1) AS i
 CROSS JOIN LATERAL (
-    -- least(..., now()) because the day offset only gets the row into the right day: the hour
-    -- offset can still land it later this afternoon. A lead that has not arrived yet is the one
-    -- thing in a synthetic dataset a client would actually spot.
-    SELECT least((CASE i / 60 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-           + make_interval(days => (i % 60) % (CASE WHEN i / 60 = 2 THEN elapsed ELSE 27 END),
+    -- i / leads_per_day is the day index, so the rows fill forward from the engagement start one
+    -- day at a time. Clamped, because the hour offset can still land a row later this afternoon.
+    SELECT least(start_on
+           + make_interval(days => i / leads_per_day,
                            hours => 8 + (i % 11), mins => (i * 7) % 60), now()) AS created_at
 ) AS ts
 CROSS JOIN LATERAL (
     SELECT v.status, v.rank FROM (
         SELECT CASE
-            WHEN (i * 13) % 100 <  5 THEN 'DUPLICATE'
-            WHEN (i * 13) % 100 < 22 THEN 'NEW'
-            WHEN (i * 13) % 100 < 38 THEN 'CONTACTED'
-            WHEN (i * 13) % 100 < 55 THEN 'QUALIFIED'
-            WHEN (i * 13) % 100 < 65 THEN 'APPOINTMENT_REQUESTED'
-            WHEN (i * 13) % 100 < 82 THEN 'BOOKED'
-            WHEN (i * 13) % 100 < 90 THEN 'ATTENDED'
+            WHEN (i * 37) % 100 <  5 THEN 'DUPLICATE'
+            WHEN (i * 37) % 100 < 22 THEN 'NEW'
+            WHEN (i * 37) % 100 < 38 THEN 'CONTACTED'
+            WHEN (i * 37) % 100 < 55 THEN 'QUALIFIED'
+            WHEN (i * 37) % 100 < 65 THEN 'APPOINTMENT_REQUESTED'
+            WHEN (i * 37) % 100 < 82 THEN 'BOOKED'
+            WHEN (i * 37) % 100 < 90 THEN 'ATTENDED'
             ELSE 'NOT_CONVERTED'
         END AS status
     ) raw
@@ -163,19 +205,18 @@ CROSS JOIN LATERAL (
 CROSS JOIN LATERAL generate_series(0, array_length(ladder.stages, 1) - 1) AS step(n)
 WHERE l.organization_id = org;
 
-RAISE NOTICE 'VisionOne demo seed: leads and history inserted.';
+RAISE NOTICE 'VisionOne demo seed: % leads inserted from %.', lead_count, start_on;
 
 END $$;
 
--- ---------------------------------------------------------------- appointments, calls, work, content
+-- ---------------------------------------------------------------- appointments and calls
 DO $$
 DECLARE
     org uuid := '0199a1d0-0000-7000-8000-000000000001';
-    -- Same window as the block above, and for the same reason.
-    m2  date := date_trunc('month', CURRENT_DATE)::date;
-    m1  date := (date_trunc('month', CURRENT_DATE) - interval '1 month')::date;
-    m0  date := (date_trunc('month', CURRENT_DATE) - interval '2 months')::date;
-    elapsed int := greatest(extract(day from CURRENT_DATE)::int, 1);
+    start_on date := date '2026-10-01';
+    days int := greatest((CURRENT_DATE - start_on) + 1, 1);
+    calls_per_day int := 8;
+    call_count int := days * calls_per_day;
 BEGIN
 
 IF EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
@@ -199,7 +240,7 @@ SELECT
 FROM lead l
 WHERE l.organization_id = org AND l.status IN ('BOOKED', 'ATTENDED');
 
--- 240 calls across the three months. ~18% missed, ~22% after hours.
+-- calls_per_day across the engagement so far. ~18% missed, ~22% after hours.
 INSERT INTO call (id, organization_id, external_ref, direction, started_at, duration_seconds,
                   outcome, answered, after_hours, transferred, provider_code, caller_label)
 SELECT
@@ -224,187 +265,107 @@ SELECT
     i % 17 = 0,
     'DEMO',
     'Caller ' || lpad(((i * 37) % 900 + 100)::text, 3, '0')
-FROM generate_series(0, 239) AS i
+FROM generate_series(0, call_count - 1) AS i
 CROSS JOIN LATERAL (
-    SELECT least((CASE i / 80 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-           + make_interval(days => (i % 80) % (CASE WHEN i / 80 = 2 THEN elapsed ELSE 27 END),
-                           hours => hr, mins => (i * 13) % 60), now()) AS started,
-           (i % 100) >= 18 AS answered,
+    SELECT least(start_on
+           + make_interval(days => i / calls_per_day, hours => hr, mins => (i * 13) % 60),
+           now()) AS started,
+           ((i * 61) % 100) >= 18 AS answered,
            (hr < 9 OR hr >= 18) AS after_hours
-    FROM (SELECT (i * 7) % 24 AS hr) h
-) AS c;
-
--- Work items. Four sit in WAITING_FOR_CLIENT so the Overview attention list is not empty.
-INSERT INTO work_item (id, organization_id, title, category, status, business_reason, owner_name,
-                       target_date, client_dependency, client_visible_update, completed_at)
-SELECT
-    ('0199a1d0-4000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
-    org,
-    w.title,
-    w.category,
-    w.status,
-    w.reason,
-    CASE WHEN i % 3 = 0 THEN 'Sahil Arora' ELSE 'Vision Digital Lab' END,
-    (m2 + make_interval(days => (i * 3) % 40))::date,
-    w.status = 'WAITING_FOR_CLIENT',
-    w.update_text,
-    CASE WHEN w.status = 'COMPLETED'
-         THEN least((CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-              + make_interval(days => (i * 5) % 25), now()) END
-FROM generate_series(0, 29) AS i
-CROSS JOIN LATERAL (
-    SELECT
-      (ARRAY['Longevity Program landing page rebuild','Google Business Profile photo refresh',
-             'Hormone optimization blog cluster','Competitor keyword gap analysis',
-             'Review response workflow','Call tracking number setup',
-             'Meta creative refresh','Local citation cleanup','Conversion tracking audit',
-             'Appointment booking flow test'])[(i % 10) + 1] AS title,
-      (ARRAY['SEO','LOCAL_SEARCH','CONTENT','ANALYTICS','REPUTATION','INTEGRATION',
-             'SOCIAL','LOCAL_SEARCH','ANALYTICS','AUTOMATION'])[(i % 10) + 1] AS category,
-      CASE
-        WHEN i % 10 IN (0, 3, 6) THEN 'COMPLETED'
-        WHEN i % 10 IN (1, 7)    THEN 'IN_PROGRESS'
-        WHEN i % 10 = 2          THEN 'WAITING_FOR_CLIENT'
-        WHEN i % 10 = 8          THEN 'BLOCKED'
-        ELSE 'PLANNED'
-      END AS status,
-      (ARRAY['Longevity Program pages convert below the site average.',
-             'Profile photos are over two years old and suppress map engagement.',
-             'No depth on hormone terms competitors already rank for.',
-             'We cannot prioritise spend without knowing the gaps.',
-             'Unanswered reviews cost trust at the exact moment of decision.',
-             'Call volume by channel is currently unattributable.',
-             'Creative fatigue is showing in declining click-through.',
-             'Inconsistent listings weaken local ranking signals.',
-             'Conversions are under-reported, so cost per lead looks worse than it is.',
-             'Booking abandonment has never been measured.'])[(i % 10) + 1] AS reason,
-      (ARRAY['Draft copy ready for your review.','Awaiting clinic photos from your team.',
-             'Two of four articles published.','Analysis complete, shared in this month''s report.',
-             'Workflow live; responses within one business day.',
-             'Tracking numbers active on all paid channels.',
-             'New creative in production.','48 of 61 listings corrected.',
-             'Fix deployed, verifying over the next week.',
-             'Test scheduled once the new page is live.'])[(i % 10) + 1] AS update_text
-) AS w;
-
--- Content. Three items are waiting on Gary, which is what Week 3's approval demo needs.
-INSERT INTO content_item (id, organization_id, title, content_type, status, author_name,
-                          draft_url, published_url, published_at, summary)
-SELECT
-    ('0199a1d0-5000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
-    org,
-    c.title,
-    c.content_type,
-    c.status,
-    'Vision Digital Lab',
-    CASE WHEN c.status <> 'PUBLISHED' THEN 'https://drafts.visiondigitallab.com/thrive/' || i END,
-    CASE WHEN c.status =  'PUBLISHED' THEN 'https://thrivelongevitycenter.com/insights/' || i END,
-    CASE WHEN c.status =  'PUBLISHED'
-         THEN least((CASE i % 3 WHEN 0 THEN m0 WHEN 1 THEN m1 ELSE m2 END)
-                    + make_interval(days => (i * 4) % 25), now()) END,
-    c.summary
-FROM generate_series(0, 23) AS i
-CROSS JOIN LATERAL (
-    SELECT
-      (ARRAY['What a longevity panel actually measures','Five signs it is time to review your hormones',
-             'Inside a THRIVE first visit','Sleep, recovery and biological age',
-             'Why we test before we treat','Metabolic health after 40',
-             'IV therapy: what the evidence supports'])[(i % 7) + 1] AS title,
-      (ARRAY['BLOG','SOCIAL_POST','SHORT_VIDEO','GOOGLE_BUSINESS_POST','BLOG','FAQ',
-             'LANDING_PAGE','SOCIAL_POST'])[(i % 8) + 1] AS content_type,
-      (ARRAY['What the panel covers, what it does not, and how long results take.',
-             'Short post pointing at the longevity panel explainer.',
-             'Ninety seconds inside a first visit, filmed at the clinic.',
-             'Profile post on sleep and recovery, aimed at local search.',
-             'Why testing comes before treatment, in plain language.',
-             'Carousel on metabolic health after forty.',
-             'What the evidence actually supports, and what it does not.'])[(i % 7) + 1] AS summary,
-      CASE
-        WHEN i % 8 IN (0, 4) THEN 'PUBLISHED'
-        WHEN i % 8 = 1       THEN 'CLIENT_REVIEW'
-        WHEN i % 8 = 2       THEN 'DRAFTING'
-        WHEN i % 8 = 3       THEN 'APPROVED'
-        WHEN i % 8 = 5       THEN 'INTERNAL_REVIEW'
-        WHEN i % 8 = 6       THEN 'SCHEDULED'
-        ELSE 'IDEA'
-      END AS status
+    FROM (SELECT CASE
+                   WHEN ((i * 29) % 100) < 78 THEN 9 + ((i * 7) % 9)
+                   WHEN i % 2 = 0             THEN (i * 5) % 9
+                   ELSE 18 + ((i * 3) % 6)
+                 END AS hr) h
 ) AS c;
 
 END $$;
 
--- ---------------------------------------------------------------- recommendations
--- One per month. expected_effect is written as a hypothesis, never as a promise.
+-- ---------------------------------------------------------------- the actual work
+-- Three items, because three is what is actually in flight. They are written from the business
+-- reason rather than the task, which is the whole premise of the screen: a practice owner reads
+-- "why" before "what", and "Technical SEO audit" tells him nothing he can weigh.
+--
+-- Vision Admin adds to this list in the product from here on. The practice sees every item and can
+-- change none of them - the one thing it decides is content approval, which is a different screen
+-- and a different table.
+DO $$
+DECLARE org uuid := '0199a1d0-0000-7000-8000-000000000001';
+BEGIN
+
+IF EXISTS (SELECT 1 FROM work_item WHERE organization_id = org) THEN
+    RETURN;
+END IF;
+
+INSERT INTO work_item (id, organization_id, title, category, status, business_reason, owner_name,
+                       target_date, client_dependency, client_visible_update, completed_at) VALUES
+
+ ('0199a1d0-4000-7000-8000-000000000001', org,
+  'Search visibility for thrivelongevitycenter.com', 'SEO', 'IN_PROGRESS',
+  'The site does not currently rank for the treatments the practice actually sells. Someone in the area searching for hormone optimisation or a longevity panel does not find THRIVE, so every enquiry has to be paid for. Ranking for those terms is the only channel that keeps producing after the ad budget stops.',
+  'Vision Digital Lab',
+  (date_trunc('month', date '2026-10-01') + interval '2 months 30 days')::date,
+  false,
+  'Full technical and content audit of the site done. Working through the fixes in order of what moves rankings fastest: page titles and structure first, then the service pages, then site speed.',
+  NULL),
+
+ ('0199a1d0-4000-7000-8000-000000000002', org,
+  'Google Ads and Google Business Profile live and verified', 'PAID_ACQUISITION', 'WAITING_FOR_CLIENT',
+  'Until both are live we are reporting on a channel that is not running. Google Ads is what produces enquiries this quarter while search visibility is still being built, and a verified Business Profile is what puts the practice on the map for local searches and lets patients leave reviews that future patients read.',
+  'Vision Digital Lab',
+  (date_trunc('month', date '2026-10-01') + interval '24 days')::date,
+  true,
+  'The advertising account, API access and conversion tracking are built and connected to this dashboard. Two things are now on the practice: a billing method on the Google Ads account, and completing Google''s verification for the Business Profile. Spend and campaign performance appear on the Growth screen automatically once the account is active.',
+  NULL),
+
+ ('0199a1d0-4000-7000-8000-000000000003', org,
+  'Monthly articles and social content for Instagram and Facebook', 'CONTENT', 'IN_PROGRESS',
+  'The treatments THRIVE sells are ones people research before they book, and there is currently nothing to find. Articles answer the questions that come up in a first consultation, which both earns search traffic and shortens the consultation. Social keeps the practice visible to people who are not ready to book yet.',
+  'Vision Digital Lab',
+  (date_trunc('month', date '2026-10-01') + interval '1 month 14 days')::date,
+  false,
+  'Topics planned from the questions that come up most in enquiries. Each article and post appears on the Content screen for your approval before anything is published - nothing goes out in the practice''s name without it.',
+  NULL);
+
+END $$;
+
+-- ---------------------------------------------------------------- the month's recommendation
+-- One, for the month in progress, still open. expected_effect is written as a hypothesis, never as
+-- a promise.
 INSERT INTO recommendation (id, organization_id, period_month, observation, proposed_action,
                             rationale, expected_effect, decision_required, status, decided_at)
 VALUES
  ('0199a1d0-6000-7000-8000-000000000001',
-  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
-  'Google Ads produced the most leads but the highest cost per booked appointment. Google Maps produced fewer leads at roughly a third of the cost.',
-  'Move $600 of the monthly budget from Google Ads to local search and Google Business Profile work.',
-  'Map-sourced leads booked at a higher rate in July, and local search spend compounds rather than stopping when the budget stops.',
-  'If the July pattern holds, we would expect cost per booked appointment to fall. This is a hypothesis to test over one month, not a guarantee.',
-  'Approve the budget shift for August.',
-  'ACCEPTED', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date + interval '27 days 14 hours 10 minutes'),
-
- ('0199a1d0-6000-7000-8000-000000000002',
-  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
-  'Roughly one call in five went unanswered, and a fifth of all calls arrived outside clinic hours.',
-  'Pilot the AI Front Desk on after-hours calls only, for four weeks.',
-  'After-hours calls are currently lost entirely. Handling them does not change how the clinic runs during the day.',
-  'Recovering even half of the after-hours calls would be a meaningful increase in booked appointments. The pilot exists to find out whether that holds.',
-  'Confirm the clinic is willing to run a four-week after-hours pilot.',
-  'ACCEPTED', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '25 days 9 hours 30 minutes'),
-
- ('0199a1d0-6000-7000-8000-000000000003',
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date,
-  'Meta click-through has fallen for three consecutive weeks on unchanged creative, while spend has held steady.',
-  'Pause Meta spend for two weeks and reallocate it to the Longevity Program landing page rebuild and new creative.',
-  'Creative fatigue is the most likely explanation. Spending into it buys progressively less, and the landing page is where the paid traffic lands anyway.',
-  'We expect a lower cost per lead once new creative is live. The size of the change is unknown until we test it.',
-  'Approve pausing Meta spend for two weeks.',
+  'Roughly one call in five is going unanswered, and about a fifth of all calls arrive outside clinic hours. Those calls are currently lost rather than delayed - nobody calls back, because nobody knows they rang.',
+  'Put the AI Front Desk on after-hours calls only, for four weeks, and measure how many of them turn into booked appointments.',
+  'After-hours calls are lost entirely today, so there is nothing to protect. Handling them changes nothing about how the clinic runs during the day, and four weeks is long enough to see a pattern without committing to anything.',
+  'If even half of the after-hours calls can be captured it would be a meaningful increase in booked appointments. The pilot exists to find out whether that holds, not to prove it.',
+  'Confirm the practice is willing to run a four-week after-hours pilot.',
   'OPEN', NULL)
 ON CONFLICT DO NOTHING;
 
--- ---------------------------------------------------------------- monthly reports
--- next_actions and decisions_required hold one item per line; the API splits on newlines. A
--- textarea is what Vision actually writes these in, and a JSON array in a text column would be a
--- schema pretending to be something it is not.
---
--- payload_json is deliberately left at its '{}' default here rather than hand-written: the figures
--- belong to the generator, and a payload typed out in a seed file is the one number in VisionOne
--- that nothing checks. A report with no frozen payload reads as not-yet-generated and the API
--- composes its figures live, which in a synthetic dataset gives the same answer generation would.
+-- ---------------------------------------------------------------- the month's report
+-- The month in progress is a DRAFT: narrative half written, figures not frozen. The client cannot
+-- see this one, which is the point of having the status. A report with no frozen payload reads as
+-- not-yet-generated and the API composes its figures live.
 INSERT INTO monthly_report (id, organization_id, period_month, status, key_learning, next_actions,
                             decisions_required, generated_at)
 VALUES
  ('0199a1d0-7000-7000-8000-000000000001',
-  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, 'SHARED',
-  'Paid search brings volume; local search brings efficiency. The mix matters more than the total.',
-  E'Shift budget toward local search.\nBegin the hormone content cluster.\nAdd call tracking to the paid search landing pages.',
-  E'Approve the budget shift for the following month.', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '8 hours'),
- ('0199a1d0-7000-7000-8000-000000000002',
-  '0199a1d0-0000-7000-8000-000000000001', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date, 'SHARED',
-  'Missed and after-hours calls are the largest single source of lost opportunity we can currently see.',
-  E'Run the after-hours AI Front Desk pilot.\nPublish the remaining hormone articles.\nReview the three highest-cost paid search terms.',
-  E'Confirm the after-hours pilot.\nDecide whether Saturday morning hours are worth trialling.',
-  date_trunc('month', CURRENT_DATE)::date + interval '8 hours'),
- -- September is still open: a DRAFT report, narrative half written, figures not yet frozen. The
- -- client cannot see this one, which is the point of having the status.
- ('0199a1d0-7000-7000-8000-000000000003',
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date, 'DRAFT',
-  'Early signal: the after-hours pilot is converting, but the sample is still too small to act on.',
-  E'Hold the pilot for a second month before drawing a conclusion.',
-  NULL, NULL)
+  'Too early to draw a conclusion from one partial month. The pattern worth watching is that unanswered and after-hours calls look like the largest single source of lost opportunity we can currently see.',
+  E'Get Google Ads and the Business Profile live and verified.\nContinue the search visibility fixes in priority order.\nFirst articles and social posts to the practice for approval.',
+  E'Billing method on the Google Ads account.\nConfirm the after-hours front desk pilot.', NULL)
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- campaigns
--- Paid channels carry campaigns; organic and referral do not. Leads are attributed
--- deterministically by position within their channel, so campaign counts are real rather
--- than asserted. Campaign-level SPEND is deliberately absent: Phase 1 budgets by channel,
--- and the Google Ads adapter fills per-campaign spend in Phase 2.
+-- Paid channels carry campaigns; organic and referral do not. Leads are attributed to a campaign
+-- only on the channels that have them.
 DO $$
 DECLARE
     org uuid := '0199a1d0-0000-7000-8000-000000000001';
+    start_on date := date '2026-10-01';
 BEGIN
 
 IF EXISTS (SELECT 1 FROM campaign WHERE organization_id = org) THEN
@@ -413,14 +374,13 @@ END IF;
 
 INSERT INTO campaign (id, organization_id, channel_source_id, name, status, started_on, ended_on) VALUES
  ('0199a1d0-0008-7000-8000-000000000001', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Hormone Therapy - 25mi radius', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, NULL),
+  'Hormone Therapy - 25mi radius', 'ACTIVE', start_on, NULL),
  ('0199a1d0-0008-7000-8000-000000000002', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Longevity Program - Brand', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date, NULL),
+  'Longevity Program - Brand', 'ACTIVE', start_on, NULL),
  ('0199a1d0-0008-7000-8000-000000000003', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Longevity Panel - Retargeting', 'PAUSED', (date_trunc('month', CURRENT_DATE) - interval '2 months')::date + interval '14 days',
-  ((date_trunc('month', CURRENT_DATE) - interval '1 month')::date + interval '9 days')::date),
+  'Longevity Panel - Retargeting', 'ACTIVE', start_on, NULL),
  ('0199a1d0-0008-7000-8000-000000000004', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Diagnostics - Cold Audience', 'ACTIVE', (date_trunc('month', CURRENT_DATE) - interval '1 month')::date, NULL);
+  'Diagnostics - Cold Audience', 'ACTIVE', start_on, NULL);
 
 WITH ranked AS (
     SELECT l.id,
@@ -460,7 +420,7 @@ IF NOT EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
 END IF;
 
 -- Who answered. A missed call went to voicemail; the AI desk takes the after-hours traffic,
--- which is the pilot the August recommendation proposed.
+-- which is the pilot this month's recommendation proposes.
 UPDATE call SET handled_by = CASE
         WHEN NOT answered THEN 'VOICEMAIL'
         WHEN after_hours  THEN 'AI_FRONT_DESK'
