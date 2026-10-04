@@ -150,6 +150,9 @@ body#keycloak-bg::before {
   padding: var(--vo-pad-page) var(--vo-gutter);
   max-width: none;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   margin: 0;
   gap: 0;
 }
@@ -182,12 +185,26 @@ body#keycloak-bg::before {
 }
 
 /* Takes the height left over and centres the form inside it, which is what puts the form on the
-   optical centre line of the screen rather than at the top of it. */
+   optical centre line of the screen rather than at the top of it.
+   
+   min-height: 0 and overflow-y: auto are what make the footer structurally safe. Without them the
+   panel was "hide the overflow and hope it fits", and when it did not fit - a browser at 529px of
+   viewport, or the taller re-authenticate variant of this page - the overflow hidden on the panel
+   simply cut the footer off. Now the brand and the footer are fixed rows that cannot be pushed
+   anywhere, and if the viewport is genuinely too short it is the form area in the middle that
+   scrolls, not the page. On any normal screen nothing scrolls at all.
+   
+   `safe center` rather than `center`: a centred flex child whose content overflows gets clipped at
+   the START edge, where no scrollbar can reach it. `safe` falls back to flex-start in exactly that
+   case, which is the difference between a cramped form and an unreachable one. */
 .pf-v5-c-login__container > .pf-v5-c-login__main {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  justify-content: safe center;
   padding: var(--vo-pad-main) 0;
 }
 
