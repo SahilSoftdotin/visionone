@@ -111,8 +111,11 @@ function FrontDeskView({
   const outcomeCounts = Object.fromEntries(
     d.outcomeCounts.map((o) => [o.outcome, o.count]),
   ) as Partial<Record<Outcome, number>>;
-  // A month with no calls is not a zero answer rate, it is no answer rate.
+  // A month with no calls is not a zero answer rate, it is no answer rate. The same is true of
+  // the after-hours share, which did divide by zero and rendered the string "NaN% of all calls"
+  // under the tile the moment the telephony provider was disconnected.
   const answerRate = d.totalCalls === 0 ? null : (d.answered / d.totalCalls) * 100;
+  const afterHoursRate = d.totalCalls === 0 ? null : (d.afterHours / d.totalCalls) * 100;
 
   return (
     <div className="space-y-6">
@@ -162,7 +165,10 @@ function FrontDeskView({
             label: 'After hours',
             value: formatCount(d.afterHours),
             icon: Moon,
-            hint: `${((d.afterHours / d.totalCalls) * 100).toFixed(0)}% of all calls`,
+            hint:
+              afterHoursRate === null
+                ? 'no calls yet'
+                : `${afterHoursRate.toFixed(0)}% of all calls`,
           },
         ].map((t, i) => (
           <div key={t.label} className="reveal" style={{ '--i': i + 1 } as CSSProperties}>

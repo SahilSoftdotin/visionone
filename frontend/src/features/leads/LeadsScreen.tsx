@@ -161,7 +161,15 @@ function LeadsView({
         cell: (c) => {
           const m = c.getValue<number | null>();
           if (m === null) {
-            return <span className="text-critical-text">never</span>;
+            // "never" is a judgement, and it is only earned once a lead has moved on without
+            // anyone replying. A lead still sitting in NEW has not been ignored - it has just
+            // arrived, possibly an hour ago. Four red "never"s against four enquiries from this
+            // week reads as a failing practice rather than a new one.
+            return c.row.original.status === 'NEW' ? (
+              <span className="text-muted-foreground">awaiting</span>
+            ) : (
+              <span className="text-critical-text">never</span>
+            );
           }
           return (
             <span
