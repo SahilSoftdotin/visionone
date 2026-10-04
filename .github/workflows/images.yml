@@ -82,16 +82,9 @@ jobs:
           # the Dockerfile fails the build rather than shipping a bundle pointing at localhost.
           - name: web
             context: frontend
-            # VITE_IDLE_* is the inactivity policy for client users. Passed explicitly rather
-            # than left to the Dockerfile default so the figure is visible and editable in one
-            # place. It is inlined into the bundle, so a change needs a rebuild and a deploy.
-            # Comments live out here: build-args is parsed as KEY=VALUE lines and a "#" inside it
-            # would be read as an argument name, not as a comment.
             build-args: |
               VITE_OIDC_AUTHORITY=https://app.visiondigitallab.com/realms/visionone
               VITE_OIDC_REDIRECT_URI=https://app.visiondigitallab.com/
-              VITE_IDLE_TIMEOUT_MINUTES=15
-              VITE_IDLE_WARNING_SECONDS=60
 
     steps:
       - uses: actions/checkout@v7

@@ -116,6 +116,10 @@ services:
       # which is what keeps Healthie from retiring the subscription. Only the drain waits, and a
       # marketing dashboard does not need a booking to appear within five seconds of being made.
       # Override either if something turns out to want lower latency; both are plain properties.
+      # Inactivity sign-out for client users. A restart is enough to change these - they are
+      # served to the browser on /me rather than built into the web image.
+      VISIONONE_SESSION_IDLE_MINUTES: ${VISIONONE_SESSION_IDLE_MINUTES:-15}
+      VISIONONE_SESSION_WARNING_SECONDS: ${VISIONONE_SESSION_WARNING_SECONDS:-60}
       VISIONONE_EVENTING_INBOX_INTERVAL_MS: ${VISIONONE_EVENTING_INBOX_INTERVAL_MS:-3600000}
       VISIONONE_EVENTING_DISPATCHER_INTERVAL_MS: ${VISIONONE_EVENTING_DISPATCHER_INTERVAL_MS:-3600000}
     depends_on:

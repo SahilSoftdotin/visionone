@@ -13,16 +13,10 @@ ARG VITE_API_BASE_URL=/api/v1
 ARG VITE_OIDC_CLIENT_ID=visionone-web
 ARG VITE_OIDC_AUTHORITY
 ARG VITE_OIDC_REDIRECT_URI
-# Policy rather than wiring, so these carry working defaults and get no required-arg guard
-# below: a build that forgets them still produces a correct 15-minute timeout.
-ARG VITE_IDLE_TIMEOUT_MINUTES=15
-ARG VITE_IDLE_WARNING_SECONDS=60
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID \
     VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY \
-    VITE_OIDC_REDIRECT_URI=$VITE_OIDC_REDIRECT_URI \
-    VITE_IDLE_TIMEOUT_MINUTES=$VITE_IDLE_TIMEOUT_MINUTES \
-    VITE_IDLE_WARNING_SECONDS=$VITE_IDLE_WARNING_SECONDS
+    VITE_OIDC_REDIRECT_URI=$VITE_OIDC_REDIRECT_URI
 
 # Fail the build rather than ship a bundle that silently points at localhost.
 RUN test -n "$VITE_OIDC_AUTHORITY" || (echo "VITE_OIDC_AUTHORITY build arg is required" && exit 1)

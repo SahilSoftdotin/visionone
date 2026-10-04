@@ -228,12 +228,28 @@ A client user is signed out after **15 minutes** without deliberate input, with 
 warning they can dismiss. Vision Admin is not: Vision's own staff work from their own machines in
 long sessions, while the client is the one plausibly on a shared front-desk computer.
 
-The numbers come from two build arguments, `VITE_IDLE_TIMEOUT_MINUTES` and
-`VITE_IDLE_WARNING_SECONDS`, passed in `.github/workflows/images.yml` and defaulted in
-`frontend/Dockerfile`. Vite inlines them, so they are build-time rather than runtime
-configuration: changing one means rebuilding the web image and deploying, exactly like the OIDC
-authority beside it. An unset or unparseable value falls back to the default rather than to zero -
-zero would mean a deadline of *now*, signing a client out the instant they arrive. Fifteen minutes is
+The numbers come from the API, on `/me`, from `VISIONONE_SESSION_IDLE_MINUTES` and
+`VISIONONE_SESSION_WARNING_SECONDS` in `.env.prod`. Changing one is a restart:
+
+```bash
+cd /opt/visionone
+# edit infra/.env.prod
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml up -d api
+```
+
+No rebuild, no image, no deploy. These were Vite build arguments first, which put them inside the
+web bundle and meant changing fifteen minutes to ten needed the whole pipeline; serving them
+instead is the only reason this is a restart rather than a release.
+
+A value of zero or less is corrected to the default at startup and logged, on the server and again
+in the browser. Zero is the one that matters: it means a deadline of *now*, so every client is
+signed out the instant they arrive, repeatedly, with no obvious cause. The warning is capped at
+half the window, or it would be on screen before anyone had done anything.
+
+Worth being clear about what this is: advice to the browser, not an access control. It is a
+convenience and an honesty measure for an unattended screen. The session itself is bounded by
+Keycloak's `ssoSessionMaxLifespan`, and the API authenticates every request independently
+regardless of what the browser does with this number. Fifteen minutes is
 what a healthcare security questionnaire expects. VisionOne holds no clinical record - an
 appointment carries a first name and a last initial and nothing else - but it is handled under a
 BAA, so HIPAA's automatic-logoff specification is the bar it gets measured against. That

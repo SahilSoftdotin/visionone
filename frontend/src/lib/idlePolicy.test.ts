@@ -1,48 +1,52 @@
 import { describe, expect, it } from 'vitest';
-import { positiveNumberOr, resolveIdlePolicy } from './idlePolicy';
+import { resolveIdlePolicy } from './idlePolicy';
 
 /**
- * The parsing matters more than it looks. These values arrive as strings from a Docker build arg,
- * which is the easiest place in the stack to fat-finger, and the consequence of accepting a bad
- * one is a client being signed out the instant they arrive.
+ * The policy arrives from the API now rather than from the bundle, so these cover the two things
+ * that can go wrong with a served value: it has not arrived yet, or it cannot work.
  */
-describe('positiveNumberOr', () => {
-  it('takes a usable number', () => {
-    expect(positiveNumberOr('20', 15)).toBe(20);
-    expect(positiveNumberOr(' 7 ', 15)).toBe(7);
-  });
-
-  it('falls back when the build arg was never set or came through empty', () => {
-    expect(positiveNumberOr(undefined, 15)).toBe(15);
-    expect(positiveNumberOr('', 15)).toBe(15);
-    expect(positiveNumberOr('   ', 15)).toBe(15);
-  });
-
-  it('refuses values that would disable or invert the timeout', () => {
-    // 0 is the dangerous one: a deadline of "now", so every client is signed out on arrival.
-    expect(positiveNumberOr('0', 15)).toBe(15);
-    expect(positiveNumberOr('-5', 15)).toBe(15);
-    expect(positiveNumberOr('fifteen', 15)).toBe(15);
-    expect(positiveNumberOr('15 minutes', 15)).toBe(15);
-    expect(positiveNumberOr('Infinity', 15)).toBe(15);
-  });
-});
-
 describe('resolveIdlePolicy', () => {
-  it('converts minutes and seconds into milliseconds', () => {
-    expect(resolveIdlePolicy('20', '90')).toEqual({ idleMs: 20 * 60_000, warnMs: 90_000 });
-  });
-
-  it('defaults to fifteen minutes with a minute of warning', () => {
-    expect(resolveIdlePolicy(undefined, undefined)).toEqual({
-      idleMs: 15 * 60_000,
-      warnMs: 60_000,
+  it('uses what the API sent', () => {
+    expect(resolveIdlePolicy({ idleTimeoutMinutes: 20, warningSeconds: 90 })).toEqual({
+      idleMs: 20 * 60_000,
+      warnMs: 90_000,
     });
   });
 
+  it('falls back while /me is still in flight', () => {
+    // undefined is the normal first render, not an error. Getting this wrong would either crash
+    // the shell or start a timer with a NaN deadline.
+    expect(resolveIdlePolicy(undefined)).toEqual({ idleMs: 15 * 60_000, warnMs: 60_000 });
+  });
+
+  it('falls back for an API that predates the policy', () => {
+    expect(
+      resolveIdlePolicy({} as unknown as { idleTimeoutMinutes: number; warningSeconds: number }),
+    ).toEqual({ idleMs: 15 * 60_000, warnMs: 60_000 });
+  });
+
+  it('refuses values that would sign a client out on arrival', () => {
+    // The server already rejects these. This is the second of two guards, because the browser
+    // should not depend on the server having been careful. Zero is the dangerous one: a deadline
+    // of now, every time the page loads.
+    expect(resolveIdlePolicy({ idleTimeoutMinutes: 0, warningSeconds: 60 }).idleMs).toBe(
+      15 * 60_000,
+    );
+    expect(resolveIdlePolicy({ idleTimeoutMinutes: -5, warningSeconds: 60 }).idleMs).toBe(
+      15 * 60_000,
+    );
+    expect(
+      resolveIdlePolicy({
+        idleTimeoutMinutes: Number.NaN,
+        warningSeconds: 60,
+      }).idleMs,
+    ).toBe(15 * 60_000);
+  });
+
   it('never lets the warning cover more than half the window', () => {
-    // Otherwise the warning is on screen from the moment the page loads, telling someone they are
-    // about to be signed out before they have done anything.
-    expect(resolveIdlePolicy('2', '600')).toEqual({ idleMs: 120_000, warnMs: 60_000 });
+    expect(resolveIdlePolicy({ idleTimeoutMinutes: 2, warningSeconds: 600 })).toEqual({
+      idleMs: 120_000,
+      warnMs: 60_000,
+    });
   });
 });

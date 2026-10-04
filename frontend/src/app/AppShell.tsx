@@ -7,7 +7,7 @@ import { CLIENT_NAVIGATION } from './navigation';
 import { apiGet, queryKeys } from '@/lib/api';
 import { signOut } from '@/lib/auth';
 import { useIdleTimeout } from '@/lib/useIdleTimeout';
-import { IDLE_MS, IDLE_WARN_MS } from '@/lib/idlePolicy';
+import { resolveIdlePolicy } from '@/lib/idlePolicy';
 import { IdleWarningDialog } from '@/components/ui/IdleWarningDialog';
 import type { SessionResponse } from '@/lib/types';
 import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
@@ -51,6 +51,11 @@ export function AppShell() {
   // automaticSilentRenew keeps refreshing the token and resetting the server's idle clock.
   const isClient = organization?.role === 'CLIENT_OWNER';
 
+  // Served by the API rather than compiled in, so the figure can be changed with a restart. It is
+  // undefined on the first render while /me is in flight, which resolveIdlePolicy treats as
+  // "use the default" rather than as an error.
+  const { idleMs, warnMs } = resolveIdlePolicy(session?.sessionPolicy);
+
   const endSession = useCallback(
     (reason?: 'idle') => {
       void signOut(auth, queryClient, reason ? { reason } : undefined);
@@ -60,8 +65,8 @@ export function AppShell() {
 
   const { reset: resetIdleTimer } = useIdleTimeout({
     enabled: isClient,
-    idleMs: IDLE_MS,
-    warnMs: IDLE_WARN_MS,
+    idleMs,
+    warnMs,
     onWarn: setIdleDeadline,
     onExpire: () => endSession('idle'),
     onReprieve: () => setIdleDeadline(null),
