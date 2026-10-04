@@ -345,13 +345,20 @@ export function OverviewScreen() {
                         tickLine={false}
                       />
                       <Bar dataKey="v" name="Leads" radius={[7, 7, 7, 7]} maxBarSize={34}>
-                        {[0, 1, 2, 3].map((i) => (
-                          // Modernize highlights one bar and greys the rest; booked is the column
-                          // this screen exists to report.
-                          <Cell
-                            key={i}
-                            fill={i === 3 ? 'hsl(var(--chart-1))' : 'hsl(var(--muted))'}
-                          />
+                        {/* A colour per stage. Modernize greys every bar but the last, which on a
+                            four-stage funnel left three identical grey columns - the chart read as
+                            one number with padding either side rather than as a sequence. The ramp
+                            runs cool to warm so it still reads as a progression rather than four
+                            unrelated categories, and Booked keeps the brand colour because it is
+                            the column this panel exists to report. All four tokens already carry
+                            their own dark-mode values. */}
+                        {[
+                          'hsl(var(--chart-4))', // Leads - everything that came in
+                          'hsl(var(--chart-2))', // Qualified
+                          'hsl(var(--chart-3))', // Requested - waiting on a booking
+                          'hsl(var(--chart-1))', // Booked - the outcome
+                        ].map((fill, i) => (
+                          <Cell key={i} fill={fill} />
                         ))}
                       </Bar>
                     </BarChart>
