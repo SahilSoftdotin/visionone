@@ -708,7 +708,17 @@ a[href*='reset-credentials']:hover {
 .pf-v5-c-form__actions {
   margin-top: 0.5rem;
   margin-inline: 0;
+  margin-bottom: 0;
   gap: 0.5rem;
+}
+
+/* The button carries its own 8px margin, which is the other half of the same PatternFly pattern:
+   the wrapper's negative margin existed to cancel it. Zeroing only the wrapper left the button
+   384px wide under 400px fields - inset by exactly that 8px on each side, which is visible the
+   moment you look at the two edges together. Both halves have to go. */
+.pf-v5-c-form__actions > .pf-v5-c-button,
+.pf-v5-c-form__actions #kc-login {
+  margin: 0;
 }
 
 .pf-v5-c-button.pf-m-primary,
