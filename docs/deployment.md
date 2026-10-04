@@ -228,7 +228,12 @@ A client user is signed out after **15 minutes** without deliberate input, with 
 warning they can dismiss. Vision Admin is not: Vision's own staff work from their own machines in
 long sessions, while the client is the one plausibly on a shared front-desk computer.
 
-The numbers are in `frontend/src/app/AppShell.tsx` (`IDLE_MS`, `IDLE_WARN_MS`). Fifteen minutes is
+The numbers come from two build arguments, `VITE_IDLE_TIMEOUT_MINUTES` and
+`VITE_IDLE_WARNING_SECONDS`, passed in `.github/workflows/images.yml` and defaulted in
+`frontend/Dockerfile`. Vite inlines them, so they are build-time rather than runtime
+configuration: changing one means rebuilding the web image and deploying, exactly like the OIDC
+authority beside it. An unset or unparseable value falls back to the default rather than to zero -
+zero would mean a deadline of *now*, signing a client out the instant they arrive. Fifteen minutes is
 what a healthcare security questionnaire expects. VisionOne holds no clinical record - an
 appointment carries a first name and a last initial and nothing else - but it is handled under a
 BAA, so HIPAA's automatic-logoff specification is the bar it gets measured against. That

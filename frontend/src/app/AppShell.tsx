@@ -7,6 +7,7 @@ import { CLIENT_NAVIGATION } from './navigation';
 import { apiGet, queryKeys } from '@/lib/api';
 import { signOut } from '@/lib/auth';
 import { useIdleTimeout } from '@/lib/useIdleTimeout';
+import { IDLE_MS, IDLE_WARN_MS } from '@/lib/idlePolicy';
 import { IdleWarningDialog } from '@/components/ui/IdleWarningDialog';
 import type { SessionResponse } from '@/lib/types';
 import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
@@ -22,17 +23,6 @@ import { cn } from '@/lib/utils';
  * Icon-only navigation forces people to learn six glyphs before they can use the product, and the
  * label costs ten pixels.
  */
-/**
- * Inactivity policy for client users.
- *
- * Fifteen minutes is the figure a healthcare questionnaire expects. VisionOne holds no clinical
- * record - an appointment carries a first name and a last initial and nothing else - but it is
- * handled under a BAA, so HIPAA's automatic-logoff specification is the bar it gets measured
- * against. Clinical systems sit at ten to fifteen; general dashboards at thirty to sixty.
- */
-const IDLE_MS = 15 * 60_000;
-const IDLE_WARN_MS = 60_000;
-
 export function AppShell() {
   const { orgId = '' } = useParams();
   const auth = useAuth();
