@@ -43,14 +43,9 @@ DECLARE
     -- something if it runs on or before the start date, which is what happens in a test.
     days int := greatest((CURRENT_DATE - start_on) + 1, 1);
 
-    -- Volume per day, not per month. A cash-pay longevity clinic on a modest ad budget: a few
-    -- enquiries and a handful of calls a day. Deriving the totals from elapsed days is what keeps
-    -- the dataset honest on day three of an engagement - there is no way to show a full month of
-    -- activity three days in without dating most of it in the future.
-    leads_per_day int := 4;
-    calls_per_day int := 8;
-    lead_count int := days * leads_per_day;
-    call_count int := days * calls_per_day;
+    -- Four leads, and that is the whole dataset. See the leads section for why there is no
+    -- generator here any more.
+    lead_count int := 4;
 
     -- The plan runs to the end of the engagement's first calendar year. Plans are forward-looking,
     -- so unlike leads and calls these legitimately sit in the future.
@@ -116,68 +111,35 @@ CROSS JOIN (VALUES
      ) AS c(n, channel_id, planned);
 
 -- ---------------------------------------------------------------- leads
--- leads_per_day for every day of the engagement so far, distributed across channels by a fixed
--- weighting.
+-- Four, all from Organic Search, all NEW.
+--
+-- The generator that used to live here produced 180 leads across six channels and eight statuses.
+-- Almost all of it was a claim about work nobody has done: a lead marked CONTACTED says someone
+-- rang them, BOOKED says an appointment exists, and an owner says a person is accountable for it.
+-- On an engagement this young none of that is true, and a client can check.
+--
+-- Organic Search is the one channel that produces anything before the ad accounts go live, and
+-- NEW is the only status that is honest on day one. Vision Admin moves them on from there in the
+-- product, as the work actually happens - which is what the Leads screen's admin controls are for.
 INSERT INTO lead (id, organization_id, channel_source_id, display_name, contact_hash,
                   service_interest, status, created_at, first_response_at, booked_at,
                   owner_membership_id)
 SELECT
     ('0199a1d0-1000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
     org,
-    CASE
-        WHEN i % 20 <= 6  THEN '0199a1d0-0001-7000-8000-000000000001'::uuid
-        WHEN i % 20 <= 11 THEN '0199a1d0-0001-7000-8000-000000000002'::uuid
-        WHEN i % 20 <= 14 THEN '0199a1d0-0001-7000-8000-000000000003'::uuid
-        WHEN i % 20 <= 16 THEN '0199a1d0-0001-7000-8000-000000000004'::uuid
-        WHEN i % 20 <= 18 THEN '0199a1d0-0001-7000-8000-000000000005'::uuid
-        ELSE                   '0199a1d0-0001-7000-8000-000000000006'::uuid
-    END,
-    (ARRAY['Avery Sloan','Jordan Reyes','Casey Lin','Morgan Patel','Riley Novak','Quinn Baptiste',
-           'Harper Oyelaran','Rowan Castellano','Emerson Kidd','Sawyer Ibarra','Peyton Marchetti',
-           'Finley Oduya'])[(i % 12) + 1] || ' ' || (i + 1)::text,
+    '0199a1d0-0001-7000-8000-000000000002'::uuid,   -- Organic Search
+    (ARRAY['Avery Sloan','Jordan Reyes','Casey Lin','Morgan Patel'])[i + 1],
     encode(sha256(('synthetic-contact-' || i)::bytea), 'hex'),
-    (ARRAY['LONGEVITY_PROGRAM','HORMONE_OPTIMIZATION','DIAGNOSTICS','WEIGHT_MANAGEMENT',
-           'IV_THERAPY','GENERAL_ENQUIRY'])[((i * 5) % 6) + 1],
-    s.status,
-    ts.created_at,
-    -- least(..., now()) on both: these record things that have already happened, and on an
-    -- engagement a few days old the offsets below would otherwise answer an enquiry tomorrow.
-    CASE WHEN s.rank >= 1 THEN least(ts.created_at + CASE
-             -- Answered live at the desk.
-             WHEN (i * 31) % 100 < 36 THEN make_interval(mins => 2 + (i * 7) % 13)
-             -- Picked up later from voicemail or a form.
-             ELSE make_interval(mins => 22 + (i * 17) % 200) END, now()) END,
-    CASE WHEN s.rank >= 4 THEN least(ts.created_at + make_interval(hours => 26 + (i * 11) % 90), now()) END,
-    -- Untouched leads stay unassigned; anything worked on has an owner.
-    CASE WHEN s.rank >= 1 THEN '0199a1d0-0002-7000-8000-000000000001'::uuid END
-FROM generate_series(0, lead_count - 1) AS i
-CROSS JOIN LATERAL (
-    -- i / leads_per_day is the day index, so the rows fill forward from the engagement start one
-    -- day at a time. Clamped, because the hour offset can still land a row later this afternoon.
-    SELECT least(start_on
-           + make_interval(days => i / leads_per_day,
-                           hours => 8 + (i % 11), mins => (i * 7) % 60), now()) AS created_at
-) AS ts
-CROSS JOIN LATERAL (
-    SELECT v.status, v.rank FROM (
-        SELECT CASE
-            WHEN (i * 37) % 100 <  5 THEN 'DUPLICATE'
-            WHEN (i * 37) % 100 < 22 THEN 'NEW'
-            WHEN (i * 37) % 100 < 38 THEN 'CONTACTED'
-            WHEN (i * 37) % 100 < 55 THEN 'QUALIFIED'
-            WHEN (i * 37) % 100 < 65 THEN 'APPOINTMENT_REQUESTED'
-            WHEN (i * 37) % 100 < 82 THEN 'BOOKED'
-            WHEN (i * 37) % 100 < 90 THEN 'ATTENDED'
-            ELSE 'NOT_CONVERTED'
-        END AS status
-    ) raw
-    CROSS JOIN LATERAL (
-        SELECT raw.status AS status, CASE raw.status
-            WHEN 'DUPLICATE' THEN 0 WHEN 'NEW' THEN 0 WHEN 'CONTACTED' THEN 1
-            WHEN 'NOT_CONVERTED' THEN 1 WHEN 'QUALIFIED' THEN 2
-            WHEN 'APPOINTMENT_REQUESTED' THEN 3 WHEN 'BOOKED' THEN 4 ELSE 5 END AS rank
-    ) v
-) AS s;
+    (ARRAY['LONGEVITY_PROGRAM','HORMONE_OPTIMIZATION','DIAGNOSTICS','WEIGHT_MANAGEMENT'])[i + 1],
+    'NEW',
+    -- Within the last few days, but never before the engagement began. greatest() is what stops
+    -- the four of them sitting in early October forever once the record is a month old.
+    least(greatest(start_on, CURRENT_DATE - 3)::timestamptz
+          + make_interval(days => i, hours => 9 + (i * 3) % 8, mins => (i * 17) % 60), now()),
+    NULL,   -- no first response: nobody has replied yet
+    NULL,   -- no booking: the Calendar fills from Healthie, not from here
+    NULL    -- no owner: nothing has been picked up
+FROM generate_series(0, lead_count - 1) AS i;
 
 -- Status history: every stage the lead passed through, so the funnel counts "ever reached".
 INSERT INTO lead_status_history (id, organization_id, lead_id, from_status, to_status, changed_at, changed_by)
@@ -210,76 +172,15 @@ RAISE NOTICE 'VisionOne demo seed: % leads inserted from %.', lead_count, start_
 END $$;
 
 -- ---------------------------------------------------------------- appointments and calls
-DO $$
-DECLARE
-    org uuid := '0199a1d0-0000-7000-8000-000000000001';
-    start_on date := date '2026-10-01';
-    days int := greatest((CURRENT_DATE - start_on) + 1, 1);
-    calls_per_day int := 8;
-    call_count int := days * calls_per_day;
-BEGIN
-
-IF EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
-    RETURN;
-END IF;
-
--- One appointment per booked or attended lead. Never an appointment reason, only a reference.
-INSERT INTO appointment_reference (id, organization_id, external_ref, lead_id, requested_at,
-                                   scheduled_for, status, provider_code)
-SELECT
-    ('0199a1d0-2000-7000-8000-' || lpad((row_number() OVER (ORDER BY l.id))::text, 12, '0'))::uuid,
-    org,
-    'DEMO-APPT-' || lpad((row_number() OVER (ORDER BY l.id))::text, 5, '0'),
-    l.id,
-    coalesce(l.booked_at, l.created_at),
-    -- Deliberately not clamped. An appointment five days after a booking made this week falls in
-    -- the future, which is exactly right: those are the upcoming bookings the Calendar is for.
-    coalesce(l.booked_at, l.created_at) + interval '5 days',
-    CASE WHEN l.status = 'ATTENDED' THEN 'ATTENDED' ELSE 'BOOKED' END,
-    'DEMO'
-FROM lead l
-WHERE l.organization_id = org AND l.status IN ('BOOKED', 'ATTENDED');
-
--- calls_per_day across the engagement so far. ~18% missed, ~22% after hours.
-INSERT INTO call (id, organization_id, external_ref, direction, started_at, duration_seconds,
-                  outcome, answered, after_hours, transferred, provider_code, caller_label)
-SELECT
-    ('0199a1d0-3000-7000-8000-' || lpad(i::text, 12, '0'))::uuid,
-    org,
-    'DEMO-CALL-' || lpad(i::text, 5, '0'),
-    CASE WHEN i % 9 = 0 THEN 'OUTBOUND' ELSE 'INBOUND' END,
-    started,
-    CASE WHEN answered THEN 180 + (i * 23) % 540 ELSE 0 END,
-    CASE
-        WHEN NOT answered AND i % 3 = 0 THEN 'VOICEMAIL'
-        WHEN NOT answered              THEN 'MISSED'
-        WHEN i % 17 = 0                THEN 'TRANSFERRED'
-        WHEN i % 11 = 0                THEN 'RESCHEDULED'
-        WHEN i % 23 = 0                THEN 'CANCELLED'
-        WHEN i % 4  = 0                THEN 'BOOKED'
-        WHEN i % 5  = 0                THEN 'MESSAGE_TAKEN'
-        ELSE 'ENQUIRY_ANSWERED'
-    END,
-    answered,
-    after_hours,
-    i % 17 = 0,
-    'DEMO',
-    'Caller ' || lpad(((i * 37) % 900 + 100)::text, 3, '0')
-FROM generate_series(0, call_count - 1) AS i
-CROSS JOIN LATERAL (
-    SELECT least(start_on
-           + make_interval(days => i / calls_per_day, hours => hr, mins => (i * 13) % 60),
-           now()) AS started,
-           ((i * 61) % 100) >= 18 AS answered,
-           (hr < 9 OR hr >= 18) AS after_hours
-    FROM (SELECT CASE
-                   WHEN ((i * 29) % 100) < 78 THEN 9 + ((i * 7) % 9)
-                   WHEN i % 2 = 0             THEN (i * 5) % 9
-                   ELSE 18 + ((i * 3) % 6)
-                 END AS hr) h
-) AS c;
-
-END $$;
+--
+-- There are none, and that is deliberate.
+--
+-- The Calendar is filled from Healthie and from nowhere else. Seeding appointments here would put
+-- bookings in front of a practice that can open its own scheduler and see that they do not exist.
+--
+-- The Front Desk reports on telephony. No AI front desk is connected yet, so there are no calls
+-- to report; an answered/missed breakdown over invented calls is a measurement of nothing. Both
+-- screens read empty until their provider is connected, which is the honest state.
 
 -- ---------------------------------------------------------------- the actual work
 -- Three items, because three is what is actually in flight. They are written from the business
@@ -337,11 +238,11 @@ INSERT INTO recommendation (id, organization_id, period_month, observation, prop
 VALUES
  ('0199a1d0-6000-7000-8000-000000000001',
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date,
-  'Roughly one call in five is going unanswered, and about a fifth of all calls arrive outside clinic hours. Those calls are currently lost rather than delayed - nobody calls back, because nobody knows they rang.',
-  'Put the AI Front Desk on after-hours calls only, for four weeks, and measure how many of them turn into booked appointments.',
-  'After-hours calls are lost entirely today, so there is nothing to protect. Handling them changes nothing about how the clinic runs during the day, and four weeks is long enough to see a pattern without committing to anything.',
-  'If even half of the after-hours calls can be captured it would be a meaningful increase in booked appointments. The pilot exists to find out whether that holds, not to prove it.',
-  'Confirm the practice is willing to run a four-week after-hours pilot.',
+  'Every enquiry so far has come from organic search, because that is the only channel currently running. Google Ads is built and connected but not yet live, and the Google Business Profile is not yet verified - so the practice is visible to people already searching for it by name, and to almost nobody else.',
+  'Complete the two items the practice owns: a billing method on the Google Ads account, and Google''s verification for the Business Profile.',
+  'Neither is work we can do on the practice''s behalf. Until both are done the budget below is a plan rather than a spend, and this dashboard reports on one channel out of six.',
+  'Local search is where a clinic of this kind usually sees its first paid enquiries. We expect the first useful read on cost per lead about two weeks after the account goes live, not before.',
+  'Add billing to the Google Ads account and complete Business Profile verification.',
   'OPEN', NULL)
 ON CONFLICT DO NOTHING;
 
@@ -354,9 +255,9 @@ INSERT INTO monthly_report (id, organization_id, period_month, status, key_learn
 VALUES
  ('0199a1d0-7000-7000-8000-000000000001',
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date, 'DRAFT',
-  'Too early to draw a conclusion from one partial month. The pattern worth watching is that unanswered and after-hours calls look like the largest single source of lost opportunity we can currently see.',
+  'Too early to draw a conclusion. The portal is reporting on one channel out of six because the rest are not connected yet, so these figures describe the setup rather than the marketing.',
   E'Get Google Ads and the Business Profile live and verified.\nContinue the search visibility fixes in priority order.\nFirst articles and social posts to the practice for approval.',
-  E'Billing method on the Google Ads account.\nConfirm the after-hours front desk pilot.', NULL)
+  E'Billing method on the Google Ads account.\nGoogle Business Profile verification.', NULL)
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- campaigns
@@ -401,46 +302,5 @@ SET campaign_id = CASE
     END
 FROM ranked r
 WHERE l.id = r.id;
-
-END $$;
-
--- ---------------------------------------------------------------- front desk and calendar detail
--- Fills the columns V12 added on the rows seeded above.
---
--- Note the division by 60 in every modulo. The seeded timestamps sit on whole minutes, so their
--- epoch is always a multiple of 60 and `epoch % 3` is constantly zero - which silently made every
--- answered call an AI Front Desk call and every appointment exactly 30 minutes. Measured, not
--- assumed: the distributions below are checked, not hoped for.
-DO $$
-DECLARE org uuid := '0199a1d0-0000-7000-8000-000000000001';
-BEGIN
-
-IF NOT EXISTS (SELECT 1 FROM call WHERE organization_id = org) THEN
-    RETURN;
-END IF;
-
--- Who answered. A missed call went to voicemail; the AI desk takes the after-hours traffic,
--- which is the pilot this month's recommendation proposes.
-UPDATE call SET handled_by = CASE
-        WHEN NOT answered THEN 'VOICEMAIL'
-        WHEN after_hours  THEN 'AI_FRONT_DESK'
-        WHEN ((extract(epoch from started_at)::bigint / 60) % 3) = 0 THEN 'AI_FRONT_DESK'
-        ELSE 'PRACTICE_TEAM'
-    END
-WHERE organization_id = org AND handled_by IS NULL;
-
--- Credit the AI Front Desk channel only for calls it actually handled. The rest stay uncredited:
--- null is honest, "Direct" would be a guess.
-UPDATE call SET channel_source_id = '0199a1d0-0001-7000-8000-000000000004'
-WHERE organization_id = org AND handled_by = 'AI_FRONT_DESK' AND channel_source_id IS NULL;
-
-UPDATE appointment_reference a SET
-    display_label = split_part(l.display_name, ' ', 1) || ' '
-                    || left(split_part(l.display_name, ' ', 2), 1) || '.',
-    duration_minutes = 30 + 15 * ((extract(epoch from a.requested_at)::bigint / 60) % 3),
-    service_category = l.service_interest,
-    channel_source_id = l.channel_source_id
-FROM lead l
-WHERE a.lead_id = l.id AND a.organization_id = org AND a.display_label IS NULL;
 
 END $$;
