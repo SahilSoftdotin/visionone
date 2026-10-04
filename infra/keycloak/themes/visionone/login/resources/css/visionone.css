@@ -344,15 +344,32 @@ body#keycloak-bg::before {
   color: var(--vo-fg-soft);
 }
 
-/* Measured: PatternFly puts 64px of padding on the BOTTOM of this, and the shorthand above did
-   not win against its own rule - the computed value stayed "12px 0px 64px". Sixty-four pixels of
-   nothing under the sign-in button, on a page that has to fit one screen. The custom property is
-   set as well as the longhand, because that is what its own rule reads from. */
+/* 64px of padding under the sign-in button, on a page that has to fit one screen. Three things
+   had to line up before this would go away, and the first two attempts each missed one:
+
+     1. PatternFly writes it as the LOGICAL property padding-block-end, so padding-bottom does not
+        override it reliably.
+     2. The rule that wins is
+          .pf-v5-c-login__main > :last-child:not(.pf-v5-c-login__main-footer)
+        at specificity (0,3,0) - higher than a two-class selector, so the obvious override lost.
+     3. That rule reads --pf-v5-c-login__main-footer--PaddingBottom, NOT the __main-body one you
+        would expect from the element it lands on.
+
+   Setting the variable on the element is what actually settles it: PatternFly's own rule then
+   computes to zero whatever its specificity. It is set on main-body only, and main-footer is a
+   sibling rather than a descendant, so the real footer's padding is untouched.
+
+   Worth knowing why this hid for so long: the :last-child only matches on the re-authenticate
+   variant of the page, where there is no __main-footer after the body. On the ordinary sign-in
+   page main-body is not the last child, so the local tests looked clean. */
+.pf-v5-c-login__main > .pf-v5-c-login__main-body:last-child,
 .pf-v5-c-login__main .pf-v5-c-login__main-body,
 .pf-v5-c-login__main-body {
   --pf-v5-c-login__main-body--PaddingBottom: 0;
+  --pf-v5-c-login__main-footer--PaddingBottom: 0;
   padding: var(--vo-pad-body) 0 0;
   padding-bottom: 0;
+  padding-block-end: 0;
 }
 
 /* Keycloak hangs a utility margin on the form wrapper (pf-v5-u-mb-md-on-md), worth another 16px
