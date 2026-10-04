@@ -77,10 +77,10 @@
      Each of these keeps a floor so it degrades into something tight rather than something
      collapsed. */
   --vo-pad-page: clamp(1rem, 3vh, 2.5rem);
-  --vo-pad-main: clamp(0.75rem, 3vh, 3rem);
-  --vo-pad-body: clamp(1rem, 2.4vh, 2rem);
+  --vo-pad-main: clamp(1.25rem, 4vh, 3rem);
+  --vo-pad-body: clamp(1rem, 2.2vh, 1.75rem);
   --vo-gap-field: clamp(0.75rem, 1.8vh, 1.125rem);
-  --vo-pad-footer: clamp(0.875rem, 2vh, 1.75rem);
+  --vo-pad-footer: clamp(0.875rem, 1.8vh, 1.5rem);
 }
 
 /* ---------- page ---------- */
@@ -166,6 +166,11 @@ body#keycloak-bg::before {
 
 #kc-header {
   flex: 0 0 auto;
+  /* PatternFly ships margin: 64px on this and margin-bottom: 48px on the wrapper inside it -
+     112px of margin stacked above a 36px logo. That was most of the reason the page could not fit
+     one screen, and padding:0 never touched it because it is margin. */
+  margin: 0;
+  padding: 0;
   /* Was position:absolute, top 1rem, left 1rem - pinned to the viewport corner and therefore
      aligned with nothing. It is part of the column now. */
   position: static;
@@ -212,9 +217,12 @@ body#keycloak-bg::before {
     overflow: hidden;
   }
 
+  /* Percentage heights off html/body rather than 100dvh. dvh changes as browser UI shows and
+     hides, and paired with overflow:hidden it kept the layout recalculating - the renderer became
+     slow enough that screenshots of this page timed out. Plain 100% is stable and, with
+     html/body at height:100%, means exactly the same thing here. */
   .pf-v5-c-login {
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     min-height: 0;
   }
 
@@ -228,6 +236,7 @@ body#keycloak-bg::before {
 #kc-header-wrapper {
   text-align: left;
   width: 100%;
+  margin: 0;
   display: flex;
   align-items: center;
   /* Not gap: the display name is two spans, and a gap would space those apart too - which is
@@ -242,9 +251,9 @@ body#keycloak-bg::before {
 #kc-header-wrapper::before {
   content: '';
   flex: 0 0 auto;
-  width: 1.875rem;
-  height: 1.875rem;
-  margin-right: 0.5625rem;
+  width: clamp(2.25rem, 4vh, 2.75rem);
+  height: clamp(2.25rem, 4vh, 2.75rem);
+  margin-right: 0.625rem;
   border-radius: var(--vo-radius-sm);
   background-image: url('../img/vision-digital-lab.svg');
   background-size: contain;
@@ -256,7 +265,9 @@ body#keycloak-bg::before {
 #kc-header-wrapper.pf-v5-c-brand,
 #kc-header-wrapper * {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.3125rem;
+  /* The brand is the heading now that "Welcome back" is gone, so it carries the weight that the
+     h1 used to. */
+  font-size: clamp(1.5rem, 2.6vh, 1.875rem);
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--vo-fg) !important;
@@ -293,18 +304,14 @@ body#keycloak-bg::before {
 
 /* ---------- headings ---------- */
 
+/* The heading message is empty, so this element renders nothing of its own - it exists only to
+   carry the line below. Zeroed so an empty h1 cannot contribute a line box of its own height. */
 #kc-page-title {
   width: 100%;
-  /* Was 2.25rem at line-height 1.5, which is a display size on a 24rem column with a gap under it
-     big enough to read as a missing element. The vh term is what lets it shrink on a short
-     laptop instead of pushing the button off the screen. */
-  font-size: clamp(1.5rem, 1rem + 1.1vw + 0.6vh, 2.125rem);
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--vo-fg);
-  text-align: left;
+  font-size: 0;
+  line-height: 0;
   margin: 0;
+  text-align: left;
 }
 
 /* The subtitle. A theme that does not fork the template cannot add an element, so it is generated
@@ -312,12 +319,12 @@ body#keycloak-bg::before {
 #kc-page-title::after {
   content: 'Log in to your VisionOne account';
   display: block;
-  margin-top: clamp(0.25rem, 1vh, 0.625rem);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  font-weight: 400;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 500;
   letter-spacing: normal;
-  color: var(--vo-muted);
+  color: var(--vo-fg-soft);
 }
 
 .pf-v5-c-login__main-body {
@@ -538,7 +545,7 @@ input#password:-webkit-autofill {
    be styled from. Right-aligned and quiet: it is the escape hatch, not the thing to press. It was
    the same weight and the same blue as the submit button, three lines above it. */
 .pf-v5-c-form__helper-text {
-  margin-top: 0.5rem;
+  margin-top: 0.375rem;
 }
 
 /* justify-content, not text-align. PatternFly makes both of these flex containers, so the anchor
