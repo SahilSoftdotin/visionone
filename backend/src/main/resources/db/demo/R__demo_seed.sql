@@ -202,12 +202,12 @@ INSERT INTO work_item (id, organization_id, title, category, status, business_re
   NULL),
 
  ('0199a1d0-4000-7000-8000-000000000002', org,
-  'Google Ads and Google Business Profile live and verified', 'PAID_ACQUISITION', 'WAITING_FOR_CLIENT',
+  'Google Ads and Google Business Profile live and verified', 'PAID_ACQUISITION', 'IN_PROGRESS',
   'Until both are live we are reporting on a channel that is not running. Google Ads is what produces enquiries this quarter while search visibility is still being built, and a verified Business Profile is what puts the practice on the map for local searches and lets patients leave reviews that future patients read.',
   'Vision Digital Lab',
   (date_trunc('month', date '2026-10-01') + interval '24 days')::date,
-  true,
-  'The advertising account, API access and conversion tracking are built and connected to this dashboard. Two things are now on the practice: a billing method on the Google Ads account, and completing Google''s verification for the Business Profile. Spend and campaign performance appear on the Growth screen automatically once the account is active.',
+  false,
+  'The advertising account, API access and conversion tracking are built and connected to this dashboard, and both the ad account and the Business Profile are now with Google for review. Nothing is needed from the practice - this sits in Google''s approval queue and we are chasing it. Spend and campaign performance appear on the Growth screen by themselves once Google approves.',
   NULL),
 
  ('0199a1d0-4000-7000-8000-000000000003', org,
@@ -229,11 +229,11 @@ INSERT INTO recommendation (id, organization_id, period_month, observation, prop
 VALUES
  ('0199a1d0-6000-7000-8000-000000000001',
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date,
-  'Every enquiry so far has come from organic search, because that is the only channel currently running. Google Ads is built and connected but not yet live, and the Google Business Profile is not yet verified - so the practice is visible to people already searching for it by name, and to almost nobody else.',
-  'Complete the two items the practice owns: a billing method on the Google Ads account, and Google''s verification for the Business Profile.',
-  'Neither is work we can do on the practice''s behalf. Until both are done the budget below is a plan rather than a spend, and this dashboard reports on one channel out of six.',
-  'Local search is where a clinic of this kind usually sees its first paid enquiries. We expect the first useful read on cost per lead about two weeks after the account goes live, not before.',
-  'Add billing to the Google Ads account and complete Business Profile verification.',
+  'Every enquiry so far has come from organic search, because that is the only channel currently running. The ad account and the Business Profile are both with Google for approval, and until they clear that queue the practice is visible to people already searching for it by name and to almost nobody else.',
+  'Spend the waiting time on the organic side: publish the first articles and the Business Profile content, so that there is something ranking by the time the paid channels switch on.',
+  'Google''s review is outside anyone''s control here and gives no date, so the alternative is waiting idle. Content published now is also the one thing that keeps working after a campaign budget stops.',
+  'Articles answer the questions that come up before someone books, so they tend to shorten the first consultation as well as earn search traffic. The first useful read on cost per lead comes about two weeks after the paid channels go live, not before.',
+  'Approve the first batch of article and social topics when they reach the Content screen.',
   'OPEN', NULL)
 ON CONFLICT DO NOTHING;
 
@@ -248,7 +248,7 @@ VALUES
   '0199a1d0-0000-7000-8000-000000000001', date_trunc('month', CURRENT_DATE)::date, 'DRAFT',
   'Too early to draw a conclusion. The portal is reporting on one channel out of six because the rest are not connected yet, so these figures describe the setup rather than the marketing.',
   E'Get Google Ads and the Business Profile live and verified.\nContinue the search visibility fixes in priority order.\nFirst articles and social posts to the practice for approval.',
-  E'Billing method on the Google Ads account.\nGoogle Business Profile verification.', NULL)
+  E'Approve the first article and social topics when they arrive on the Content screen.', NULL)
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- campaigns
