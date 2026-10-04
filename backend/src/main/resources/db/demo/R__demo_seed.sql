@@ -39,10 +39,6 @@ DECLARE
     -- is a client-facing record, so it begins on a real date and grows.
     start_on date := date '2026-10-01';
 
-    -- Days of the engagement that have actually happened. Floored at 1 so the seed still produces
-    -- something if it runs on or before the start date, which is what happens in a test.
-    days int := greatest((CURRENT_DATE - start_on) + 1, 1);
-
     -- Four leads, and that is the whole dataset. See the leads section for why there is no
     -- generator here any more.
     lead_count int := 4;
@@ -52,7 +48,6 @@ DECLARE
     m0 date := date_trunc('month', start_on)::date;
     m1 date := (date_trunc('month', start_on) + interval '1 month')::date;
     m2 date := (date_trunc('month', start_on) + interval '2 months')::date;
-    this_month date := date_trunc('month', CURRENT_DATE)::date;
 BEGIN
 
 IF EXISTS (SELECT 1 FROM lead WHERE organization_id = org) THEN
@@ -77,7 +72,8 @@ INSERT INTO growth_plan (id, organization_id, period_month, planned_total_minor,
  ('0199a1d0-0003-7000-8000-000000000003', org, m2, 500000, cur,
   'Planned. Holds budget for the festive period, when enquiry volume in this category falls and cost per click rises.');
 
--- Planned and actual per channel, per month. Actual is entered manually in Phase 1.
+-- Planned per channel, per month. The plan is real - it is what the budget is meant to do -
+-- and actual stays zero until a connected platform reports a spend.
 INSERT INTO budget_allocation (id, organization_id, growth_plan_id, channel_source_id, planned_minor, actual_minor)
 SELECT
     ('0199a1d0-0004-7000-8000-' || lpad((p.n * 10 + c.n)::text, 12, '0'))::uuid,
@@ -85,17 +81,12 @@ SELECT
     p.plan_id,
     c.channel_id,
     c.planned,
-    -- Three cases, and the third is the one that matters. A month already finished spent close to
-    -- plan. The month in progress has spent the fraction of it that has elapsed. A month that has
-    -- not started has spent nothing - showing a plausible-looking actual against a future month
-    -- would be inventing spend that no invoice will ever match.
-    CASE
-        WHEN p.month < this_month THEN (c.planned * (92 + ((p.n * 7 + c.n * 3) % 9))) / 100
-        WHEN p.month = this_month THEN
-            (c.planned * extract(day from CURRENT_DATE)::int)
-            / extract(day from (date_trunc('month', CURRENT_DATE) + interval '1 month - 1 day'))::int
-        ELSE 0
-    END
+    -- Zero, every month, every channel. Not a single invoice exists: the Google Ads account has
+    -- no billing method on it yet, so nothing has been spent anywhere. This used to compute a
+    -- plausible-looking actual from the fraction of the month elapsed, which put ~$484 of spend
+    -- and a cost-per-lead figure in front of a client who could check the ad account and find
+    -- nothing there. Spend appears here when the advertising adapter reports it, not before.
+    0
 FROM (VALUES
         (1, '0199a1d0-0003-7000-8000-000000000001'::uuid, m0),
         (2, '0199a1d0-0003-7000-8000-000000000002'::uuid, m1),
@@ -261,46 +252,10 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------- campaigns
--- Paid channels carry campaigns; organic and referral do not. Leads are attributed to a campaign
--- only on the channels that have them.
-DO $$
-DECLARE
-    org uuid := '0199a1d0-0000-7000-8000-000000000001';
-    start_on date := date '2026-10-01';
-BEGIN
-
-IF EXISTS (SELECT 1 FROM campaign WHERE organization_id = org) THEN
-    RETURN;
-END IF;
-
-INSERT INTO campaign (id, organization_id, channel_source_id, name, status, started_on, ended_on) VALUES
- ('0199a1d0-0008-7000-8000-000000000001', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Hormone Therapy - 25mi radius', 'ACTIVE', start_on, NULL),
- ('0199a1d0-0008-7000-8000-000000000002', org, '0199a1d0-0001-7000-8000-000000000001',
-  'Longevity Program - Brand', 'ACTIVE', start_on, NULL),
- ('0199a1d0-0008-7000-8000-000000000003', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Longevity Panel - Retargeting', 'ACTIVE', start_on, NULL),
- ('0199a1d0-0008-7000-8000-000000000004', org, '0199a1d0-0001-7000-8000-000000000005',
-  'Diagnostics - Cold Audience', 'ACTIVE', start_on, NULL);
-
-WITH ranked AS (
-    SELECT l.id,
-           l.channel_source_id,
-           row_number() OVER (PARTITION BY l.channel_source_id ORDER BY l.created_at, l.id) AS n
-    FROM lead l
-    WHERE l.organization_id = org
-      AND l.channel_source_id IN ('0199a1d0-0001-7000-8000-000000000001',
-                                  '0199a1d0-0001-7000-8000-000000000005')
-)
-UPDATE lead l
-SET campaign_id = CASE
-        WHEN r.channel_source_id = '0199a1d0-0001-7000-8000-000000000001'
-             THEN CASE WHEN r.n % 3 = 0 THEN '0199a1d0-0008-7000-8000-000000000002'::uuid
-                       ELSE '0199a1d0-0008-7000-8000-000000000001'::uuid END
-        ELSE CASE WHEN r.n % 2 = 0 THEN '0199a1d0-0008-7000-8000-000000000004'::uuid
-                  ELSE '0199a1d0-0008-7000-8000-000000000003'::uuid END
-    END
-FROM ranked r
-WHERE l.id = r.id;
-
-END $$;
+--
+-- None. There were four here, all marked ACTIVE from the first of the month, and not one of them
+-- exists in the Google Ads account - which is still waiting on a billing method. A campaign list
+-- is the easiest thing on this dashboard for a client to check against the source, and the first
+-- thing they would check once the spend beside it looked wrong.
+--
+-- Campaigns appear when the advertising adapter reads them back from a live account.
