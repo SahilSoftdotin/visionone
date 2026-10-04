@@ -77,8 +77,8 @@
      Each of these keeps a floor so it degrades into something tight rather than something
      collapsed. */
   --vo-pad-page: clamp(1rem, 3vh, 2.5rem);
-  --vo-pad-main: clamp(1.25rem, 4vh, 3rem);
-  --vo-pad-body: clamp(1rem, 2.2vh, 1.75rem);
+  --vo-pad-main: clamp(0.75rem, 2.5vh, 3rem);
+  --vo-pad-body: clamp(0.75rem, 1.5vh, 1.75rem);
   --vo-gap-field: clamp(0.75rem, 1.8vh, 1.125rem);
   --vo-pad-footer: clamp(0.875rem, 1.8vh, 1.5rem);
 }
@@ -210,7 +210,7 @@ body#keycloak-bg::before {
 /* The page is sized to fit, so there is nothing to scroll. Guarded by a min-height: below this
    the content genuinely cannot fit, and hiding the overflow there would put the Log In button
    somewhere unreachable - which is a far worse bug than a scrollbar. */
-@media (min-height: 560px) {
+@media (min-height: 480px) {
   html,
   body#keycloak-bg {
     height: 100%;
