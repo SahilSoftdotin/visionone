@@ -344,8 +344,21 @@ body#keycloak-bg::before {
   color: var(--vo-fg-soft);
 }
 
+/* Measured: PatternFly puts 64px of padding on the BOTTOM of this, and the shorthand above did
+   not win against its own rule - the computed value stayed "12px 0px 64px". Sixty-four pixels of
+   nothing under the sign-in button, on a page that has to fit one screen. The custom property is
+   set as well as the longhand, because that is what its own rule reads from. */
+.pf-v5-c-login__main .pf-v5-c-login__main-body,
 .pf-v5-c-login__main-body {
+  --pf-v5-c-login__main-body--PaddingBottom: 0;
   padding: var(--vo-pad-body) 0 0;
+  padding-bottom: 0;
+}
+
+/* Keycloak hangs a utility margin on the form wrapper (pf-v5-u-mb-md-on-md), worth another 16px
+   below the button for the same nothing. */
+.pf-v5-c-login__main-body > .pf-v5-c-form {
+  margin-bottom: 0;
 }
 
 /* ---------- fields ---------- */
