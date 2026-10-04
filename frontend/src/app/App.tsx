@@ -5,6 +5,7 @@ import { oidcConfig } from '@/lib/auth';
 import { AuthBootstrap, LoginRoute, RequireAuth } from './AuthGate';
 import { ScrollToTop } from './ScrollToTop';
 import { AppShell } from './AppShell';
+import { RouteErrorBoundary } from '@/components/ErrorBoundary';
 import { OrganizationRouter } from './OrganizationRouter';
 import { OverviewScreen } from '@/features/overview/OverviewScreen';
 import { GrowthScreen } from '@/features/growth/GrowthScreen';
@@ -29,28 +30,34 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ScrollToTop />
-          <AuthBootstrap>
-            <Routes>
-              {/* Public. Keycloak returns to "/", so the callback never lands here. */}
-              <Route path="/login" element={<LoginRoute />} />
+          {/* Outermost catch. Inside BrowserRouter so it can reset on navigation, and wrapping
+              AuthBootstrap so a failure in the session handling itself is still caught rather
+              than unmounting the app. The per-screen boundary in AppShell takes precedence for
+              anything below it, so a broken screen keeps the navigation. */}
+          <RouteErrorBoundary variant="page">
+            <AuthBootstrap>
+              <Routes>
+                {/* Public. Keycloak returns to "/", so the callback never lands here. */}
+                <Route path="/login" element={<LoginRoute />} />
 
-              <Route element={<RequireAuth />}>
-                <Route path="/" element={<OrganizationRouter />} />
-                <Route path="/orgs/:orgId" element={<AppShell />}>
-                  <Route index element={<Navigate to="overview" replace />} />
-                  <Route path="overview" element={<OverviewScreen />} />
-                  <Route path="growth" element={<GrowthScreen />} />
-                  <Route path="leads" element={<LeadsScreen />} />
-                  <Route path="front-desk" element={<FrontDeskScreen />} />
-                  <Route path="calendar" element={<CalendarScreen />} />
-                  <Route path="work" element={<WorkContentScreen />} />
-                  <Route path="reports" element={<ReportsScreen />} />
+                <Route element={<RequireAuth />}>
+                  <Route path="/" element={<OrganizationRouter />} />
+                  <Route path="/orgs/:orgId" element={<AppShell />}>
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<OverviewScreen />} />
+                    <Route path="growth" element={<GrowthScreen />} />
+                    <Route path="leads" element={<LeadsScreen />} />
+                    <Route path="front-desk" element={<FrontDeskScreen />} />
+                    <Route path="calendar" element={<CalendarScreen />} />
+                    <Route path="work" element={<WorkContentScreen />} />
+                    <Route path="reports" element={<ReportsScreen />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AuthBootstrap>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AuthBootstrap>
+          </RouteErrorBoundary>
         </BrowserRouter>
       </QueryClientProvider>
     </AuthProvider>

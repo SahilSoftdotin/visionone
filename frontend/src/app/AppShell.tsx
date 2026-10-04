@@ -9,6 +9,7 @@ import { signOut } from '@/lib/auth';
 import { useIdleTimeout } from '@/lib/useIdleTimeout';
 import { resolveIdlePolicy } from '@/lib/idlePolicy';
 import { IdleWarningDialog } from '@/components/ui/IdleWarningDialog';
+import { RouteErrorBoundary } from '@/components/ErrorBoundary';
 import type { SessionResponse } from '@/lib/types';
 import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
@@ -181,7 +182,12 @@ export function AppShell() {
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
-          <Outlet />
+          {/* Inside the shell on purpose: a screen that throws leaves the rail, the header and
+              the organization switcher working, so the practice can move to another page instead
+              of being stuck. */}
+          <RouteErrorBoundary variant="screen">
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
 
