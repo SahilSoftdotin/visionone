@@ -254,6 +254,61 @@ body#keycloak-bg::before {
   }
 }
 
+/* Short viewports. A laptop with a toolbar, a sidebar and a bookmarks bar can be under 500px of
+   usable height, which is where the form area ran out of room and grew its own scrollbar between
+   the button and the footer. Nothing here is load-bearing: the subtitle repeats what the brand
+   and the fields already say, and 44px controls are still comfortably above the 24px minimum
+   target size. The alternative was leaving a scrollbar on a sign-in page. */
+@media (max-height: 640px) {
+  #kc-page-title::after {
+    display: none;
+  }
+
+  /* Hiding the generated subtitle is not enough on its own: the empty h1 still reserves a line
+     box, measured at 22px of nothing above the first field. */
+  .pf-v5-c-login__main-header {
+    display: none;
+  }
+
+  .pf-v5-c-form-control,
+  .pf-v5-c-input-group,
+  .pf-v5-c-button.pf-m-primary,
+  #kc-login {
+    min-height: 2.75rem;
+  }
+
+  .pf-v5-c-input-group .pf-v5-c-form-control,
+  .pf-v5-c-button.pf-m-control,
+  .pf-v5-c-input-group__item .pf-v5-c-button {
+    min-height: 2.625rem;
+  }
+
+  .pf-v5-c-login__main-body {
+    padding-top: 0.75rem;
+  }
+}
+
+/* Tighter still. Browser zoom is the reason this tier exists: at 125% on a 768px screen the CSS
+   viewport drops to roughly 420px once the window chrome is taken out, which is shorter than any
+   laptop appears to be on paper. Nothing is removed here, only compressed. */
+@media (max-height: 540px) {
+  :root {
+    --vo-pad-page: 0.625rem;
+    --vo-pad-main: 0.25rem;
+    --vo-pad-body: 0.5rem;
+    --vo-gap-field: 0.625rem;
+    --vo-pad-footer: 0.5rem;
+  }
+
+  .pf-v5-c-form__label {
+    margin-bottom: 0.25rem;
+  }
+
+  .pf-v5-c-form__actions {
+    margin-top: 0.25rem;
+  }
+}
+
 /* ---------- brand ---------- */
 
 #kc-header-wrapper {
@@ -728,15 +783,15 @@ a:hover {
   color: var(--vo-muted);
 }
 
-.vo-login-footer__brand {
-  margin: 0;
-}
-
+/* One row. This was a sentence above a list of links and it cost 62px of a page that has to fit
+   one screen; as a single row of five it is under 30. "A Vision Digital Lab product" became the
+   first link rather than a line of its own - it says the same thing, in a quarter of the height,
+   and it is now clickable where before only part of the sentence was. */
 .vo-login-footer__links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem 1.25rem;
-  margin: 0.5rem 0 0;
+  gap: 0.25rem 1rem;
+  margin: 0;
   padding: 0;
   list-style: none;
 }

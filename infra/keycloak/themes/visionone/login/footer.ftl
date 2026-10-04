@@ -19,10 +19,8 @@
 -->
 <#macro content>
 <footer class="vo-login-footer">
-  <p class="vo-login-footer__brand">
-    A <a href="https://visiondigitallab.com" rel="noopener">Vision Digital Lab</a> product
-  </p>
   <ul class="vo-login-footer__links">
+    <li><a href="https://visiondigitallab.com" rel="noopener">Vision Digital Lab</a></li>
     <li><a href="https://visiondigitallab.com/privacy" rel="noopener">Privacy</a></li>
     <li><a href="https://visiondigitallab.com/terms" rel="noopener">Terms</a></li>
     <li><a href="https://visiondigitallab.com/security" rel="noopener">Security</a></li>
