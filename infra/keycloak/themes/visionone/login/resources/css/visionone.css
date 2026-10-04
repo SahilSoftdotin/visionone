@@ -171,8 +171,14 @@ body#keycloak-bg::before {
   flex: 0 0 auto;
   /* PatternFly ships margin: 64px on this and margin-bottom: 48px on the wrapper inside it -
      112px of margin stacked above a 36px logo. That was most of the reason the page could not fit
-     one screen, and padding:0 never touched it because it is margin. */
-  margin: 0;
+     one screen, and padding:0 never touched it because it is margin.
+     
+     margin-block/margin-inline rather than `margin: 0`. The shorthand also reset the
+     margin-inline: auto that centres this on the shared measure, which put the brand back at the
+     panel's padding edge while the fields and footer stayed centred - 50px out, the exact
+     misalignment this file set out to fix. */
+  margin-block: 0;
+  margin-inline: auto;
   padding: 0;
   /* Was position:absolute, top 1rem, left 1rem - pinned to the viewport corner and therefore
      aligned with nothing. It is part of the column now. */
