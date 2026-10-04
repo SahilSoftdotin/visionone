@@ -207,6 +207,10 @@ body#keycloak-bg::before {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* clip, not hidden. Setting overflow on ONE axis makes the other a scroll container too - that
+     is why overflow-y: auto on its own produced a horizontal scrollbar from eight stray pixels.
+     `clip` is the one value that does not do that. */
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -697,8 +701,14 @@ a[href*='reset-credentials']:hover {
   color: var(--vo-fg);
 }
 
+/* PatternFly gives this -8px horizontal margins, to cancel the spacing between buttons when
+   there are several in a row. With one full-width button it simply makes the block 16px wider
+   than the column that holds it, and that 8px of overflow was drawing a horizontal scrollbar
+   across the page between the button and the footer. */
 .pf-v5-c-form__actions {
   margin-top: 0.5rem;
+  margin-inline: 0;
+  gap: 0.5rem;
 }
 
 .pf-v5-c-button.pf-m-primary,
