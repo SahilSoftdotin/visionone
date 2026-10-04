@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LogOut, Menu, X } from 'lucide-react';
 import { CLIENT_NAVIGATION } from './navigation';
 import { apiGet, queryKeys } from '@/lib/api';
+import { signOut } from '@/lib/auth';
+import { useIdleTimeout } from '@/lib/useIdleTimeout';
+import { IdleWarningDialog } from '@/components/ui/IdleWarningDialog';
 import type { SessionResponse } from '@/lib/types';
 import { ClientMark, ParentBrandLine, VisionOneMark } from '@/components/ui/Brand';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
@@ -19,10 +22,23 @@ import { cn } from '@/lib/utils';
  * Icon-only navigation forces people to learn six glyphs before they can use the product, and the
  * label costs ten pixels.
  */
+/**
+ * Inactivity policy for client users.
+ *
+ * Fifteen minutes is the figure a healthcare questionnaire expects. VisionOne holds no clinical
+ * record - an appointment carries a first name and a last initial and nothing else - but it is
+ * handled under a BAA, so HIPAA's automatic-logoff specification is the bar it gets measured
+ * against. Clinical systems sit at ten to fifteen; general dashboards at thirty to sixty.
+ */
+const IDLE_MS = 15 * 60_000;
+const IDLE_WARN_MS = 60_000;
+
 export function AppShell() {
   const { orgId = '' } = useParams();
   const auth = useAuth();
+  const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [idleDeadline, setIdleDeadline] = useState<number | null>(null);
 
   // Same key as OrganizationRouter, so this is a cache read rather than a second request.
   const { data: session } = useQuery({
@@ -34,6 +50,32 @@ export function AppShell() {
     enabled: Boolean(auth.user?.access_token),
   });
   const organization = session?.organizations.find((candidate) => candidate.id === orgId);
+
+  // Clients only, which is why this lives here rather than in AuthBootstrap: AppShell is the one
+  // component that already knows which organization is open and therefore what role the caller
+  // holds. Vision's own staff work from their own machines in long sessions; the client is the one
+  // plausibly on a shared front-desk computer, and is who this protects.
+  //
+  // Keycloak cannot express the same rule. Session timeouts there are per-realm or per-client and
+  // both accounts use the same client - and `ssoSessionIdleTimeout` would not bite anyway, because
+  // automaticSilentRenew keeps refreshing the token and resetting the server's idle clock.
+  const isClient = organization?.role === 'CLIENT_OWNER';
+
+  const endSession = useCallback(
+    (reason?: 'idle') => {
+      void signOut(auth, queryClient, reason ? { reason } : undefined);
+    },
+    [auth, queryClient],
+  );
+
+  const { reset: resetIdleTimer } = useIdleTimeout({
+    enabled: isClient,
+    idleMs: IDLE_MS,
+    warnMs: IDLE_WARN_MS,
+    onWarn: setIdleDeadline,
+    onExpire: () => endSession('idle'),
+    onReprieve: () => setIdleDeadline(null),
+  });
 
   const rail = (
     <nav className="flex flex-col gap-1 px-3" aria-label="Main">
@@ -133,7 +175,7 @@ export function AppShell() {
               </span>
               <button
                 type="button"
-                onClick={() => void auth.signoutRedirect()}
+                onClick={() => endSession()}
                 className="ml-1 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-all duration-150 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <LogOut className="h-4 w-4" aria-hidden />
@@ -147,6 +189,17 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {idleDeadline !== null && (
+        <IdleWarningDialog
+          deadline={idleDeadline}
+          onStaySignedIn={() => {
+            setIdleDeadline(null);
+            resetIdleTimer();
+          }}
+          onSignOutNow={() => endSession()}
+        />
+      )}
     </div>
   );
 }

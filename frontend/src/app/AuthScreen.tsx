@@ -17,7 +17,7 @@ export function AuthScreen({
   message,
   onSignIn,
 }: {
-  state: 'idle' | 'working' | 'error';
+  state: 'idle' | 'working' | 'error' | 'expired';
   message?: string;
   onSignIn: () => void;
 }) {
@@ -48,6 +48,18 @@ export function AuthScreen({
             <div role="alert" className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm">
               <p className="font-semibold text-critical-text">Sign-in failed</p>
               {message && <p className="mt-0.5 text-xs text-muted-foreground">{message}</p>}
+            </div>
+          )}
+
+          {/* Caution rather than critical, and no role="alert". Being signed out after sitting
+              idle is the product working as intended, not a failure, and colouring it red invites
+              a support call about an error that did not happen. */}
+          {state === 'expired' && (
+            <div className="mt-6 rounded-lg bg-caution-soft px-4 py-3 text-sm">
+              <p className="font-semibold text-caution-text">Signed out for inactivity</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {message ?? 'Sign in again to pick up where you left off.'}
+              </p>
             </div>
           )}
 

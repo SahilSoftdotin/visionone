@@ -123,6 +123,7 @@ It also hardens what Keycloak leaves soft, because the defaults are tuned for a 
 | `directAccessGrantsEnabled: false` | The password grant skips the login page, the theme and the flow. The app uses authorization code + PKCE and never needs it. It stays on locally, where it is how a token is obtained with `curl`. |
 | `resetPasswordAllowed` follows whether SMTP is configured | The link and the mail server move together. Set `VISIONONE_SMTP_PASSWORD` and the realm gets an `smtpServer` block and the link; leave it blank and the link is not rendered at all. There is no state where "Forgot password?" is offered with nowhere to send to, which is what it used to do. |
 | `smtpServer` built from the environment | So it survives a realm rebuilt from an empty database. Configuring SMTP by hand in the admin console works until the day the volume is recreated, and then the recovery path is gone exactly when someone needs it. |
+| Session timeouts left alone, deliberately | The inactivity rule is enforced in the SPA instead. See "Signing out an idle client" below: Keycloak's own idle timeout cannot do what is wanted here, and does not do what it appears to do either. |
 | `post.logout.redirect.uris` rewritten to the real origin | Sign-out is validated against its own list, not `redirectUris`. Miss it and the Sign Out button lands on Keycloak's "Invalid redirect uri" page — a failure that appears only on the deployed host. |
 
 ## Why the API is told where the keys are
@@ -220,6 +221,44 @@ the client, so the client stays in context throughout.
 
 Keycloak answers with nothing on success. A delivery failure is an `EmailException` in
 `docker compose logs keycloak`, so a silent return there means the mail went out.
+
+## Signing out an idle client
+
+A client user is signed out after **15 minutes** without deliberate input, with a 60-second
+warning they can dismiss. Vision Admin is not: Vision's own staff work from their own machines in
+long sessions, while the client is the one plausibly on a shared front-desk computer.
+
+The numbers are in `frontend/src/app/AppShell.tsx` (`IDLE_MS`, `IDLE_WARN_MS`). Fifteen minutes is
+what a healthcare security questionnaire expects. VisionOne holds no clinical record - an
+appointment carries a first name and a last initial and nothing else - but it is handled under a
+BAA, so HIPAA's automatic-logoff specification is the bar it gets measured against. That
+specification is *addressable* and names no number; clinical systems sit at ten to fifteen
+minutes, general dashboards at thirty to sixty.
+
+**Two things about why this is not a Keycloak setting, because both are easy to get wrong.**
+
+The realm has `ssoSessionIdleTimeout: 1800`, and it is tempting to read that as a 30-minute
+inactivity logout. It is not one. The SPA sets `automaticSilentRenew: true`, so an open tab
+refreshes its token in the background and every refresh is activity against the Keycloak session.
+The server's idle clock keeps resetting, so those 30 minutes never elapse while a tab is open. The
+protection that appears to be configured is not there. Lowering the number would not help.
+
+And Keycloak cannot express the rule anyway. Session timeouts there are per-realm or per-client,
+never per-role, and both accounts sign in through the same `visionone-web` client. A rule that
+applies to clients and not to Vision has to live in the application.
+
+What Keycloak still does is bound the worst case: `ssoSessionMaxLifespan: 36000` caps any session
+at ten hours regardless of activity, and the SPA keeps its tokens in `sessionStorage`, so closing
+the tab ends the session on its own.
+
+The timer compares wall-clock timestamps rather than counting down a `setTimeout`, because timers
+do not run while a laptop is asleep - a countdown would resume where it left off and leave someone
+signed in after two hours away. It also shares its last-activity time between tabs through
+`localStorage`, so a forgotten second tab cannot sign you out of the one you are working in.
+
+An idle sign-out returns to `/login?reason=idle`, which shows what happened instead of handing
+straight back to Keycloak. Nothing new had to be registered for that: `{origin}/*` is already a
+permitted redirect URI.
 
 ## Changing the login theme
 
