@@ -1,4 +1,8 @@
 spring:
+  # Matches the host port infra/docker-compose.yml publishes. The base default is 5432, which on a
+  # machine running a native PostgreSQL service silently resolves to that one instead.
+  datasource:
+    url: ${VISIONONE_DB_URL:jdbc:postgresql://localhost:55432/visionone}
   flyway:
     locations: classpath:db/migration,classpath:db/demo
 

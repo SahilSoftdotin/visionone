@@ -42,6 +42,23 @@ server:
 visionone:
   cors:
     allowed-origins: ${VISIONONE_CORS_ORIGINS:http://localhost:5173}
+  healthie:
+    # api-key deliberately has NO default. The adapter only exists when the scheduling provider is
+    # HEALTHIE, so this is read only when it is genuinely needed - and then an absent key should
+    # stop the application at startup with a clear message rather than let it run and fail every
+    # sync with a 401 that looks like a Healthie outage.
+    api-key: ${VISIONONE_HEALTHIE_API_KEY}
+    # Sandbox is a different host. securestaging is free and separate from any production account,
+    # which is where an integration should be proven before it is pointed at a real clinic.
+    endpoint: ${VISIONONE_HEALTHIE_ENDPOINT:https://api.gethealthie.com/graphql}
+    # Empty is allowed: without it webhooks are rejected and the scheduled sync below is the only
+    # path. That is a slower system, not a broken one.
+    webhook-secret: ${VISIONONE_HEALTHIE_WEBHOOK_SECRET:}
+  appointment:
+    sync:
+      interval-ms: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:3600000}
+      days-back: ${VISIONONE_APPOINTMENT_SYNC_DAYS_BACK:45}
+      days-forward: ${VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD:90}
   session:
     # How long a CLIENT user may sit idle in the browser before being signed out, and how much
     # warning they get. Vision Admin is never signed out for inactivity. Served to the SPA on /me

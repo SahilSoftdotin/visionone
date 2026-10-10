@@ -116,6 +116,14 @@ services:
       # which is what keeps Healthie from retiring the subscription. Only the drain waits, and a
       # marketing dashboard does not need a booking to appear within five seconds of being made.
       # Override either if something turns out to want lower latency; both are plain properties.
+      # Scheduling. DEMO until a real Healthie key exists; set to HEALTHIE to switch the adapter
+      # on. Switching without a key stops the API at startup rather than running blind.
+      VISIONONE_PROVIDER_SCHEDULING: ${VISIONONE_PROVIDER_SCHEDULING:-DEMO}
+      VISIONONE_HEALTHIE_API_KEY: ${VISIONONE_HEALTHIE_API_KEY:-}
+      VISIONONE_HEALTHIE_ENDPOINT: ${VISIONONE_HEALTHIE_ENDPOINT:-https://api.gethealthie.com/graphql}
+      VISIONONE_HEALTHIE_WEBHOOK_SECRET: ${VISIONONE_HEALTHIE_WEBHOOK_SECRET:-}
+      VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:-3600000}
+
       # Inactivity sign-out for client users. A restart is enough to change these - they are
       # served to the browser on /me rather than built into the web image.
       VISIONONE_SESSION_IDLE_MINUTES: ${VISIONONE_SESSION_IDLE_MINUTES:-15}
