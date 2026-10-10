@@ -17,7 +17,7 @@ export function AuthScreen({
   message,
   onSignIn,
 }: {
-  state: 'idle' | 'working' | 'error';
+  state: 'idle' | 'working' | 'error' | 'expired';
   message?: string;
   onSignIn: () => void;
 }) {
@@ -26,24 +26,40 @@ export function AuthScreen({
     // hands over to, so the redirect does not feel like changing product.
     <div className="grid min-h-screen bg-card lg:grid-cols-[minmax(450px,40fr)_60fr]">
       <div className="relative flex flex-col justify-center px-6 py-10 sm:px-10 lg:py-12 lg:pl-[126px] lg:pr-0">
-        <div className="absolute left-4 top-4 flex items-center gap-2">
-          <img
-            src="/brand/vision-digital-lab.svg"
-            alt=""
-            aria-hidden
-            className="h-7 w-7 rounded-lg"
-          />
-          <VisionOneMark className="text-[22px] font-extrabold" />
-        </div>
-
         <div className="w-full max-w-[324px]">
-          <h1 className="text-4xl font-bold leading-[1.5] tracking-normal">Welcome back</h1>
-          <p className="text-base leading-[1.5]">Log in to your VisionOne account</p>
+          {/* In flow, not absolutely positioned in the corner. It used to sit at left-4 top-4
+              while everything else began at the 126px gutter, so the brand lined up with nothing
+              on the page - the same fault the Keycloak sign-in page had. One measure, one left
+              edge. It is also the heading now that "Welcome back" is gone, so it is a size
+              larger to carry that. */}
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/brand/vision-digital-lab.svg"
+              alt=""
+              aria-hidden
+              className="h-9 w-9 rounded-lg"
+            />
+            <VisionOneMark className="text-2xl font-extrabold" />
+          </div>
+
+          <p className="mt-7 text-base leading-[1.5]">Log in to your VisionOne account</p>
 
           {state === 'error' && (
             <div role="alert" className="mt-6 rounded-lg bg-critical-soft px-4 py-3 text-sm">
               <p className="font-semibold text-critical-text">Sign-in failed</p>
               {message && <p className="mt-0.5 text-xs text-muted-foreground">{message}</p>}
+            </div>
+          )}
+
+          {/* Caution rather than critical, and no role="alert". Being signed out after sitting
+              idle is the product working as intended, not a failure, and colouring it red invites
+              a support call about an error that did not happen. */}
+          {state === 'expired' && (
+            <div className="mt-6 rounded-lg bg-caution-soft px-4 py-3 text-sm">
+              <p className="font-semibold text-caution-text">Signed out for inactivity</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {message ?? 'Sign in again to pick up where you left off.'}
+              </p>
             </div>
           )}
 

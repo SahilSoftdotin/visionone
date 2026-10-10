@@ -127,6 +127,34 @@ APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 CONF
 
+say "Nightly database backup"
+# The dump itself lives in scripts/backup-db.sh, under version control. This only installs the
+# schedule, and only once the repository is present - on a first run the clone has not happened
+# yet, so it says so rather than installing a cron job that fails silently every night at 03:17.
+#
+# 03:17 rather than 03:00: every cron job on every box runs at 03:00, and the point of a backup is
+# that it is not competing with anything else for a single shared core.
+install -d -m 700 /var/backups/visionone
+if [ -x /opt/visionone/scripts/backup-db.sh ]; then
+  cat > /etc/cron.d/visionone-backup <<'CRON'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 3 * * * root /opt/visionone/scripts/backup-db.sh >> /var/log/visionone-backup.log 2>&1
+CRON
+  chmod 644 /etc/cron.d/visionone-backup
+  printf '  installed: /etc/cron.d/visionone-backup, nightly 03:17 UTC, 14 days kept
+'
+else
+  printf '  SKIPPED: /opt/visionone/scripts/backup-db.sh not present yet.
+'
+  printf '           Re-run this script after cloning the repo, or install the cron job by hand.
+'
+fi
+# Worth being blunt about: this writes to the same disk as the database. It covers a bad migration,
+# a dropped table and "what did this row say last week". It does not cover losing the disk. For
+# that the dump has to leave the box - the provider's own snapshots, or an rclone/scp to object
+# storage - and that is not set up here.
+
 say "Ready"
 printf '  docker : %s\n' "$(docker --version)"
 printf '  compose: %s\n' "$(docker compose version --short)"
@@ -143,6 +171,8 @@ Next, in order:
   3. cp infra/.env.prod.example infra/.env.prod  and fill in every blank with NEW secrets:
        openssl rand -base64 24
   4. make deploy
+  5. Re-run this script. The backup cron job can only be installed once the repo is on the box,
+     so the first run skips it and the second installs it.
 
 Do not skip the wait in step 1. Caddy asks Let's Encrypt for the certificate the first time it
 starts, and that request fails if the name does not yet resolve to this machine.

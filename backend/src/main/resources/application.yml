@@ -42,6 +42,13 @@ server:
 visionone:
   cors:
     allowed-origins: ${VISIONONE_CORS_ORIGINS:http://localhost:5173}
+  session:
+    # How long a CLIENT user may sit idle in the browser before being signed out, and how much
+    # warning they get. Vision Admin is never signed out for inactivity. Served to the SPA on /me
+    # rather than compiled into it, so changing either needs a restart rather than a rebuild.
+    # A value of zero or less is corrected at startup and logged; see SessionController.
+    idle-timeout-minutes: ${VISIONONE_SESSION_IDLE_MINUTES:15}
+    warning-seconds: ${VISIONONE_SESSION_WARNING_SECONDS:60}
   eventing:
     # Postgres is the queue. The dispatcher drains outbox_event to the in-process handlers;
     # the inbox processor drains webhooks that arrived from a provider.

@@ -22,10 +22,21 @@ export interface OrganizationMembership {
   role: Role;
 }
 
+/**
+ * How long a client may sit idle before the browser signs them out. Served rather than built in,
+ * so it changes with an API restart. Optional so the SPA still works against an API that predates
+ * it - see resolveIdlePolicy, which falls back to the same defaults the server uses.
+ */
+export interface SessionPolicy {
+  idleTimeoutMinutes: number;
+  warningSeconds: number;
+}
+
 export interface SessionResponse {
   subject: string;
   displayName: string;
   organizations: OrganizationMembership[];
+  sessionPolicy?: SessionPolicy;
 }
 
 export interface OverviewKpis {

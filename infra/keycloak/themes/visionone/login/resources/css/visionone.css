@@ -1,34 +1,89 @@
 /*
- * VisionOne login theme, on the Modernize auth layout.
+ * VisionOne login theme.
  *
- * A white form column on the left behind a wide gutter, an illustration mosaic filling the right
- * and bleeding off the edge, matching the dashboard so the redirect does not feel like leaving
- * the product.
+ * A single column of content centred in a white panel on the left, an illustration mosaic filling
+ * the right and bleeding off the edge. It matches the dashboard so the redirect does not feel like
+ * leaving the product.
  *
- * #1E63E9 primary, #2A3547 text, 7px radius, Plus Jakarta Sans. Where an accent carries text it
+ * #1E63E9 primary, #2A3547 text, 10px radius, Plus Jakarta Sans. Where an accent carries text it
  * uses a darkened variant - the raw accents measure as low as 1.7:1 on white and would put an
  * unreadable label on a clinical product.
  *
- * Only CSS. Keycloak keeps owning the markup, so OTP, reset and consent inherit this styling and
- * nothing breaks at the next upgrade.
+ * Three rules hold the layout together, and the previous version broke all three:
+ *
+ *   1. ONE MEASURE. The brand, the form and the footer share a single 25rem column and are centred
+ *      in the panel together. Before this the brand was position:absolute in the viewport corner
+ *      at x=16 while the form sat at x=64, so nothing lined up with anything.
+ *   2. THE CONTENT IS CENTRED VERTICALLY. The panel is a flex column - brand at the top, form
+ *      taking the remaining height and centring inside it, footer at the bottom. Before this
+ *      everything stacked from the top edge and left a third of the screen empty underneath.
+ *   3. THE PANEL BREATHES ON BOTH SIDES. Its gutter is symmetric and scales with the viewport.
+ *      Before this the padding was 126px on the left and 0 on the right, so the form was pressed
+ *      against the left edge of a column 124px wider than the content it held.
+ *
+ * Mostly CSS. Keycloak owns the markup apart from footer.ftl, so OTP, reset and consent inherit
+ * all of this and nothing breaks at the next upgrade.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Self-hosted, and one file rather than four: this is the variable font, so 400-800 all come from
+ * the same 27KB. It used to be an @import of fonts.googleapis.com, which is the slowest way to
+ * load a font - the browser has to fetch and parse this stylesheet before it even learns the font
+ * exists - and it put a third-party request in front of the sign-in page. If Google is slow,
+ * blocked or down, that was the login page being slow, blocked or down. */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                 U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+                 U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+                 U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+                 U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 :root {
   --vo-primary: #1e63e9;
   --vo-primary-hover: #1751c4;
-  --vo-primary-soft: #dce8fb;
-  --vo-fg: #2a3547;
+  --vo-primary-soft: #eaf1fd;
+  --vo-fg: #1f2a3c;
+  --vo-fg-soft: #46556b;
   --vo-muted: #5f6f85;       /* darkened from #7C8FAC, which measures 3.29:1 */
-  --vo-border: #dfe5ef;
+  --vo-border: #dde3ec;
+  --vo-border-strong: #c6cfdd;
   --vo-card: #ffffff;
   --vo-panel: #ffffff;
-  --vo-critical: #d13c13;
-  --vo-radius: 7px;
+  --vo-critical: #c53917;
+  --vo-radius: 10px;
+  --vo-radius-sm: 8px;
+
+  /* One measure for the brand, the form and the footer. Everything aligns to this. */
+  --vo-measure: 25rem;
+  --vo-gutter: clamp(1.5rem, 4vw, 3.5rem);
+
+  /* Vertical rhythm in vh, so the page compresses to fit rather than growing a scrollbar. A
+     sign-in page that scrolls hides the button that the whole page exists for, and it scrolls on
+     a laptop long before it scrolls on a phone - browser chrome takes the height, not the design.
+     Each of these keeps a floor so it degrades into something tight rather than something
+     collapsed. */
+  --vo-pad-page: clamp(1rem, 3vh, 2.5rem);
+  --vo-pad-main: clamp(0.75rem, 2.5vh, 3rem);
+  --vo-pad-body: clamp(0.75rem, 1.5vh, 1.75rem);
+  --vo-gap-field: clamp(0.75rem, 1.8vh, 1.125rem);
+  --vo-pad-footer: clamp(0.875rem, 1.8vh, 1.5rem);
 }
 
-/* ---------- layout: split the page ---------- */
+/* ---------- page ---------- */
 
 html,
 body#keycloak-bg {
@@ -37,16 +92,25 @@ body#keycloak-bg {
   background: var(--vo-card);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--vo-fg);
+  /* Plus Jakarta Sans is a geometric face and renders heavy without this on macOS in particular;
+     the headings were visibly chunkier than the same font on the dashboard. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body#keycloak-bg::before {
   display: none !important;
 }
 
-/* Form column on the left, illustration mosaic filling the right. */
+/* ---------- layout: panel left, mosaic right ---------- */
+
 .pf-v5-c-login {
   display: grid;
-  grid-template-columns: minmax(450px, 40fr) 60fr;
+  /* minmax(0, ...) on both tracks, not a px minimum. A 450px minimum on the first track cannot
+     shrink, so on any phone the grid stayed wider than the screen and the whole page scrolled
+     sideways. The single-column breakpoint below is what handles small screens. */
+  grid-template-columns: minmax(0, 47fr) minmax(0, 53fr);
   min-height: 100vh;
   max-width: none;
   padding: 0;
@@ -56,7 +120,12 @@ body#keycloak-bg::before {
 
 /* The mosaic is one asset rather than a wall of markup, because Keycloak owns the DOM here and a
    background is the only thing a CSS-only theme can add. It bleeds off the right edge on purpose:
-   a mosaic that stops neatly reads as a picture, one that runs off reads as a wall. */
+   a mosaic that stops neatly reads as a picture, one that runs off reads as a wall.
+
+   No gradient scrim over it. One was tried to soften the seam and it washed the first column of
+   tiles instead - over the dark navy tile it read as a rendering fault rather than as a soft
+   edge. A straight edge between a white panel and a full-strength mosaic is the honest version
+   of this layout, and it is what every split-screen sign-in page does. */
 .pf-v5-c-login::after {
   content: '';
   grid-column: 2;
@@ -69,73 +138,187 @@ body#keycloak-bg::before {
   min-height: 100vh;
 }
 
-@media (max-width: 1024px) {
+/* ---------- the panel ---------- */
+
+.pf-v5-c-login__container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  /* Symmetric. The gutter is the same on both sides and scales with the viewport, so the content
+     sits in the middle of the panel instead of being pushed against its left edge. */
+  padding: var(--vo-pad-page) var(--vo-gutter);
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+  gap: 0;
+}
+
+/* The one measure. Three siblings, one column, centred together - this is what makes the logo
+   line up with the first field and with the footer underneath it. */
+#kc-header,
+.pf-v5-c-login__container > .pf-v5-c-login__main,
+.vo-login-footer {
+  width: 100%;
+  max-width: var(--vo-measure);
+  margin-inline: auto;
+}
+
+#kc-header {
+  flex: 0 0 auto;
+  /* PatternFly ships margin: 64px on this and margin-bottom: 48px on the wrapper inside it -
+     112px of margin stacked above a 36px logo. That was most of the reason the page could not fit
+     one screen, and padding:0 never touched it because it is margin.
+     
+     margin-block/margin-inline rather than `margin: 0`. The shorthand also reset the
+     margin-inline: auto that centres this on the shared measure, which put the brand back at the
+     panel's padding edge while the fields and footer stayed centred - 50px out, the exact
+     misalignment this file set out to fix. */
+  margin-block: 0;
+  margin-inline: auto;
+  padding: 0;
+  /* Was position:absolute, top 1rem, left 1rem - pinned to the viewport corner and therefore
+     aligned with nothing. It is part of the column now. */
+  position: static;
+  display: flex;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* Takes the height left over and centres the form inside it, which is what puts the form on the
+   optical centre line of the screen rather than at the top of it.
+   
+   min-height: 0 and overflow-y: auto are what make the footer structurally safe. Without them the
+   panel was "hide the overflow and hope it fits", and when it did not fit - a browser at 529px of
+   viewport, or the taller re-authenticate variant of this page - the overflow hidden on the panel
+   simply cut the footer off. Now the brand and the footer are fixed rows that cannot be pushed
+   anywhere, and if the viewport is genuinely too short it is the form area in the middle that
+   scrolls, not the page. On any normal screen nothing scrolls at all.
+   
+   `safe center` rather than `center`: a centred flex child whose content overflows gets clipped at
+   the START edge, where no scrollbar can reach it. `safe` falls back to flex-start in exactly that
+   case, which is the difference between a cramped form and an unreachable one. */
+.pf-v5-c-login__container > .pf-v5-c-login__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* clip, not hidden. Setting overflow on ONE axis makes the other a scroll container too - that
+     is why overflow-y: auto on its own produced a horizontal scrollbar from eight stray pixels.
+     `clip` is the one value that does not do that. */
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-content: safe center;
+  padding: var(--vo-pad-main) 0;
+}
+
+.vo-login-footer {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1100px) {
   .pf-v5-c-login {
     grid-template-columns: 1fr;
   }
   .pf-v5-c-login::after {
     display: none;
   }
-}
-
-/* The right column holds the form, centred. */
-.pf-v5-c-login__container {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* Without this the children size to their own content - the form measured 255px inside a
-     330px column, and the heading 179px, which is what was breaking it onto three lines. */
-  align-items: stretch;
-  /* The gutter is padding inside this box, so max-width has to include it - otherwise the
-     fields get whatever is left over, which measured 218px. */
-  max-width: calc(324px + 126px);
-  width: 100%;
-  margin: 0;
-  padding: 2rem 0 2rem 126px;
-  gap: 0;
-}
-
-@media (max-width: 1280px) {
   .pf-v5-c-login__container {
-    max-width: calc(324px + 4rem);
-    padding-left: 4rem;
+    padding: 2rem clamp(1.25rem, 6vw, 2.5rem);
   }
 }
 
-@media (max-width: 1024px) {
-  .pf-v5-c-login__container {
-    max-width: 420px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem;
+/* The page is sized to fit, so there is nothing to scroll. Guarded by a min-height: below this
+   the content genuinely cannot fit, and hiding the overflow there would put the Log In button
+   somewhere unreachable - which is a far worse bug than a scrollbar. */
+@media (min-height: 480px) {
+  html,
+  body#keycloak-bg {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Percentage heights off html/body rather than 100dvh. dvh changes as browser UI shows and
+     hides, and paired with overflow:hidden it kept the layout recalculating - the renderer became
+     slow enough that screenshots of this page timed out. Plain 100% is stable and, with
+     html/body at height:100%, means exactly the same thing here. */
+  .pf-v5-c-login {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .pf-v5-c-login::after {
+    min-height: 0;
+  }
+}
+
+/* Short viewports. A laptop with a toolbar, a sidebar and a bookmarks bar can be under 500px of
+   usable height, which is where the form area ran out of room and grew its own scrollbar between
+   the button and the footer. Nothing here is load-bearing: the subtitle repeats what the brand
+   and the fields already say, and 44px controls are still comfortably above the 24px minimum
+   target size. The alternative was leaving a scrollbar on a sign-in page. */
+@media (max-height: 640px) {
+  #kc-page-title::after {
+    display: none;
+  }
+
+  /* Hiding the generated subtitle is not enough on its own: the empty h1 still reserves a line
+     box, measured at 22px of nothing above the first field. */
+  .pf-v5-c-login__main-header {
+    display: none;
+  }
+
+  .pf-v5-c-form-control,
+  .pf-v5-c-input-group,
+  .pf-v5-c-button.pf-m-primary,
+  #kc-login {
+    min-height: 2.75rem;
+  }
+
+  .pf-v5-c-input-group .pf-v5-c-form-control,
+  .pf-v5-c-button.pf-m-control,
+  .pf-v5-c-input-group__item .pf-v5-c-button {
+    min-height: 2.625rem;
+  }
+
+  .pf-v5-c-login__main-body {
+    padding-top: 0.75rem;
+  }
+}
+
+/* Tighter still. Browser zoom is the reason this tier exists: at 125% on a 768px screen the CSS
+   viewport drops to roughly 420px once the window chrome is taken out, which is shorter than any
+   laptop appears to be on paper. Nothing is removed here, only compressed. */
+@media (max-height: 540px) {
+  :root {
+    --vo-pad-page: 0.625rem;
+    --vo-pad-main: 0.25rem;
+    --vo-pad-body: 0.5rem;
+    --vo-gap-field: 0.625rem;
+    --vo-pad-footer: 0.5rem;
+  }
+
+  .pf-v5-c-form__label {
+    margin-bottom: 0.25rem;
+  }
+
+  .pf-v5-c-form__actions {
+    margin-top: 0.25rem;
   }
 }
 
 /* ---------- brand ---------- */
 
-#kc-header {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  display: flex;
-  justify-content: flex-start;
-  text-align: left;
-  padding: 0;
-  margin: 0;
-}
-
-@media (max-width: 1280px) {
-  #kc-header { left: 1rem; }
-}
-
-@media (max-width: 1024px) {
-  #kc-header { position: static; margin-bottom: 2rem; }
-}
-
 #kc-header-wrapper {
   text-align: left;
   width: 100%;
+  margin: 0;
   display: flex;
   align-items: center;
   /* Not gap: the display name is two spans, and a gap would space those apart too - which is
@@ -150,10 +333,10 @@ body#keycloak-bg::before {
 #kc-header-wrapper::before {
   content: '';
   flex: 0 0 auto;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin-right: 0.5rem;
-  border-radius: 0.5rem;
+  width: clamp(2.25rem, 4vh, 2.75rem);
+  height: clamp(2.25rem, 4vh, 2.75rem);
+  margin-right: 0.625rem;
+  border-radius: var(--vo-radius-sm);
   background-image: url('../img/vision-digital-lab.svg');
   background-size: contain;
   background-repeat: no-repeat;
@@ -164,9 +347,11 @@ body#keycloak-bg::before {
 #kc-header-wrapper.pf-v5-c-brand,
 #kc-header-wrapper * {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.375rem;
+  /* The brand is the heading now that "Welcome back" is gone, so it carries the weight that the
+     h1 used to. */
+  font-size: clamp(1.5rem, 2.6vh, 1.875rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--vo-fg) !important;
   text-transform: none;
   opacity: 1 !important;
@@ -190,7 +375,6 @@ body#keycloak-bg::before {
   /* PatternFly sets align-self: start here, which beats the container's align-items and left the
      form sized to its own content - 255px inside a 330px column, and the heading narrower still. */
   align-self: stretch;
-  width: 100%;
 }
 
 .pf-v5-c-login__main-header {
@@ -200,42 +384,88 @@ body#keycloak-bg::before {
   display: block;
 }
 
+/* ---------- headings ---------- */
+
+/* The heading message is empty, so this element renders nothing of its own - it exists only to
+   carry the line below. Zeroed so an empty h1 cannot contribute a line box of its own height. */
 #kc-page-title {
   width: 100%;
-  font-size: 2.25rem;
-  line-height: 1.5;
-  font-weight: 700;
-  letter-spacing: normal;
-  color: var(--vo-fg);
+  font-size: 0;
+  line-height: 0;
+  margin: 0;
   text-align: left;
 }
 
+/* The subtitle. A theme that does not fork the template cannot add an element, so it is generated
+   content - which is also why it can never hold a link. */
 #kc-page-title::after {
   content: 'Log in to your VisionOne account';
   display: block;
-  margin-top: 0;
+  margin: 0;
   font-size: 1rem;
-  line-height: 1.5;
-  font-weight: 400;
+  line-height: 1.4;
+  font-weight: 500;
   letter-spacing: normal;
-  color: var(--vo-fg);
+  color: var(--vo-fg-soft);
 }
 
+/* 64px of padding under the sign-in button, on a page that has to fit one screen. Three things
+   had to line up before this would go away, and the first two attempts each missed one:
+
+     1. PatternFly writes it as the LOGICAL property padding-block-end, so padding-bottom does not
+        override it reliably.
+     2. The rule that wins is
+          .pf-v5-c-login__main > :last-child:not(.pf-v5-c-login__main-footer)
+        at specificity (0,3,0) - higher than a two-class selector, so the obvious override lost.
+     3. That rule reads --pf-v5-c-login__main-footer--PaddingBottom, NOT the __main-body one you
+        would expect from the element it lands on.
+
+   Setting the variable on the element is what actually settles it: PatternFly's own rule then
+   computes to zero whatever its specificity. It is set on main-body only, and main-footer is a
+   sibling rather than a descendant, so the real footer's padding is untouched.
+
+   Worth knowing why this hid for so long: the :last-child only matches on the re-authenticate
+   variant of the page, where there is no __main-footer after the body. On the ordinary sign-in
+   page main-body is not the last child, so the local tests looked clean. */
+.pf-v5-c-login__main > .pf-v5-c-login__main-body:last-child,
+.pf-v5-c-login__main .pf-v5-c-login__main-body,
 .pf-v5-c-login__main-body {
-  padding: 1.5rem 0 0;
+  --pf-v5-c-login__main-body--PaddingBottom: 0;
+  --pf-v5-c-login__main-footer--PaddingBottom: 0;
+  padding: var(--vo-pad-body) 0 0;
+  padding-bottom: 0;
+  padding-block-end: 0;
+}
+
+/* Keycloak hangs a utility margin on the form wrapper (pf-v5-u-mb-md-on-md), worth another 16px
+   below the button for the same nothing. */
+.pf-v5-c-login__main-body > .pf-v5-c-form {
+  margin-bottom: 0;
 }
 
 /* ---------- fields ---------- */
 
+.pf-v5-c-form {
+  --pf-v5-c-form--GridGap: var(--vo-gap-field);
+}
+
+/* PatternFly renders an options group between the password field and the submit button whether or
+   not the realm has anything to put in it. With "remember me" off it is an empty div that still
+   takes a grid row, which is the 78px of nothing that sat under "Forgot password?". */
+.pf-v5-c-form__group:empty {
+  display: none;
+}
+
 .pf-v5-c-form__label-text {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--vo-fg);
+  letter-spacing: 0.01em;
+  color: var(--vo-fg-soft);
 }
 
 /* The label sat on the input with its descenders almost touching the border. */
 .pf-v5-c-form__label {
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.4375rem;
 }
 
 .pf-v5-c-form-control,
@@ -248,7 +478,7 @@ body#keycloak-bg::before {
   border: 1px solid var(--vo-border);
   border-radius: var(--vo-radius);
   background-color: var(--vo-card);
-  min-height: 2.875rem;
+  min-height: 3rem;
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   /* The wrapper carries the border; the input has to fill it. PatternFly leaves the input at
@@ -259,6 +489,11 @@ body#keycloak-bg::before {
   padding: 0;
 }
 
+.pf-v5-c-form-control:hover,
+.pf-v5-c-input-group:hover {
+  border-color: var(--vo-border-strong);
+}
+
 .pf-v5-c-form-control > input,
 .pf-v5-c-input-group input {
   flex: 1 1 auto;
@@ -266,7 +501,7 @@ body#keycloak-bg::before {
   min-width: 0;
   height: auto;
   align-self: stretch;
-  padding: 0 0.875rem;
+  padding: 0 0.9375rem;
   margin: 0;
   border: 0;
   line-height: normal;
@@ -299,15 +534,19 @@ body#keycloak-bg::before {
   border: 0 !important;
   border-radius: 0;
   box-shadow: none !important;
-  min-height: 2.75rem;
+  min-height: 2.875rem;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.pf-v5-c-input-group:hover {
+  border-color: var(--vo-border-strong);
 }
 
 .pf-v5-c-form-control:focus-within,
 .pf-v5-c-input-group:focus-within {
   border-color: var(--vo-primary);
-  box-shadow: 0 0 0 3px rgba(30, 99, 233, 0.18);
+  box-shadow: 0 0 0 3px rgba(30, 99, 233, 0.16);
   outline: none;
 }
 
@@ -332,7 +571,7 @@ input#password {
   color: var(--vo-fg) !important;
   -webkit-text-fill-color: var(--vo-fg);
   background: transparent;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
@@ -360,7 +599,8 @@ input#password:-webkit-autofill {
   border: 0 !important;
   color: var(--vo-muted) !important;
   box-shadow: none !important;
-  min-height: 2.75rem;
+  min-height: 2.875rem;
+  padding-inline: 0.875rem;
 }
 
 /* PatternFly draws the control button's underline as an ::after, which survived border:0 and
@@ -374,7 +614,78 @@ input#password:-webkit-autofill {
 .pf-v5-c-button.pf-m-control:hover,
 .pf-v5-c-input-group__item .pf-v5-c-button:hover {
   color: var(--vo-primary) !important;
-  background-color: var(--vo-primary-soft) !important;
+  background-color: transparent !important;
+}
+
+/* ---------- a rejected sign-in ---------- */
+
+/* There was no styling for this at all, which is why a wrong password produced a message and no
+   visible change to the fields. Keycloak sets pf-m-error on the username wrapper by itself, so
+   that is styled directly and works with JavaScript off; js/login-errors.js adds .vo-invalid to
+   the password group as well, because the realm does not disclose which of the two was wrong. */
+.pf-v5-c-form-control.pf-m-error,
+.pf-v5-c-input-group.vo-invalid,
+.pf-v5-c-form-control.vo-invalid {
+  border-color: var(--vo-critical);
+  background-color: #fffaf9;
+}
+
+.pf-v5-c-form-control.pf-m-error:focus-within,
+.pf-v5-c-input-group.vo-invalid:focus-within,
+.pf-v5-c-form-control.vo-invalid:focus-within {
+  border-color: var(--vo-critical);
+  box-shadow: 0 0 0 3px rgba(197, 57, 23, 0.16);
+}
+
+/* Hover must not repaint the border grey over the error. */
+.pf-v5-c-form-control.pf-m-error:hover,
+.pf-v5-c-input-group.vo-invalid:hover,
+.pf-v5-c-form-control.vo-invalid:hover {
+  border-color: var(--vo-critical);
+}
+
+.pf-v5-c-helper-text__item.pf-m-error,
+.pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text {
+  color: var(--vo-critical);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ---------- "Forgot password?" ---------- */
+
+/* Keycloak renders it as helper text hanging off the password field, so that is where it has to
+   be styled from. Right-aligned and quiet: it is the escape hatch, not the thing to press. It was
+   the same weight and the same blue as the submit button, three lines above it. */
+.pf-v5-c-form__helper-text {
+  margin-top: 0.375rem;
+}
+
+/* justify-content, not text-align. PatternFly makes both of these flex containers, so the anchor
+   is a flex child and text-align on an ancestor does nothing to it - which is why the first
+   attempt at this left the link exactly where it was.
+   
+   Scoped with :has(), because a failed sign-in puts its error message in a helper-text block of
+   exactly the same class. Unscoped, this right-aligned "Invalid username or password" too, which
+   reads as a layout fault rather than as an error. */
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']),
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']) .pf-v5-c-helper-text,
+.pf-v5-c-form__helper-text:has(a[href*='reset-credentials']) .pf-v5-c-helper-text__item {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pf-v5-c-form__helper-text a,
+a[href*='reset-credentials'] {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--vo-muted);
+  text-decoration: none;
+}
+
+.pf-v5-c-form__helper-text a:hover,
+a[href*='reset-credentials']:hover {
+  color: var(--vo-primary);
+  text-decoration: underline;
 }
 
 /* ---------- checkbox and the primary button ---------- */
@@ -390,23 +701,50 @@ input#password:-webkit-autofill {
   color: var(--vo-fg);
 }
 
+/* PatternFly gives this -8px horizontal margins, to cancel the spacing between buttons when
+   there are several in a row. With one full-width button it simply makes the block 16px wider
+   than the column that holds it, and that 8px of overflow was drawing a horizontal scrollbar
+   across the page between the button and the footer. */
+.pf-v5-c-form__actions {
+  margin-top: 0.5rem;
+  margin-inline: 0;
+  margin-bottom: 0;
+  gap: 0.5rem;
+}
+
+/* The button carries its own 8px margin, which is the other half of the same PatternFly pattern:
+   the wrapper's negative margin existed to cancel it. Zeroing only the wrapper left the button
+   384px wide under 400px fields - inset by exactly that 8px on each side, which is visible the
+   moment you look at the two edges together. Both halves have to go. */
+.pf-v5-c-form__actions > .pf-v5-c-button,
+.pf-v5-c-form__actions #kc-login {
+  margin: 0;
+}
+
 .pf-v5-c-button.pf-m-primary,
 #kc-login {
   --pf-v5-c-button--BorderRadius: var(--vo-radius);
   background-color: var(--vo-primary);
   border-radius: var(--vo-radius);
-  min-height: 2.5rem;
+  min-height: 3rem;
   width: 100%;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  box-shadow: none;
-  transition: background-color 0.15s ease, filter 0.15s ease;
+  font-size: 0.9375rem;
+  /* 700 at this size reads as shouting next to 600 labels. */
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(31, 42, 60, 0.12);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
 }
 
 .pf-v5-c-button.pf-m-primary:hover,
 #kc-login:hover {
   background-color: var(--vo-primary-hover);
+  box-shadow: 0 2px 8px rgba(30, 99, 233, 0.28);
+}
+
+.pf-v5-c-button.pf-m-primary:active,
+#kc-login:active {
+  transform: translateY(1px);
 }
 
 .pf-v5-c-button.pf-m-primary:focus-visible,
@@ -439,10 +777,11 @@ a:hover {
   border-radius: var(--vo-radius);
   border: 0;
   background-color: var(--vo-primary-soft);
+  margin-bottom: 1.25rem;
 }
 
 .pf-v5-c-alert.pf-m-danger {
-  background-color: #fdede8;
+  background-color: #fdecE7;
 }
 
 .pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title {
@@ -453,17 +792,95 @@ a:hover {
 
 /* ---------- who built this ---------- */
 
-.pf-v5-c-login__container::after {
-  content: 'A Vision Digital Lab product';
-  display: block;
-  margin-top: 2rem;
-  color: var(--vo-muted);
+/* This was a ::after on the container carrying the same sentence as generated content. Generated
+   content cannot hold a link, and on a page someone has been emailed a link to, the footer is
+   what shows the page belongs to a real company: somewhere to click, and a privacy policy to
+   read before typing a password. It is a real element now, from footer.ftl. */
+.vo-login-footer {
+  padding-top: var(--vo-pad-footer);
+  border-top: 1px solid var(--vo-border);
   font-size: 0.8125rem;
+  color: var(--vo-muted);
+}
+
+/* One row. This was a sentence above a list of links and it cost 62px of a page that has to fit
+   one screen; as a single row of five it is under 30. "A Vision Digital Lab product" became the
+   first link rather than a line of its own - it says the same thing, in a quarter of the height,
+   and it is now clickable where before only part of the sentence was. */
+.vo-login-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Muted, and no underline until you reach for it. These are reference links at the foot of the
+   page; the only thing that should look clickable-and-important here is the sign-in button. */
+.vo-login-footer a {
+  color: var(--vo-muted);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.vo-login-footer a:hover,
+.vo-login-footer a:focus-visible {
+  color: var(--vo-primary);
+  text-decoration: underline;
+}
+
+/* ---------- the way back out of an info page ---------- */
+
+/* Keycloak's info.ftl ends a completed password reset with "Your account has been updated" and a
+   plain text link, which read as a dead end - there was nothing on the page that looked like a
+   way back in. Same treatment as the sign-in button, because at that moment it is the only thing
+   on the page the person wants to press. */
+#kc-info-message .instruction {
+  margin-bottom: 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--vo-fg-soft);
+}
+
+#kc-info-message a {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3rem;
+  padding: 0.8125rem 1rem;
+  border-radius: var(--vo-radius);
+  background-color: var(--vo-primary);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(31, 42, 60, 0.12);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#kc-info-message a:hover,
+#kc-info-message a:focus-visible {
+  background-color: var(--vo-primary-hover);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30, 99, 233, 0.28);
+  text-decoration: none;
+}
+
+#kc-info-message a:focus-visible {
+  outline: 2px solid var(--vo-primary);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pf-v5-c-button.pf-m-primary,
-  #kc-login {
+  #kc-login,
+  #kc-info-message a {
     transition: none;
+  }
+  .pf-v5-c-button.pf-m-primary:active,
+  #kc-login:active {
+    transform: none;
   }
 }

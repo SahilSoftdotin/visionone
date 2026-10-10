@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { setTokenProvider } from '@/lib/api';
+import { wasSignedOutForInactivity } from '@/lib/auth';
 import { AuthScreen, AuthSplash } from './AuthScreen';
 
 /**
@@ -79,13 +80,20 @@ export function RequireAuth() {
  */
 export function LoginRoute() {
   const auth = useAuth();
+  const location = useLocation();
   const started = useRef(false);
+
+  // An idle sign-out comes back here on purpose, and must NOT hand straight over again. Without
+  // this the redirect fires on mount, Keycloak shows its own login page, and the one thing the
+  // person needs to know - that nothing went wrong, they were just away - is never on screen.
+  const expired = wasSignedOutForInactivity(location.search);
 
   useEffect(() => {
     if (auth.isAuthenticated || auth.error || started.current || hasPendingCallback()) return;
+    if (expired) return;
     started.current = true;
     void auth.signinRedirect();
-  }, [auth]);
+  }, [auth, expired]);
 
   if (auth.isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -93,7 +101,7 @@ export function LoginRoute() {
 
   return (
     <AuthScreen
-      state={auth.error ? 'error' : 'working'}
+      state={auth.error ? 'error' : expired ? 'expired' : 'working'}
       message={auth.error?.message}
       onSignIn={() => {
         started.current = true;

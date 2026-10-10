@@ -68,6 +68,19 @@ class TenantIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("/me carries the inactivity policy the browser enforces")
+    void sessionCarriesTheIdlePolicy() throws Exception {
+        // The browser reads these two off /me and starts its idle timer from them. Asserted
+        // through the wire rather than against the record, because the risk is the field name and
+        // the nesting - a renamed or unserialized sessionPolicy leaves the SPA silently falling
+        // back to its own defaults, which looks exactly like it working.
+        mockMvc.perform(get("/api/v1/me").with(clientOwner()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionPolicy.idleTimeoutMinutes").value(15))
+                .andExpect(jsonPath("$.sessionPolicy.warningSeconds").value(60));
+    }
+
+    @Test
     @DisplayName("Client Owner of THRIVE reads THRIVE overview")
     void clientOwnerReadsOwnOrganization() throws Exception {
         mockMvc.perform(get("/api/v1/orgs/{orgId}/overview", THRIVE)

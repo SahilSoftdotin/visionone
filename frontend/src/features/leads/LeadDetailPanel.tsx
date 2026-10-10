@@ -80,7 +80,9 @@ export function LeadDetailPanel({ orgId, month, leadId, editable, onClose }: Pro
                 [
                   'First response',
                   data.lead.responseMinutes === null
-                    ? 'never'
+                    ? data.lead.status === 'NEW'
+                      ? 'awaiting'
+                      : 'never'
                     : data.lead.responseMinutes < 60
                       ? `${data.lead.responseMinutes} min`
                       : `${Math.round(data.lead.responseMinutes / 60)} h`,
