@@ -97,6 +97,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                 // Follow redirects: an export URL that moves host is Healthie's business, not ours.
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
+        logZoneAssumption();
     }
 
     /**
@@ -118,6 +119,27 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
             return "https://" + trimmed.substring("webcal://".length());
         }
         return trimmed;
+    }
+
+    /**
+     * States the timezone assumption at startup, with a worked example.
+     *
+     * <p>Every timestamp in the export is floating, so this one setting decides when every
+     * appointment is - and being wrong about it is completely silent: the calendar fills, the
+     * counts look right, and everything sits an hour off. It cost an hour to find once already,
+     * and only because a confirmation email happened to name a timezone.
+     *
+     * <p>So the assumption is printed rather than merely held. An operator who knows the practice
+     * can read this line and see immediately whether 11:00 in Healthie is landing where they
+     * expect.
+     */
+    private void logZoneAssumption() {
+        var example = java.time.LocalDateTime.of(2026, 10, 11, 11, 0).atZone(zone);
+        log.info(
+                "Healthie ICS timestamps are read as {} - a feed time of 11:00 is stored as {}. "
+                        + "This is the zone HEALTHIE writes in, which need not be the practice's own.",
+                zone,
+                example.toInstant());
     }
 
     private static ZoneId resolveZone(String configured) {

@@ -60,9 +60,18 @@ visionone:
     # Empty rather than absent, so the application still starts and reports NOT_CONNECTED instead
     # of failing at boot; unlike api-key, a missing export URL has an honest status to report.
     ics-url: ${VISIONONE_HEALTHIE_ICS_URL:}
-    # Only used for timestamps the export leaves floating - no Z suffix and no TZID. Anything
-    # already absolute ignores this. Set it to the practice's own timezone.
-    ics-zone: ${VISIONONE_HEALTHIE_ICS_ZONE:America/New_York}
+    # The zone Healthie writes its timestamps in. NOT the practice's own timezone - those are
+    # different things and assuming they match put every appointment an hour out. THRIVE displays
+    # in America/New_York and Healthie exports its calendar in Central; the organization row and
+    # this setting disagree on purpose.
+    #
+    # It matters because every timestamp in the export is floating - no Z suffix, no TZID - so
+    # this is the only thing deciding when an appointment actually is. Getting it wrong is silent.
+    #
+    # To verify for an account: open one appointment in the Healthie portal, note the time it
+    # shows and the zone the portal is displaying in, then find the same appointment's DTSTART in
+    # the export. The offset between them is what this must cancel out.
+    ics-zone: ${VISIONONE_HEALTHIE_ICS_ZONE:America/Chicago}
     # What a booking is assumed to last when the feed gives neither an end nor a duration.
     default-duration-minutes: ${VISIONONE_HEALTHIE_DEFAULT_DURATION_MINUTES:45}
   appointment:

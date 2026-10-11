@@ -312,6 +312,34 @@ class HealthieIcsSchedulingProviderTest {
     }
 
     @Test
+    @DisplayName("reads feed times as Central, which is what Healthie actually writes")
+    void feedTimesAreCentralNotEastern() {
+        // Measured against the real account, not assumed. An appointment the Healthie portal
+        // shows as 12:45 PM with its display set to America/New_York arrives in the export as
+        // DTSTART:20261011T114500 - one hour earlier, i.e. Central.
+        //
+        // The zone Healthie writes in is NOT the practice's own: THRIVE's organization row says
+        // America/New_York and its export is Central. Reading the feed as Eastern put every
+        // appointment an hour early, and nothing about it looked wrong - the calendar filled, the
+        // counts were right, the times were simply incorrect.
+        var provider = new HealthieIcsSchedulingProvider(
+                healthie.baseUrl() + "/appointments/ics_export.ics?access_token=t",
+                "America/Chicago", 45, 2000, 5000);
+        healthie.stubFor(get(urlPathEqualTo("/appointments/ics_export.ics"))
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "text/calendar")
+                        .withBody(calendar(event("a", "20261011T114500", "20261011T121500", "In Person", null)))));
+
+        var at = provider.appointments(ORG, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))
+                .get(0).startsAt();
+
+        assertThat(at).isEqualTo(Instant.parse("2026-10-11T16:45:00Z"));
+        // Which is what the practice sees on its own screen.
+        assertThat(at.atZone(java.time.ZoneId.of("America/New_York")).toLocalTime())
+                .isEqualTo(java.time.LocalTime.of(12, 45));
+    }
+
+    @Test
     @DisplayName("passes the contact type through, because that is all SUMMARY ever holds")
     void contactTypeIsTheSummary() {
         // The three values a real export actually uses, measured across 5,257 events. There is no

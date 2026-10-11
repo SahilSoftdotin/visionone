@@ -127,10 +127,12 @@ services:
       VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD: ${VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD:-90}
 
       # HEALTHIE_ICS. The whole URL is a bearer credential - the access token is in its query
-      # string - so it lives in .env.prod and is never logged. The zone is only consulted for
-      # timestamps the export leaves floating, which in Healthie's case is all of them.
+      # string - so it lives in .env.prod and is never logged. The zone is the one HEALTHIE
+      # writes in, which is not necessarily the practice's own: THRIVE displays in New York and
+      # its export is Central. Every timestamp in the feed is floating, so this alone decides
+      # when an appointment is, and getting it wrong is silent.
       VISIONONE_HEALTHIE_ICS_URL: ${VISIONONE_HEALTHIE_ICS_URL:-}
-      VISIONONE_HEALTHIE_ICS_ZONE: ${VISIONONE_HEALTHIE_ICS_ZONE:-America/New_York}
+      VISIONONE_HEALTHIE_ICS_ZONE: ${VISIONONE_HEALTHIE_ICS_ZONE:-America/Chicago}
 
       # HEALTHIE (paid GraphQL API). Unused while the ICS route is the one configured.
       VISIONONE_HEALTHIE_API_KEY: ${VISIONONE_HEALTHIE_API_KEY:-}
