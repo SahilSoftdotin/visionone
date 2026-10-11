@@ -6,11 +6,15 @@ spring:
 visionone:
   seed:
     endpoint-enabled: false
+  # Env-driven, defaulting to DEMO so nothing changes unless it is asked for. These were
+  # hardcoded, which meant a deployed adapter could never actually be switched on - the Google Ads
+  # adapter has been live in the image for some time and has never once run, because advertising
+  # was pinned to DEMO here with no way to override it.
   providers:
-    scheduling: DEMO
-    voice: DEMO
-    advertising: DEMO
-    analytics: DEMO
+    scheduling: ${VISIONONE_PROVIDER_SCHEDULING:DEMO}
+    voice: ${VISIONONE_PROVIDER_VOICE:DEMO}
+    advertising: ${VISIONONE_PROVIDER_ADVERTISING:DEMO}
+    analytics: ${VISIONONE_PROVIDER_ANALYTICS:DEMO}
 
 logging:
   level:

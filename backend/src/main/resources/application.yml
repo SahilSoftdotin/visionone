@@ -1,6 +1,27 @@
 spring:
   application:
     name: visionone-api
+  # Outbound mail, for operational alerts only. Without a host no JavaMailSender bean exists at
+  # all, and AlertMailer treats that as a supported state rather than a startup failure - a
+  # development machine should not need an SMTP server to run a sync.
+  #
+  # These are deliberately the SAME four variables scripts/render-realm.py feeds to Keycloak for
+  # password-reset mail. One Resend credential, two consumers. They were briefly two names for
+  # one secret - SMTP_USER for Keycloak and SMTP_USERNAME here - which is the kind of thing that
+  # works on the machine where both were set and nowhere else.
+  #
+  # The defaults mirror scripts/render-realm.py exactly, because the production server sets only
+  # VISIONONE_SMTP_PASSWORD and relies on the rest defaulting. Requiring a host here would have
+  # meant alerts silently never sending on the one machine that needs them, while password reset
+  # carried on working - the most confusing possible half-configured state.
+  mail:
+    host: ${VISIONONE_SMTP_HOST:smtp.resend.com}
+    port: ${VISIONONE_SMTP_PORT:587}
+    username: ${VISIONONE_SMTP_USER:resend}
+    password: ${VISIONONE_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
   datasource:
     url: ${VISIONONE_DB_URL:jdbc:postgresql://localhost:5432/visionone}
     username: ${VISIONONE_DB_USER:visionone}
@@ -42,6 +63,59 @@ server:
 visionone:
   cors:
     allowed-origins: ${VISIONONE_CORS_ORIGINS:http://localhost:5173}
+  healthie:
+    # api-key deliberately has NO default. The adapter only exists when the scheduling provider is
+    # HEALTHIE, so this is read only when it is genuinely needed - and then an absent key should
+    # stop the application at startup with a clear message rather than let it run and fail every
+    # sync with a 401 that looks like a Healthie outage.
+    api-key: ${VISIONONE_HEALTHIE_API_KEY}
+    # Sandbox is a different host. securestaging is free and separate from any production account,
+    # which is where an integration should be proven before it is pointed at a real clinic.
+    endpoint: ${VISIONONE_HEALTHIE_ENDPOINT:https://api.gethealthie.com/graphql}
+    # Empty is allowed: without it webhooks are rejected and the scheduled sync below is the only
+    # path. That is a slower system, not a broken one.
+    webhook-secret: ${VISIONONE_HEALTHIE_WEBHOOK_SECRET:}
+    # The free route. Healthie's calendar export needs no paid API add-on, and it is what the
+    # HEALTHIE_ICS scheduling provider reads. The whole URL is a bearer credential - the access
+    # token is in its query string - so it belongs in .env.prod and nowhere a log can reach it.
+    # Empty rather than absent, so the application still starts and reports NOT_CONNECTED instead
+    # of failing at boot; unlike api-key, a missing export URL has an honest status to report.
+    ics-url: ${VISIONONE_HEALTHIE_ICS_URL:}
+    # The zone Healthie writes its timestamps in. NOT the practice's own timezone - those are
+    # different things and assuming they match put every appointment an hour out. THRIVE displays
+    # in America/New_York and Healthie exports its calendar in Central; the organization row and
+    # this setting disagree on purpose.
+    #
+    # It matters because every timestamp in the export is floating - no Z suffix, no TZID - so
+    # this is the only thing deciding when an appointment actually is. Getting it wrong is silent.
+    #
+    # To verify for an account: open one appointment in the Healthie portal, note the time it
+    # shows and the zone the portal is displaying in, then find the same appointment's DTSTART in
+    # the export. The offset between them is what this must cancel out.
+    ics-zone: ${VISIONONE_HEALTHIE_ICS_ZONE:America/Chicago}
+    # What a booking is assumed to last when the feed gives neither an end nor a duration.
+    default-duration-minutes: ${VISIONONE_HEALTHIE_DEFAULT_DURATION_MINUTES:45}
+  appointment:
+    sync:
+      # Off unless asked for. The scheduler only exists when this is true, so a demo deployment
+      # never races the seed, and turning a real provider on is two settings rather than one.
+      enabled: ${VISIONONE_APPOINTMENT_SYNC_ENABLED:false}
+      interval-ms: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:3600000}
+      # How long a sync may keep failing before a human is emailed. A duration rather than a
+      # count of failures, because a count means something different at every interval: three
+      # failures is three hours hourly and fifteen minutes at five-minute polling.
+      alert-after-minutes: ${VISIONONE_SYNC_ALERT_AFTER_MINUTES:30}
+      days-back: ${VISIONONE_APPOINTMENT_SYNC_DAYS_BACK:45}
+      days-forward: ${VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD:90}
+  alerts:
+    # Where operational alerts go. Empty disables sending - the alert is still logged at WARN,
+    # which is the right behaviour on a laptop. Never used for anything patient-facing: Healthie
+    # emails patients about their own appointments and Keycloak sends password resets, and a
+    # second sender would mean duplicates from the less well-informed system.
+    to: ${VISIONONE_ALERT_EMAIL:}
+    # Defaults to the same sender Keycloak uses, because it is the same mailbox and the same
+    # verified domain at Resend. Overridable only if alerts should come from somewhere else.
+    from: ${VISIONONE_ALERT_FROM:${VISIONONE_SMTP_FROM:alerts@visiondigitallab.com}}
   session:
     # How long a CLIENT user may sit idle in the browser before being signed out, and how much
     # warning they get. Vision Admin is never signed out for inactivity. Served to the SPA on /me

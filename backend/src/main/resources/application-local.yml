@@ -1,4 +1,8 @@
 spring:
+  # Matches the host port infra/docker-compose.yml publishes. The base default is 5432, which on a
+  # machine running a native PostgreSQL service silently resolves to that one instead.
+  datasource:
+    url: ${VISIONONE_DB_URL:jdbc:postgresql://localhost:55432/visionone}
   flyway:
     locations: classpath:db/migration,classpath:db/demo
 
@@ -6,11 +10,14 @@ spring:
 visionone:
   seed:
     endpoint-enabled: true
+  # Env-driven, defaulting to DEMO, for the same reason as the demo profile: hardcoding these
+  # means a real adapter cannot be exercised without editing a tracked file, which is how the
+  # Google Ads adapter sat in the image for months having never once run.
   providers:
-    scheduling: DEMO
-    voice: DEMO
-    advertising: DEMO
-    analytics: DEMO
+    scheduling: ${VISIONONE_PROVIDER_SCHEDULING:DEMO}
+    voice: ${VISIONONE_PROVIDER_VOICE:DEMO}
+    advertising: ${VISIONONE_PROVIDER_ADVERTISING:DEMO}
+    analytics: ${VISIONONE_PROVIDER_ANALYTICS:DEMO}
 
 logging:
   level:

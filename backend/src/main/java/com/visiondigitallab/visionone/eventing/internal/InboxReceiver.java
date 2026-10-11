@@ -1,5 +1,6 @@
 package com.visiondigitallab.visionone.eventing.internal;
 
+import com.visiondigitallab.visionone.eventing.api.InboxGateway;
 import com.visiondigitallab.visionone.eventing.domain.InboxSource;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -18,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
  * redelivery a no-op, in one statement, with no race between checking and inserting.
  */
 @Service
-public class InboxReceiver {
+public class InboxReceiver implements InboxGateway {
 
     private static final Logger log = LoggerFactory.getLogger(InboxReceiver.class);
 
@@ -33,6 +34,7 @@ public class InboxReceiver {
      *     the caller answers 200: telling a provider "already had it" is not an error, and an
      *     error would make it retry for three days.
      */
+    @Override
     @Transactional
     public boolean receive(
             InboxSource source,

@@ -9,10 +9,17 @@ services:
       POSTGRES_PASSWORD: visionone
       POSTGRES_DB: visionone
     ports:
-      # Host port is configurable because a machine with a native PostgreSQL service already owns
-      # 5432, and compose then cannot bind. Override with VISIONONE_DB_HOST_PORT; the container
-      # side never changes, so nothing inside the network is affected.
-      - "${VISIONONE_DB_HOST_PORT:-5432}:5432"
+      # 55432, not 5432, because a machine with a native PostgreSQL service already owns 5432.
+      #
+      # The comment here used to say compose "cannot bind" in that case. On Windows it binds
+      # perfectly happily alongside the native service and then the two of them share the port,
+      # which is far worse than a clean failure: the API connects to whichever answers, usually
+      # the native one, and reports "password authentication failed for user visionone" against a
+      # database nobody thinks they are using. That cost an afternoon.
+      #
+      # Override with VISIONONE_DB_HOST_PORT. The container side never changes, so nothing inside
+      # the network is affected - Keycloak still reaches postgres:5432.
+      - "${VISIONONE_DB_HOST_PORT:-55432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro

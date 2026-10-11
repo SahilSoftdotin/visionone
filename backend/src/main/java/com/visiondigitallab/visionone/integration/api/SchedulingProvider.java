@@ -40,12 +40,74 @@ public interface SchedulingProvider {
     ProviderStatus status(UUID organizationId);
 
     /**
+     * Whether this provider is the authority on whether an appointment was attended.
+     *
+     * <p>A second deliberate widening, for a problem that only appears with a second adapter. The
+     * sync mirrors provider state over VisionOne's row on every pass, which is correct when the
+     * provider knows the outcome: Healthie's GraphQL API reports {@code pm_status}, so if a booking
+     * is corrected from attended back to pending there, that correction should land here too.
+     *
+     * <p>The .ics export cannot express attendance at all - iCalendar has CONFIRMED, TENTATIVE and
+     * CANCELLED and nothing else. A provider like that reports every past appointment as BOOKED
+     * forever, so mirroring it would erase an ATTENDED or NO_SHOW that Vision recorded by hand,
+     * every hour, with no trace of what happened. The alternative to this flag was never writing
+     * attendance from a sync at all, which would have broken the richer adapter to accommodate the
+     * poorer one.
+     *
+     * <p>Defaults to true so an adapter that does know says nothing, and only one that does not has
+     * to declare it. {@code AppointmentSyncService} is what honours it.
+     */
+    default boolean reportsAttendance() {
+        return true;
+    }
+
+    /**
+     * Whether an appointment missing from a sync should be treated as cancelled.
+     *
+     * <p>A third widening, and the counterpart to the one above. Some feeds are a complete
+     * statement of the calendar: the .ics export lists every appointment the practice has, carries
+     * no status field whatsoever, and simply stops listing one that is cancelled. For a feed like
+     * that, disappearance is the <em>only</em> signal a cancellation ever produces, and ignoring it
+     * leaves cancelled appointments reading as booked indefinitely.
+     *
+     * <p>Defaults to false, because for most providers absence means something far less certain -
+     * a paging bug, a filter, a partial response - and acting on it would cancel a practice's
+     * calendar over a transient fault. The Healthie GraphQL adapter leaves it false and relies on
+     * webhooks, which say explicitly what happened.
+     *
+     * <p>An adapter returning true is promising something specific: that a response it accepted is
+     * a complete one. {@code HealthieIcsSchedulingProvider} earns that by refusing a body that does
+     * not end where a calendar should.
+     */
+    default boolean reconcilesByAbsence() {
+        return false;
+    }
+
+    /**
      * Appointments in a closed date range, in the organization's own timezone.
      *
      * @throws SchedulingUnavailableException when the upstream cannot be reached, so the caller can
      *     distinguish "no appointments" from "we do not know"
      */
     List<AppointmentReference> appointments(UUID organizationId, LocalDate from, LocalDate to);
+
+    /**
+     * One appointment by the provider's own id, or null if the provider no longer has it.
+     *
+     * <p>This is a deliberate widening of the port, reviewed rather than slipped in. It is needed
+     * because a webhook is a notification, not data: Healthie sends
+     * {@code {resource_id, resource_id_type, event_type}} and nothing else, so the only way to learn
+     * what actually changed is to ask. Returning the same {@link AppointmentReference} as the range
+     * query keeps the PHI boundary exactly where it was - this adds a way to ask about one booking,
+     * not a way to learn more about it.
+     *
+     * <p>Null means the provider says it is gone, which a caller should treat as a cancellation it
+     * can no longer read, not as an error.
+     *
+     * @throws SchedulingUnavailableException when the upstream cannot be reached, so "deleted" and
+     *     "we could not ask" stay distinguishable
+     */
+    AppointmentReference appointment(UUID organizationId, String externalRef);
 
     /**
      * What VisionOne is allowed to know about an appointment.

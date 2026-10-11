@@ -25,7 +25,7 @@ do {
 
 docker compose -f $compose ps
 Write-Host ''
-Write-Host 'Postgres  localhost:5432   visionone / visionone' -ForegroundColor Green
+Write-Host 'Postgres  localhost:55432  visionone / visionone' -ForegroundColor Green
 Write-Host 'Keycloak  http://localhost:8180   admin / admin' -ForegroundColor Green
 Write-Host ''
 Write-Host 'Next:  cd backend; .\gradlew.bat bootRun --args="--spring.profiles.active=local"'
