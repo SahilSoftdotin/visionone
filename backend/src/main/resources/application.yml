@@ -4,10 +4,15 @@ spring:
   # Outbound mail, for operational alerts only. Without a host no JavaMailSender bean exists at
   # all, and AlertMailer treats that as a supported state rather than a startup failure - a
   # development machine should not need an SMTP server to run a sync.
+  #
+  # These are deliberately the SAME four variables scripts/render-realm.py feeds to Keycloak for
+  # password-reset mail. One Resend credential, two consumers. They were briefly two names for
+  # one secret - SMTP_USER for Keycloak and SMTP_USERNAME here - which is the kind of thing that
+  # works on the machine where both were set and nowhere else.
   mail:
     host: ${VISIONONE_SMTP_HOST:}
     port: ${VISIONONE_SMTP_PORT:587}
-    username: ${VISIONONE_SMTP_USERNAME:}
+    username: ${VISIONONE_SMTP_USER:}
     password: ${VISIONONE_SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: true
@@ -103,7 +108,9 @@ visionone:
     # emails patients about their own appointments and Keycloak sends password resets, and a
     # second sender would mean duplicates from the less well-informed system.
     to: ${VISIONONE_ALERT_EMAIL:}
-    from: ${VISIONONE_ALERT_FROM:alerts@visiondigitallab.com}
+    # Defaults to the same sender Keycloak uses, because it is the same mailbox and the same
+    # verified domain at Resend. Overridable only if alerts should come from somewhere else.
+    from: ${VISIONONE_ALERT_FROM:${VISIONONE_SMTP_FROM:alerts@visiondigitallab.com}}
   session:
     # How long a CLIENT user may sit idle in the browser before being signed out, and how much
     # warning they get. Vision Admin is never signed out for inactivity. Served to the SPA on /me

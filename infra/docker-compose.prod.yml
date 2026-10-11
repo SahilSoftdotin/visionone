@@ -147,11 +147,12 @@ services:
       # Alerts are operational only, never patient-facing. Healthie emails patients about their
       # own appointments and Keycloak sends password resets through its own SMTP settings.
       VISIONONE_ALERT_EMAIL: ${VISIONONE_ALERT_EMAIL:-}
-      VISIONONE_ALERT_FROM: ${VISIONONE_ALERT_FROM:-alerts@visiondigitallab.com}
+      VISIONONE_ALERT_FROM: ${VISIONONE_ALERT_FROM:-}
+      VISIONONE_SMTP_FROM: ${VISIONONE_SMTP_FROM:-}
       VISIONONE_SYNC_ALERT_AFTER_MINUTES: ${VISIONONE_SYNC_ALERT_AFTER_MINUTES:-30}
       VISIONONE_SMTP_HOST: ${VISIONONE_SMTP_HOST:-}
       VISIONONE_SMTP_PORT: ${VISIONONE_SMTP_PORT:-587}
-      VISIONONE_SMTP_USERNAME: ${VISIONONE_SMTP_USERNAME:-}
+      VISIONONE_SMTP_USER: ${VISIONONE_SMTP_USER:-}
       VISIONONE_SMTP_PASSWORD: ${VISIONONE_SMTP_PASSWORD:-}
 
       # Inactivity sign-out for client users. A restart is enough to change these - they are
