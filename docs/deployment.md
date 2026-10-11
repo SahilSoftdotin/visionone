@@ -331,6 +331,29 @@ VALUES (gen_random_uuid(), '<org id>', 'SCHEDULING', 'HEALTHIE_ICS', 'CONNECTED'
 That is deliberate rather than incidental: switching routes is then an act on the data, not
 something a property change does behind its back.
 
+### What was measured against a real account
+
+Four things about the export were settled by testing rather than assumed, and each one had already
+produced a wrong answer before it was checked.
+
+- **The UID is disposable.** Healthie renders this feed with the Ruby `icalendar` gem and sets no
+  UID, so the gem mints a fresh random one per event per request. Two fetches seconds apart return
+  the same appointments under entirely different UIDs - the overlap is zero. Keyed on it, a sync
+  re-inserts the whole calendar every pass. Identity is therefore derived from start, end and
+  summary, plus an occurrence index for the repeats those three cannot separate.
+- **Timestamps are Central, not the practice's timezone.** An appointment the portal shows as
+  12:45 PM with its display set to America/New_York exports as `DTSTART:...T114500`. THRIVE
+  displays in New York; its export is Central. Reading the feed as Eastern put every appointment an
+  hour early and nothing looked wrong.
+- **`SUMMARY` is the contact type, not a person.** Across 5,257 events it takes exactly three
+  values: "In Person", "Phone Call", "Healthie Video Call". The export carries no patient
+  information whatsoever - not a name, not the appointment type, not even the title shown in the
+  portal.
+- **A cancelled appointment disappears.** Confirmed by cancelling a test booking and re-fetching:
+  the event count returned to its exact baseline. There is no `STATUS` property in the feed, so
+  disappearance is the only signal a cancellation ever produces, which is what
+  `reconcilesByAbsence()` exists for.
+
 ### What the export cannot do
 
 - **It cannot say whether someone attended.** iCalendar has CONFIRMED, TENTATIVE and CANCELLED and
@@ -341,10 +364,10 @@ something a property change does behind its back.
 - **There are no webhooks.** Nothing to subscribe to, so the scheduled sync is the only path.
   Polling an export costs nothing per call, so `VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS` can go well
   below the hourly default without a bill attached.
-- **Recurring appointments are skipped, loudly.** Healthie is expected to export one event per
-  appointment with no `RRULE`, and the adapter logs a warning naming the count if that turns out to
-  be wrong. Expanding recurrence correctly needs a real iCalendar library; the current parser
-  notices the case rather than guessing at it.
+- **Recurring appointments are skipped, loudly.** Verified against a real export of 5,256 events:
+  Healthie emits one event per appointment and no `RRULE` at all. The adapter logs a warning naming
+  the count if that ever changes. Expanding recurrence correctly needs a real iCalendar library;
+  the current parser notices the case rather than guessing at it.
 - **It is an undocumented surface.** Healthie publishes no contract for the export's contents and
   could change them. Everything degrades to skipping one event rather than failing a sync, and a
   failed read is reported as an error rather than as an empty calendar.
