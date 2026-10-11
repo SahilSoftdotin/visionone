@@ -63,7 +63,10 @@ export function DayPanel({
         className="flex-1 bg-foreground/20"
         onClick={onClose}
       />
-      <aside className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-border bg-card">
+      {/* The panel itself does not scroll; its list does. With a demo day of two appointments
+          the difference was invisible, but a real one runs to thirty-four and scrolling the
+          whole panel takes the heading and the close button off screen with it. */}
+      <aside className="flex h-full w-full max-w-md flex-col overflow-hidden border-l border-border bg-card">
         <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
             <h2 className="text-base font-semibold">{heading}</h2>
@@ -87,7 +90,7 @@ export function DayPanel({
           </p>
         )}
 
-        <ul className="flex-1 space-y-3 px-5 py-4">
+        <ul className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {appointments.map((a) => (
             <li key={a.id} className="rounded-lg border border-border/70 p-3">
               <div className="flex items-baseline justify-between gap-2">

@@ -34,6 +34,16 @@ const statusTone: Record<string, 'primary' | 'positive' | 'caution' | 'critical'
   CANCELLED: 'critical',
 };
 
+/**
+ * How many appointments the hover card previews before deferring to the day panel.
+ *
+ * Five rather than all of them. The demo data this screen was built against had one or two
+ * appointments a day; a real Healthie calendar averages eighteen and peaks at thirty-four, which
+ * made the card taller than the viewport with no way to reach the rest - it is pointer-events-none
+ * on purpose, so it cannot be scrolled even when it overflows.
+ */
+const HOVER_PREVIEW = 5;
+
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function CalendarScreen() {
@@ -145,6 +155,10 @@ export function CalendarScreen() {
               const items = appointmentsOn(iso);
               const isToday = iso === todayIso;
               const has = items.length > 0;
+              // A card hanging below a cell in the last rows runs off the bottom of the page,
+              // and it cannot be scrolled to because it is pointer-events-none. Flipping it
+              // above those rows keeps it on screen without making it interactive.
+              const flipUp = Math.floor(i / 7) >= Math.ceil(cells.length / 7) - 2;
 
               return (
                 <div
@@ -211,7 +225,12 @@ export function CalendarScreen() {
 
                   {/* Hover card: who, when, what category, and which channel produced it. */}
                   {has && (
-                    <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-1 hidden w-64 -translate-x-1/2 rounded-lg border border-border bg-card p-3 elev-lg group-hover:block">
+                    <div
+                      className={cn(
+                        'pointer-events-none absolute left-1/2 z-30 hidden w-64 -translate-x-1/2 rounded-lg border border-border bg-card p-3 elev-lg group-hover:block',
+                        flipUp ? 'bottom-full mb-1' : 'top-full mt-1',
+                      )}
+                    >
                       <p className="text-xs font-bold">
                         {new Date(year, monthIndex, day).toLocaleDateString(undefined, {
                           weekday: 'long',
@@ -219,8 +238,12 @@ export function CalendarScreen() {
                           month: 'long',
                         })}
                       </p>
+                      {/* Capped. A real practice day here runs to 34 appointments, and an
+                          uncapped list made a card taller than the window that cannot be
+                          scrolled, because it is deliberately pointer-events-none. The day
+                          panel behind a click is the thing that holds the full list. */}
                       <ul className="mt-2 space-y-2">
-                        {items.map((a) => (
+                        {items.slice(0, HOVER_PREVIEW).map((a) => (
                           <li
                             key={a.id}
                             className="border-t border-border pt-2 first:border-0 first:pt-0"
@@ -239,9 +262,14 @@ export function CalendarScreen() {
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                      <p className="mt-2 border-t border-border pt-2 text-[11px] font-semibold text-primary-text">
+                        {items.length > HOVER_PREVIEW
+                          ? `+${items.length - HOVER_PREVIEW} more · click the day to see all ${items.length}`
+                          : 'Click the day to open it'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {calendar.editable
-                          ? 'Click to credit a channel · times are managed in the scheduling system'
+                          ? 'Credit a channel in the day panel · times are managed in the scheduling system'
                           : 'Managed in the scheduling system'}
                       </p>
                     </div>
