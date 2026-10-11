@@ -270,6 +270,64 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         assertThat(byLabel().get("Mo M.")).containsExactly("BOOKED");
     }
 
+    private Map<String, Object> health() {
+        return jdbc.sql("""
+                select status, detail, last_checked_at is not null as checked
+                  from integration_connection
+                 where organization_id = :org and provider_code = 'HEALTHIE_ICS'
+                """)
+                .param("org", THRIVE)
+                .query((rs, n) -> Map.<String, Object>of(
+                        "status", rs.getString(1),
+                        "detail", rs.getString(2) == null ? "" : rs.getString(2),
+                        "checked", rs.getBoolean(3)))
+                .single();
+    }
+
+    @Test
+    @DisplayName("a healthy sync records what it found and when")
+    void recordsHealthOnSuccess() {
+        feed(calendar(event(when(7, 9, 0), when(7, 9, 15), "Ada Keeper")));
+        runSync();
+
+        var health = health();
+        assertThat(health.get("status")).isEqualTo("CONNECTED");
+        assertThat(health.get("checked")).isEqualTo(true);
+        assertThat(health.get("detail").toString()).contains("Synced 1 appointment");
+    }
+
+    @Test
+    @DisplayName("a failing sync says so on the connection row instead of staying green")
+    void recordsHealthOnFailure() {
+        feed(calendar(event(when(7, 9, 0), when(7, 9, 15), "Ada Keeper")));
+        runSync();
+        assertThat(health().get("status")).isEqualTo("CONNECTED");
+
+        // The failure that matters: a regenerated token. Before this, the row said CONNECTED
+        // forever and the only symptom was a calendar that quietly stopped updating.
+        failWith(401);
+        runSync();
+
+        assertThat(health().get("status")).isEqualTo("ERROR");
+        assertThat(health().get("detail").toString()).contains("regenerated");
+        // And the credential itself never reaches the column.
+        assertThat(health().get("detail").toString()).doesNotContain("access_token=test");
+    }
+
+    @Test
+    @DisplayName("the recorded detail names the cancellations it made")
+    void healthMentionsReconciliation() {
+        feed(calendar(
+                event(when(7, 9, 0), when(7, 9, 15), "Ada Keeper"),
+                event(when(7, 10, 0), when(7, 10, 15), "Cass Gone")));
+        runSync();
+
+        feed(calendar(event(when(7, 9, 0), when(7, 9, 15), "Ada Keeper")));
+        runSync();
+
+        assertThat(health().get("detail").toString()).contains("cancelled 1");
+    }
+
     @Test
     @DisplayName("attendance recorded here survives a calendar that keeps saying booked")
     void attendanceSurvivesReplay() {

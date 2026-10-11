@@ -243,7 +243,11 @@ class HealthieIcsSchedulingProviderTest {
         assertThatThrownBy(() -> provider.appointments(ORG, FROM, TO))
                 .isInstanceOf(SchedulingProvider.SchedulingUnavailableException.class)
                 .hasMessageContaining("no events");
-        assertThat(provider.status(ORG)).isEqualTo(ProviderStatus.CONNECTED);
+        // And the connection is reported as faulty afterwards, not healthy. The HTTP exchange
+        // succeeded, so an earlier version answered CONNECTED here - but a feed that returns none
+        // of the practice's appointments is a broken integration, and saying otherwise is how a
+        // misconfigured token stays misconfigured.
+        assertThat(provider.status(ORG)).isEqualTo(ProviderStatus.ERROR);
     }
 
     @Test

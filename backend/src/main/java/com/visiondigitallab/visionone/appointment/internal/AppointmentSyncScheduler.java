@@ -65,35 +65,97 @@ public class AppointmentSyncScheduler {
         for (UUID organizationId : connectedOrganizations()) {
             try {
                 ProviderStatus status = provider.status(organizationId);
-                if (status == ProviderStatus.ERROR || status == ProviderStatus.NEEDS_AUTHORIZATION) {
-                    // Do not call a provider that has just told us it cannot answer, and do not
-                    // write an empty window on top of real data because of it.
+                if (status == ProviderStatus.NOT_CONNECTED || status == ProviderStatus.NEEDS_AUTHORIZATION) {
+                    // Nothing to try: no credential, or one the practice has not authorised.
+                    // Retrying changes nothing until a human changes a setting.
                     log.warn("Skipping appointment sync for {}: provider reports {}", organizationId, status);
+                    recordHealth(organizationId, status, "Provider reported " + status + "; sync skipped");
                     continue;
                 }
+                // ERROR deliberately does NOT skip. status() now reports the last exchange rather
+                // than probing, so skipping on it would mean one bad response stops the sync
+                // permanently - the provider could never report success again because nothing
+                // would ever call it. Retrying IS the recovery, and attempting the real read is
+                // also what produces a usable error message: a pre-flight probe that fails only
+                // tells us "ERROR", while the call itself says the token may have been
+                // regenerated. That message is what lands on the connection row below.
                 LocalDate today = LocalDate.now();
                 LocalDate from = today.minusDays(daysBack);
                 LocalDate to = today.plusDays(daysForward);
                 List<SchedulingProvider.AppointmentReference> refs =
                         provider.appointments(organizationId, from, to);
-                sync.apply(organizationId, provider.providerCode(), refs, provider.reportsAttendance());
+                int applied =
+                        sync.apply(organizationId, provider.providerCode(), refs, provider.reportsAttendance());
+                int cancelled = 0;
 
                 if (provider.reconcilesByAbsence()) {
                     // Only after a successful read. An exception above skips this entirely, which
                     // is the point: "we could not ask" must never be allowed to mean "everything
                     // was cancelled".
-                    sync.cancelMissing(
+                    cancelled = sync.cancelMissing(
                             organizationId,
                             provider.providerCode(),
                             from.atStartOfDay(ZoneOffset.UTC).toInstant(),
                             to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(),
                             refs.stream().map(SchedulingProvider.AppointmentReference::externalRef).toList());
                 }
+                recordHealth(
+                        organizationId,
+                        ProviderStatus.CONNECTED,
+                        "Synced " + applied + " appointment(s)"
+                                + (cancelled > 0 ? ", cancelled " + cancelled + " no longer listed" : ""));
             } catch (SchedulingProvider.SchedulingUnavailableException e) {
                 // One organization's upstream being down must not stop the others, and must not
                 // look like a quiet week. Logged and left for the next pass.
                 log.warn("Appointment sync failed for {}: {}", organizationId, e.getMessage());
+                recordHealth(organizationId, ProviderStatus.ERROR, e.getMessage());
+            } catch (RuntimeException e) {
+                // Anything the adapter did not anticipate - a shape in the feed nobody expected, a
+                // constraint violation on one row. Without this the exception escapes the loop,
+                // every remaining organization is skipped, and no health is recorded for any of
+                // them, so the failure is silent on screen as well as unhandled. Logged at error
+                // rather than warn because, unlike an upstream outage, this one is a defect.
+                log.error("Unexpected failure syncing appointments for {}", organizationId, e);
+                recordHealth(organizationId, ProviderStatus.ERROR,
+                        "Unexpected " + e.getClass().getSimpleName() + " during sync");
             }
+        }
+    }
+
+    /**
+     * Records what this pass actually found, on the connection row the practice is shown.
+     *
+     * <p>Until this existed, {@code integration_connection} was written once by hand and never
+     * again: the row said CONNECTED permanently, including after a month of failed syncs. The
+     * columns for this - {@code status}, {@code last_checked_at}, {@code detail} - have been in
+     * the schema since V7 and nothing ever filled them. That made the one genuinely dangerous
+     * failure here invisible, because it is a silence rather than an error: a regenerated token
+     * stops the calendar updating, and nothing on screen changes to say so.
+     *
+     * <p>{@code last_checked_at} matters as much as the status. "Connected, last checked four
+     * days ago" is a different problem from "connected, last checked a minute ago", and without a
+     * timestamp both render identically.
+     *
+     * <p>Never throws. A failure to write a health row must not be able to fail a sync that
+     * worked, nor mask the original exception in the catch block that calls this.
+     */
+    private void recordHealth(UUID organizationId, ProviderStatus status, String detail) {
+        try {
+            jdbc.sql("""
+                    update integration_connection
+                       set status = :status, last_checked_at = now(), detail = :detail
+                     where organization_id = :orgId and provider_code = :providerCode
+                    """)
+                    .param("status", status.name())
+                    .param("orgId", organizationId)
+                    .param("providerCode", provider.providerCode())
+                    // The column is varchar(500). An adapter's message is already redacted of any
+                    // credential before it gets here; this only guards the length.
+                    .param("detail", detail == null ? null
+                            : detail.substring(0, Math.min(detail.length(), 500)))
+                    .update();
+        } catch (RuntimeException e) {
+            log.warn("Could not record sync health for organization {}: {}", organizationId, e.getMessage());
         }
     }
 

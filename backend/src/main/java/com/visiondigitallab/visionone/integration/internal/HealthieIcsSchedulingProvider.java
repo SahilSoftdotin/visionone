@@ -67,6 +67,12 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
      */
     private static final int MAX_BYTES = 8 * 1024 * 1024;
 
+    /**
+     * The verdict of the last actual fetch, so {@link #status} can answer without performing one.
+     * Volatile because the scheduler writes it and request threads read it.
+     */
+    private volatile ProviderStatus lastStatus;
+
     private final HttpClient http;
     private final String icsUrl;
     private final ZoneId zone;
@@ -160,22 +166,39 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         return true;
     }
 
+    /**
+     * What the last real exchange with Healthie found. Never performs one.
+     *
+     * <p><b>This must not do I/O, and it used to.</b> {@code CalendarQueryService} calls this on a
+     * request thread to label the Calendar's data source, so a probing implementation downloaded
+     * the whole 848 KB export every time a practice opened the screen - two seconds on a good day,
+     * and up to the read timeout on a bad one. The port says plainly that an adapter is "called
+     * from a scheduled sync, never from a request thread"; that is true of the other three methods
+     * and was quietly false of this one.
+     *
+     * <p>So the fetch path records its outcome and this reports it. The answer is then as fresh as
+     * the last sync, which is what "is this connection working" actually means - and the sync
+     * writes the same verdict, with a timestamp, onto {@code integration_connection} for anyone
+     * who needs to know how old it is.
+     *
+     * <p>Before the first sync of a run there is nothing to report. Configured-but-unproven
+     * answers CONNECTED rather than ERROR, because a restart is not evidence of a fault and
+     * showing a practice a broken connection it does not have is the worse mistake. One sync
+     * interval later it is the truth either way.
+     */
     @Override
     public ProviderStatus status(UUID organizationId) {
         if (icsUrl.isEmpty()) {
             return ProviderStatus.NOT_CONNECTED;
         }
-        try {
-            fetch();
-            return ProviderStatus.CONNECTED;
-        } catch (SchedulingUnavailableException e) {
-            return ProviderStatus.ERROR;
-        }
+        ProviderStatus remembered = lastStatus;
+        return remembered == null ? ProviderStatus.CONNECTED : remembered;
     }
 
     @Override
     public List<AppointmentReference> appointments(UUID organizationId, LocalDate from, LocalDate to) {
         if (icsUrl.isEmpty()) {
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException("No Healthie ICS URL is configured", null);
         }
 
@@ -190,6 +213,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
             // An export with no VEVENT at all is far more likely to be the wrong token - a feed
             // scoped to a user with no calendar of their own - than a clinic with no appointments
             // in a five-month window. Saying so beats rendering an empty calendar as fact.
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " contained no events", null);
         }
@@ -293,6 +317,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                     .GET()
                     .build();
         } catch (IllegalArgumentException e) {
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException("Healthie ICS URL is not a valid URL", e);
         }
 
@@ -300,18 +325,21 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         try {
             response = http.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " is unreachable", e);
         } catch (InterruptedException e) {
             // Restore the flag rather than swallowing it: this runs on a scheduler thread that a
             // shutdown is entitled to interrupt.
             Thread.currentThread().interrupt();
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException("Interrupted while reading the Healthie ICS export", e);
         }
 
         if (response.statusCode() / 100 != 2) {
             // A revoked or regenerated token is the likeliest cause of a 401/403, and it is worth
             // naming because the failure mode is a calendar that silently stops updating.
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " returned " + response.statusCode()
                             + (response.statusCode() == 401 || response.statusCode() == 403
@@ -322,9 +350,11 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
 
         String body = response.body();
         if (body == null || body.isBlank()) {
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException("Healthie ICS export returned an empty body", null);
         }
         if (body.length() > MAX_BYTES) {
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export was larger than the " + MAX_BYTES + " byte cap", null);
         }
@@ -332,6 +362,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
             // A sign-in page answered with 200 rather than a redirect is the classic shape of an
             // expired token, and it would otherwise parse to zero events and look like a quiet
             // month. Checked before the terminator so the message names the real cause.
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " did not return a calendar", null);
         }
@@ -341,9 +372,11 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
             // far more than usual here, because reconcileByAbsence treats anything missing from a
             // sync as cancelled - a half-delivered feed would cancel the other half of the
             // practice's calendar. Checking the terminator makes truncation loud instead.
+            lastStatus = ProviderStatus.ERROR;
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " ended mid-document", null);
         }
+        lastStatus = ProviderStatus.CONNECTED;
         return body;
     }
 
