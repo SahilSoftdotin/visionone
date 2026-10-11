@@ -96,8 +96,9 @@ class HealthieIcsSchedulingProviderTest {
         // Not the UID: Healthie regenerates that on every fetch. See contentRef.
         assertThat(appointment.externalRef()).startsWith("ics-").hasSize(44);
         assertThat(appointment.durationMinutes()).isEqualTo(45);
-        assertThat(appointment.displayLabel()).isEqualTo("Dana W.");
-        assertThat(appointment.serviceCategory()).isEqualTo("HORMONE_OPTIMIZATION");
+        assertThat(appointment.displayLabel()).isEqualTo("Hormone Therapy with Dana Whitfield");
+        // Null on this route: the export names a contact type, never a service.
+        assertThat(appointment.serviceCategory()).isNull();
         assertThat(appointment.status()).isEqualTo(SchedulingProvider.AppointmentState.BOOKED);
         // Healthie cannot know which advertisement produced a patient, and null says so. "Direct"
         // would be a guess that looks like a fact on a dashboard.
@@ -114,7 +115,7 @@ class HealthieIcsSchedulingProviderTest {
 
         assertThat(provider.appointments(ORG, FROM, TO))
                 .extracting(SchedulingProvider.AppointmentReference::displayLabel)
-                .containsExactly("C D.");
+                .containsExactly("Consult with C D");
     }
 
     @Test
@@ -160,7 +161,7 @@ class HealthieIcsSchedulingProviderTest {
         // adapter logs loudly and leaves it out until there is real RRULE support.
         assertThat(provider.appointments(ORG, FROM, TO))
                 .extracting(SchedulingProvider.AppointmentReference::displayLabel)
-                .containsExactly("Dana W.");
+                .containsExactly("Consult with Dana W");
     }
 
     @Test
@@ -174,7 +175,7 @@ class HealthieIcsSchedulingProviderTest {
         // one row. The UID cannot save them - Healthie regenerates it on every fetch.
         assertThat(provider.appointments(ORG, FROM, TO))
                 .extracting(SchedulingProvider.AppointmentReference::displayLabel)
-                .containsExactly("C D.");
+                .containsExactly("Consult with C D");
     }
 
     @Test
@@ -276,9 +277,9 @@ class HealthieIcsSchedulingProviderTest {
                 event("b", "20261016T143000Z", null, "Weight Management with Ray Q", null)));
 
         String ref = provider.appointments(ORG, FROM, TO).stream()
-                .filter(a -> "Ray Q.".equals(a.displayLabel())).findFirst().orElseThrow()
+                .filter(a -> a.displayLabel().contains("Ray Q")).findFirst().orElseThrow()
                 .externalRef();
-        assertThat(provider.appointment(ORG, ref).serviceCategory()).isEqualTo("WEIGHT_MANAGEMENT");
+        assertThat(provider.appointment(ORG, ref).displayLabel()).isEqualTo("Weight Management with Ray Q");
         assertThat(provider.appointment(ORG, "missing")).isNull();
     }
 
@@ -311,19 +312,18 @@ class HealthieIcsSchedulingProviderTest {
     }
 
     @Test
-    @DisplayName("reduces a SUMMARY to a first name and a last initial")
-    void reducesTheLabel() {
-        // The export has one free-text SUMMARY and no structured patient field, and its wording is
-        // the practice's own. These are the shapes seen so far; the point of the test is that every
-        // one of them comes out non-identifying rather than that the list is complete.
-        assertThat(HealthieIcsSchedulingProvider.patientLabel("Hormone Therapy with Dana Whitfield"))
-                .isEqualTo("Dana W.");
-        assertThat(HealthieIcsSchedulingProvider.patientLabel("Dana Whitfield - Hormone Therapy"))
-                .isEqualTo("Dana W.");
-        assertThat(HealthieIcsSchedulingProvider.patientLabel("Dana Whitfield")).isEqualTo("Dana W.");
-        assertThat(HealthieIcsSchedulingProvider.patientLabel("Dana")).isEqualTo("Dana");
-        assertThat(HealthieIcsSchedulingProvider.patientLabel("  ")).isNull();
-        assertThat(HealthieIcsSchedulingProvider.patientLabel(null)).isNull();
+    @DisplayName("passes the contact type through, because that is all SUMMARY ever holds")
+    void contactTypeIsTheSummary() {
+        // The three values a real export actually uses, measured across 5,257 events. There is no
+        // patient name anywhere in this feed - an earlier version assumed one and rendered
+        // "In Person" as "In P." on the Calendar.
+        assertThat(HealthieIcsSchedulingProvider.contactType("In Person")).isEqualTo("In Person");
+        assertThat(HealthieIcsSchedulingProvider.contactType("Phone Call")).isEqualTo("Phone Call");
+        assertThat(HealthieIcsSchedulingProvider.contactType("Healthie Video Call"))
+                .isEqualTo("Healthie Video Call");
+        assertThat(HealthieIcsSchedulingProvider.contactType("  In Person  ")).isEqualTo("In Person");
+        assertThat(HealthieIcsSchedulingProvider.contactType("  ")).isNull();
+        assertThat(HealthieIcsSchedulingProvider.contactType(null)).isNull();
     }
 
     @Test

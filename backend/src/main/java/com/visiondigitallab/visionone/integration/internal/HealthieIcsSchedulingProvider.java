@@ -43,7 +43,10 @@ import org.springframework.stereotype.Component;
  *       path. Polling an export costs nothing per call, so the interval can be dropped well below
  *       the hourly default without a bill attached.
  *   <li><b>No structured patient or appointment-type fields.</b> There is one SUMMARY string, and
- *       its shape is the practice's own wording rather than a schema. See {@link #patientLabel}.
+ *       <b>no patient information at all.</b> SUMMARY is the contact type - "In Person", "Phone
+ *       Call", "Healthie Video Call" - and that is the whole of it. Good for privacy, and a hard
+ *       limit on the product: the Calendar can show that an appointment exists and how it
+ *       happens, never who it is with. See {@link #contactType}.
  *   <li><b>It is an undocumented surface.</b> Healthie publishes no contract for the export's
  *       contents and could change them. Everything here degrades to skipping an event rather than
  *       failing a sync, and a sync that produces nothing is reported as an error rather than as an
@@ -246,10 +249,11 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                     contentRef(event.startsAt(), event.endsAt(), event.summary(), occurrence),
                     event.startsAt(),
                     minutes == null ? defaultDurationMinutes : minutes,
-                    patientLabel(event.summary()),
-                    // Same keyword mapping as the GraphQL adapter, reused rather than restated so
-                    // the two routes cannot drift into categorising the same practice differently.
-                    HealthieSchedulingProvider.serviceCategory(event.summary()),
+                    contactType(event.summary()),
+                    // Always null on this route. The export names a contact type, never a service:
+                    // there is no "Hormone Therapy" in it to map. Null says "we do not categorise
+                    // this" rather than inventing a category.
+                    null,
                     // Healthie neither knows nor cares which advertisement produced a patient. Null
                     // is honest; Vision credits the channel by hand on the Calendar.
                     null,
@@ -298,8 +302,8 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                         ref,
                         event.startsAt(),
                         minutes == null ? defaultDurationMinutes : minutes,
-                        patientLabel(event.summary()),
-                        HealthieSchedulingProvider.serviceCategory(event.summary()),
+                        contactType(event.summary()),
+                        null,
                         null,
                         state(event.status()));
             }
@@ -381,38 +385,29 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
     }
 
     /**
-     * Reduces one SUMMARY string to a label a front desk can recognise and a stranger cannot
-     * identify someone from.
+     * The appointment's contact type, which is the entirety of what SUMMARY carries.
      *
-     * <p><b>The shape of SUMMARY is the least certain thing in this adapter.</b> Healthie publishes
-     * no contract for it, and observed exports use wordings like "Initial Consultation with Dana
-     * Whitfield" or "Dana Whitfield - Hormone Therapy". So this takes the part after " with " when
-     * there is one, the part before " - " otherwise, and reduces whatever is left to a first name
-     * and a last initial. When the guess is wrong the cost is a label that reads oddly, never a
-     * missing appointment and never a fuller name than intended - which is the right way round for
-     * something unverified. Worth checking against a real export and tightening once the actual
-     * wording is known.
+     * <p><b>This feed contains no patient information whatsoever.</b> Across 5,257 real events
+     * SUMMARY takes exactly three values - "In Person", "Phone Call" and "Healthie Video Call" -
+     * and nothing else. It is the modality, not a person. An earlier version of this adapter
+     * assumed a name and ran it through a first-name-plus-initial reducer, which turned "In
+     * Person" into "In P." and put that on the Calendar as though it identified someone.
+     *
+     * <p>Two consequences worth stating rather than discovering. For privacy this is as good as it
+     * gets: the export cannot leak a patient because it never names one, so VisionOne holds a
+     * time, a duration and a modality. For the product it is a real limit: the Calendar can show
+     * that an appointment exists and how it happens, never who it is with. Healthie knows - the
+     * portal shows names - but the export does not say.
+     *
+     * <p>Passed through verbatim. It is already the practice's own wording, it is short, and it
+     * contains nothing that needs reducing.
      */
-    static String patientLabel(String summary) {
+    static String contactType(String summary) {
         if (summary == null || summary.isBlank()) {
             return null;
         }
         String text = summary.trim();
-
-        int with = text.toLowerCase(Locale.ROOT).indexOf(" with ");
-        if (with >= 0) {
-            text = text.substring(with + " with ".length()).trim();
-        } else {
-            for (String separator : new String[] {" - ", " – ", " | ", ": "}) {
-                int at = text.indexOf(separator);
-                if (at > 0) {
-                    text = text.substring(0, at).trim();
-                    break;
-                }
-            }
-        }
-        // Reused rather than restated, for the same reason as serviceCategory above.
-        return HealthieSchedulingProvider.displayLabel(text);
+        return text.length() <= 120 ? text : text.substring(0, 120);
     }
 
     /**

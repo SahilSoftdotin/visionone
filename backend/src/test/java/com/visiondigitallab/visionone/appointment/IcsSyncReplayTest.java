@@ -147,14 +147,14 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
                 event(when(10, 9, 0), when(10, 9, 45), "Ada Keeper"),
                 event(when(10, 11, 0), when(10, 11, 45), "Cass Gone")));
         runSync();
-        assertThat(byLabel()).containsOnlyKeys("Ada K.", "Cass G.");
+        assertThat(byLabel()).containsOnlyKeys("Ada Keeper", "Cass Gone");
 
         // Healthie has no way to say "cancelled" in an .ics feed. It simply stops listing it.
         feed(calendar(event(when(10, 9, 0), when(10, 9, 45), "Ada Keeper")));
         runSync();
 
-        assertThat(byLabel().get("Cass G.")).containsExactly("CANCELLED");
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Cass Gone")).containsExactly("CANCELLED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
         // Cancelled, never deleted: the row is the only record the booking ever existed, and the
         // month's booked count is built from history.
         assertThat(rows()).isEqualTo(2);
@@ -165,14 +165,14 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
     void reschedule() {
         feed(calendar(event(when(12, 10, 0), when(12, 10, 45), "Mo Mover")));
         runSync();
-        assertThat(byLabel().get("Mo M.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Mo Mover")).containsExactly("BOOKED");
 
         // Identity is derived from start, end and summary, so a move is indistinguishable from a
         // cancellation plus a new booking. Reconciliation is what stops the old one lingering.
         feed(calendar(event(when(12, 15, 30), when(12, 16, 15), "Mo Mover")));
         runSync();
 
-        assertThat(byLabel().get("Mo M.")).containsExactlyInAnyOrder("CANCELLED", "BOOKED");
+        assertThat(byLabel().get("Mo Mover")).containsExactlyInAnyOrder("CANCELLED", "BOOKED");
         assertThat(rows()).isEqualTo(2);
     }
 
@@ -187,8 +187,8 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
                 event(when(8, 13, 0), when(8, 13, 45), "New Arrival")));
         runSync();
 
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
-        assertThat(byLabel().get("New A.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+        assertThat(byLabel().get("New Arrival")).containsExactly("BOOKED");
         assertThat(rows()).isEqualTo(2);
     }
 
@@ -208,10 +208,10 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
                 event(when(14, 13, 0), when(14, 13, 45), "New Arrival")));
         runSync();
 
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
-        assertThat(byLabel().get("Cass G.")).containsExactly("CANCELLED");
-        assertThat(byLabel().get("Mo M.")).containsExactlyInAnyOrder("CANCELLED", "BOOKED");
-        assertThat(byLabel().get("New A.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Cass Gone")).containsExactly("CANCELLED");
+        assertThat(byLabel().get("Mo Mover")).containsExactlyInAnyOrder("CANCELLED", "BOOKED");
+        assertThat(byLabel().get("New Arrival")).containsExactly("BOOKED");
         assertThat(rows()).isEqualTo(5);
     }
 
@@ -229,8 +229,8 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         // Every UID in those three fetches was different, which is exactly the condition that made
         // the first live run insert the whole calendar on every pass.
         assertThat(rows()).isEqualTo(2);
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
-        assertThat(byLabel().get("Mo M.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Mo Mover")).containsExactly("BOOKED");
     }
 
     @Test
@@ -247,8 +247,8 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         failWith(500);
         runSync();
 
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
-        assertThat(byLabel().get("Mo M.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Mo Mover")).containsExactly("BOOKED");
     }
 
     @Test
@@ -266,8 +266,8 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         feed(full.substring(0, full.length() / 2));
         runSync();
 
-        assertThat(byLabel().get("Ada K.")).containsExactly("BOOKED");
-        assertThat(byLabel().get("Mo M.")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+        assertThat(byLabel().get("Mo Mover")).containsExactly("BOOKED");
     }
 
     private Map<String, Object> health() {
@@ -335,7 +335,7 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         runSync();
         jdbc.sql("""
                 update appointment_reference set status = 'ATTENDED'
-                 where provider_code = 'HEALTHIE_ICS' and display_label = 'Ada K.'
+                 where provider_code = 'HEALTHIE_ICS' and display_label = 'Ada Keeper'
                 """).update();
 
         // The feed reports every past appointment as booked forever. Three more passes must not
@@ -344,6 +344,6 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         runSync();
         runSync();
 
-        assertThat(byLabel().get("Ada K.")).containsExactly("ATTENDED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("ATTENDED");
     }
 }
