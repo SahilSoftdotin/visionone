@@ -9,10 +9,15 @@ spring:
   # password-reset mail. One Resend credential, two consumers. They were briefly two names for
   # one secret - SMTP_USER for Keycloak and SMTP_USERNAME here - which is the kind of thing that
   # works on the machine where both were set and nowhere else.
+  #
+  # The defaults mirror scripts/render-realm.py exactly, because the production server sets only
+  # VISIONONE_SMTP_PASSWORD and relies on the rest defaulting. Requiring a host here would have
+  # meant alerts silently never sending on the one machine that needs them, while password reset
+  # carried on working - the most confusing possible half-configured state.
   mail:
-    host: ${VISIONONE_SMTP_HOST:}
+    host: ${VISIONONE_SMTP_HOST:smtp.resend.com}
     port: ${VISIONONE_SMTP_PORT:587}
-    username: ${VISIONONE_SMTP_USER:}
+    username: ${VISIONONE_SMTP_USER:resend}
     password: ${VISIONONE_SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: true
