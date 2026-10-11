@@ -218,6 +218,31 @@ class HealthieIcsSchedulingProviderTest {
     }
 
     @Test
+    @DisplayName("refuses the real empty export Healthie serves for a user with no calendar")
+    void realEmptyHealthieExportIsAnError() {
+        // Captured verbatim from app.gethealthie.com. It contains no events, so there is nothing
+        // in it belonging to a patient - which is the whole point of it being here.
+        //
+        // This is the failure the guard exists for, and it is not hypothetical: a token generated
+        // by an agency user returns HTTP 200 and a structurally valid calendar carrying none of the
+        // practice's appointments. Parsed naively it reads as "no bookings this quarter" on a
+        // screen a client makes decisions from. Worth a test against the real bytes rather than an
+        // invented approximation, because the producer line and the trailing CRLF are the parts an
+        // invented one would get wrong.
+        var provider = stub("BEGIN:VCALENDAR\r\n"
+                + "VERSION:2.0\r\n"
+                + "PRODID:icalendar-ruby\r\n"
+                + "CALSCALE:GREGORIAN\r\n"
+                + "METHOD:PUBLISH\r\n"
+                + "END:VCALENDAR\r\n");
+
+        assertThatThrownBy(() -> provider.appointments(ORG, FROM, TO))
+                .isInstanceOf(SchedulingProvider.SchedulingUnavailableException.class)
+                .hasMessageContaining("no events");
+        assertThat(provider.status(ORG)).isEqualTo(ProviderStatus.CONNECTED);
+    }
+
+    @Test
     @DisplayName("reports NOT_CONNECTED when no URL is configured")
     void unconfiguredIsNotConnected() {
         var provider = providerFor("");
