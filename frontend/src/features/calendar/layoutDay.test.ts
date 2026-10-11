@@ -1,6 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { layoutDay, minutesFromTime, PX_PER_MIN } from './layoutDay';
+import type { PositionedAppointment } from './layoutDay';
 import type { CalendarAppointment } from './useCalendar';
+
+/**
+ * Indexing with a bounds check, because the build compiles tests under
+ * noUncheckedIndexedAccess and `positioned[0]` is legitimately `T | undefined`. Throwing names
+ * the missing block, which is a better failure than a null-dereference several lines later.
+ */
+function blockAt(blocks: PositionedAppointment[], index: number): PositionedAppointment {
+  const block = blocks[index];
+  if (!block) {
+    throw new Error(`expected a positioned block at index ${index}, got ${blocks.length} blocks`);
+  }
+  return block;
+}
+
+function blockFor(byId: Record<string, PositionedAppointment>, id: string): PositionedAppointment {
+  const block = byId[id];
+  if (!block) {
+    throw new Error(`expected a positioned block for "${id}"`);
+  }
+  return block;
+}
 
 /**
  * The day grid's arithmetic.
@@ -47,7 +69,7 @@ describe('minutesFromTime', () => {
 describe('layoutDay', () => {
   it('places a single appointment at the right offset and height', () => {
     const layout = layoutDay([appt('10:00', 45)]);
-    const block = layout.positioned[0];
+    const block = blockAt(layout.positioned, 0);
 
     // The grid starts at 08:00 for a day this shape, so 10:00 is two hours down.
     expect(layout.startHour).toBe(8);
@@ -84,10 +106,10 @@ describe('layoutDay', () => {
     const layout = layoutDay([appt('09:00', 60, 'long'), appt('09:30', 15, 'inside'), appt('14:00', 30, 'later')]);
 
     const byId = Object.fromEntries(layout.positioned.map((b) => [b.appointment.id, b]));
-    expect(byId.long.width).toBeCloseTo(0.5);
-    expect(byId.inside.width).toBeCloseTo(0.5);
+    expect(blockFor(byId, 'long').width).toBeCloseTo(0.5);
+    expect(blockFor(byId, 'inside').width).toBeCloseTo(0.5);
     // The afternoon one is in its own cluster and keeps the full width.
-    expect(byId.later.width).toBe(1);
+    expect(blockFor(byId, 'later').width).toBe(1);
   });
 
   it('treats touching appointments as not overlapping', () => {
@@ -102,7 +124,7 @@ describe('layoutDay', () => {
     const layout = layoutDay([appt('07:00', 30)]);
 
     expect(layout.startHour).toBe(7);
-    expect(layout.positioned[0].top).toBe(0);
+    expect(blockAt(layout.positioned, 0).top).toBe(0);
   });
 
   it('keeps a minimum grid for a day with nothing on it', () => {
@@ -119,7 +141,7 @@ describe('layoutDay', () => {
     // is a line rather than a block.
     const layout = layoutDay([appt('10:00', 5)]);
 
-    expect(layout.positioned[0].height).toBeGreaterThanOrEqual(14);
+    expect(blockAt(layout.positioned, 0).height).toBeGreaterThanOrEqual(14);
   });
 
   it('skips an appointment whose time cannot be read, keeping the rest', () => {
@@ -132,6 +154,6 @@ describe('layoutDay', () => {
     // A zero would render as nothing at all, which reads as a lost appointment.
     const layout = layoutDay([appt('10:00', 0)]);
 
-    expect(layout.positioned[0].height).toBeGreaterThan(0);
+    expect(blockAt(layout.positioned, 0).height).toBeGreaterThan(0);
   });
 });

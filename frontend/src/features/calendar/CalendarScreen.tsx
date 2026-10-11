@@ -25,8 +25,10 @@ function isoDate(year: number, monthIndex: number, day: number): string {
  * local Date lands on the same clock time on the wrong day twice a year, when the offset shifts.
  */
 function shiftDay(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const moved = new Date(y, m - 1, d + days);
+  // Indexed rather than destructured: the build compiles under noUncheckedIndexedAccess, where
+  // destructuring an array yields `number | undefined` even for a string we just split.
+  const parts = iso.split('-');
+  const moved = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) + days);
   return isoDate(moved.getFullYear(), moved.getMonth(), moved.getDate());
 }
 import { formatCount, formatMonth } from '@/lib/format';
