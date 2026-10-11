@@ -79,7 +79,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
             @Value("${visionone.healthie.default-duration-minutes:45}") int defaultDurationMinutes,
             @Value("${visionone.healthie.connect-timeout-ms:5000}") long connectTimeoutMs,
             @Value("${visionone.healthie.read-timeout-ms:20000}") long readTimeoutMs) {
-        this.icsUrl = icsUrl == null ? "" : icsUrl.trim();
+        this.icsUrl = normalizeUrl(icsUrl);
         this.zone = resolveZone(icsZone);
         this.defaultDurationMinutes = defaultDurationMinutes;
         this.readTimeout = Duration.ofMillis(readTimeoutMs);
@@ -88,6 +88,27 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                 // Follow redirects: an export URL that moves host is Healthie's business, not ours.
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
+    }
+
+    /**
+     * Accepts a {@code webcal://} URL as well as an https one.
+     *
+     * <p>Healthie presents this feed as a calendar subscription link - the thing you paste into
+     * Apple Calendar - and subscription links are conventionally handed out with the {@code webcal}
+     * scheme. It is not a protocol: it is the same HTTPS URL with a different word in front, and
+     * calendar clients rewrite it before fetching. Java's HTTP client does not, so without this the
+     * configured URL would be rejected for its scheme and the message would blame the URL rather
+     * than name the one-word difference.
+     */
+    static String normalizeUrl(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String trimmed = raw.trim();
+        if (trimmed.regionMatches(true, 0, "webcal://", 0, "webcal://".length())) {
+            return "https://" + trimmed.substring("webcal://".length());
+        }
+        return trimmed;
     }
 
     private static ZoneId resolveZone(String configured) {

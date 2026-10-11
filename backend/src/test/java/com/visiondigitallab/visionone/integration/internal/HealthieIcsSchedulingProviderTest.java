@@ -258,6 +258,23 @@ class HealthieIcsSchedulingProviderTest {
     }
 
     @Test
+    @DisplayName("accepts a webcal:// subscription link as well as an https one")
+    void acceptsWebcal() {
+        // Healthie hands this feed out as a calendar subscription link, and those carry the webcal
+        // scheme by convention. Apple Calendar rewrites it to https before fetching; Java's HTTP
+        // client does not, so the adapter does it instead of failing on the scheme.
+        assertThat(HealthieIcsSchedulingProvider.normalizeUrl(
+                        "webcal://app.gethealthie.com/appointments/ics_export.ics?access_token=t"))
+                .isEqualTo("https://app.gethealthie.com/appointments/ics_export.ics?access_token=t");
+        assertThat(HealthieIcsSchedulingProvider.normalizeUrl(
+                        "WEBCAL://app.gethealthie.com/x.ics"))
+                .isEqualTo("https://app.gethealthie.com/x.ics");
+        assertThat(HealthieIcsSchedulingProvider.normalizeUrl("  https://example.test/x.ics  "))
+                .isEqualTo("https://example.test/x.ics");
+        assertThat(HealthieIcsSchedulingProvider.normalizeUrl(null)).isEmpty();
+    }
+
+    @Test
     @DisplayName("reduces a SUMMARY to a first name and a last initial")
     void reducesTheLabel() {
         // The export has one free-text SUMMARY and no structured patient field, and its wording is
