@@ -281,6 +281,77 @@ An idle sign-out returns to `/login?reason=idle`, which shows what happened inst
 straight back to Keycloak. Nothing new had to be registered for that: `{origin}/*` is already a
 permitted redirect URI.
 
+## Connecting Healthie's calendar
+
+There are two routes into Healthie and VisionOne has an adapter for each. They are chosen with
+`VISIONONE_PROVIDER_SCHEDULING`, and nothing outside the `integration` module knows which is bound.
+
+| | `HEALTHIE_ICS` | `HEALTHIE` |
+|---|---|---|
+| Cost | included in the practice's plan | API add-on, quoted at $5,700 for year one and escalating |
+| Reads | appointment times, cancellations | the same, plus attendance and appointment types |
+| Freshness | polled | polled, plus webhooks |
+| Attendance | VisionOne owns it | Healthie owns it |
+
+The .ics route is the one in use. It reads the calendar export Healthie offers on every plan, which
+answers the only question VisionOne asks of a scheduling system: when are the appointments.
+
+### Setting it up
+
+```
+VISIONONE_PROVIDER_SCHEDULING=HEALTHIE_ICS
+VISIONONE_HEALTHIE_ICS_URL=https://app.gethealthie.com/appointments/ics_export.ics?access_token=...
+VISIONONE_HEALTHIE_ICS_ZONE=America/New_York
+```
+
+The URL comes from Healthie's own calendar settings. **The whole URL is a credential** - the access
+token sits in its query string, so anyone holding the URL can read the practice's calendar. It
+belongs in `infra/.env.prod` and nowhere else; it is never written to a log, and every message that
+names it has the query string stripped first.
+
+Two things to get right when generating it:
+
+- **Generate it from the account whose calendar you want.** The export is scoped to the user who
+  created it. A token made while signed in as an agency user returns that user's calendar, which is
+  usually empty, and an empty calendar is indistinguishable from a quiet month on screen. VisionOne
+  guards against exactly this: an export with no events at all is reported as an error, not rendered
+  as zero appointments.
+- **Set the zone to the practice's own.** It only matters for timestamps the export leaves floating
+  - no `Z` suffix and no `TZID` - but when it matters, getting it wrong moves every appointment by
+  the offset. THRIVE is `America/New_York`, which is also the default.
+
+Finally, the scheduler only syncs organizations with a matching connection row, so the route has to
+be named there too:
+
+```sql
+INSERT INTO integration_connection (id, organization_id, provider_kind, provider_code, status)
+VALUES (gen_random_uuid(), '<org id>', 'SCHEDULING', 'HEALTHIE_ICS', 'CONNECTED');
+```
+
+That is deliberate rather than incidental: switching routes is then an act on the data, not
+something a property change does behind its back.
+
+### What the export cannot do
+
+- **It cannot say whether someone attended.** iCalendar has CONFIRMED, TENTATIVE and CANCELLED and
+  nothing else, so every past appointment comes back as booked forever. Attendance and no-shows are
+  therefore VisionOne's own - the adapter declares `reportsAttendance() == false` and the sync is
+  told not to flatten a hand-recorded outcome back to booked on the next pass. Without that, an
+  hourly sync would erase them silently.
+- **There are no webhooks.** Nothing to subscribe to, so the scheduled sync is the only path.
+  Polling an export costs nothing per call, so `VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS` can go well
+  below the hourly default without a bill attached.
+- **Recurring appointments are skipped, loudly.** Healthie is expected to export one event per
+  appointment with no `RRULE`, and the adapter logs a warning naming the count if that turns out to
+  be wrong. Expanding recurrence correctly needs a real iCalendar library; the current parser
+  notices the case rather than guessing at it.
+- **It is an undocumented surface.** Healthie publishes no contract for the export's contents and
+  could change them. Everything degrades to skipping one event rather than failing a sync, and a
+  failed read is reported as an error rather than as an empty calendar.
+
+If the calendar silently stops updating, the first thing to check is whether the token was
+regenerated - a 401 is named as that in the log.
+
 ## Changing the login theme
 
 `infra/keycloak/themes` is a bind mount, so a theme change needs no image rebuild - `git pull` on

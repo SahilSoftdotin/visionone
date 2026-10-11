@@ -26,6 +26,13 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Everything else - time, duration, status, label, category - belongs to the practice's system
  * and is replaced on every pass, because that system is the truth and this table is a mirror.
+ *
+ * <p><b>With one exception: attendance from a provider that cannot report it.</b> The .ics route
+ * reads a feed where CANCELLED is the strongest thing that can be said, so every past appointment
+ * comes back as BOOKED indefinitely. Mirroring that would wipe an ATTENDED or NO_SHOW Vision
+ * recorded by hand, on the next sync, repeatedly, and leave no sign it had happened. So a caller
+ * passing {@code providerOwnsAttendance = false} keeps those two statuses. Same principle as the
+ * attribution column above: a human's entry outranks a feed that was never able to know.
  */
 @Service
 public class AppointmentSyncService {
@@ -41,9 +48,24 @@ public class AppointmentSyncService {
     /** @return how many rows were written or updated */
     @Transactional
     public int apply(UUID organizationId, String providerCode, List<AppointmentReference> references) {
+        return apply(organizationId, providerCode, references, true);
+    }
+
+    /**
+     * @param providerOwnsAttendance whether the provider is the authority on attendance - see {@link
+     *     com.visiondigitallab.visionone.integration.api.SchedulingProvider#reportsAttendance()}.
+     *     False keeps an ATTENDED or NO_SHOW that a human recorded here, because a provider that
+     *     cannot express those would otherwise erase them on every pass.
+     */
+    @Transactional
+    public int apply(
+            UUID organizationId,
+            String providerCode,
+            List<AppointmentReference> references,
+            boolean providerOwnsAttendance) {
         int applied = 0;
         for (AppointmentReference ref : references) {
-            applied += apply(organizationId, providerCode, ref);
+            applied += apply(organizationId, providerCode, ref, providerOwnsAttendance);
         }
         if (applied > 0) {
             log.info("Synced {} appointment(s) for organization {}", applied, organizationId);
@@ -53,9 +75,28 @@ public class AppointmentSyncService {
 
     @Transactional
     public int apply(UUID organizationId, String providerCode, AppointmentReference ref) {
+        return apply(organizationId, providerCode, ref, true);
+    }
+
+    @Transactional
+    public int apply(
+            UUID organizationId,
+            String providerCode,
+            AppointmentReference ref,
+            boolean providerOwnsAttendance) {
         if (ref == null || ref.externalRef() == null) {
             return 0;
         }
+        // Chosen by a boolean the caller controls, not by anything that came off a network, so
+        // interpolating it carries no injection risk. It is a fragment rather than a bound
+        // parameter because a bound boolean inside a CASE needs an explicit cast on Postgres, and
+        // two readable branches beat one clever predicate.
+        String statusUpdate = providerOwnsAttendance
+                ? "excluded.status"
+                : """
+                  case when appointment_reference.status in ('ATTENDED', 'NO_SHOW')
+                       then appointment_reference.status
+                       else excluded.status end""";
         return jdbc.sql("""
                 insert into appointment_reference
                     (id, organization_id, external_ref, requested_at, scheduled_for, status,
@@ -69,7 +110,7 @@ public class AppointmentSyncService {
                 on conflict (organization_id, external_ref) where external_ref is not null
                 do update set
                     scheduled_for    = excluded.scheduled_for,
-                    status           = excluded.status,
+                    status           = %s,
                     display_label    = excluded.display_label,
                     duration_minutes = excluded.duration_minutes,
                     service_category = excluded.service_category,
@@ -77,7 +118,7 @@ public class AppointmentSyncService {
                     -- Only fill attribution in, never replace it. See the class comment.
                     channel_source_id = coalesce(appointment_reference.channel_source_id,
                                                  excluded.channel_source_id)
-                """)
+                """.formatted(statusUpdate))
                 .param("id", UUID.randomUUID())
                 .param("orgId", organizationId)
                 .param("externalRef", ref.externalRef())

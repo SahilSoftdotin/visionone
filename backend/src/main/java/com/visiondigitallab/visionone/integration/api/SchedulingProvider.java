@@ -40,6 +40,28 @@ public interface SchedulingProvider {
     ProviderStatus status(UUID organizationId);
 
     /**
+     * Whether this provider is the authority on whether an appointment was attended.
+     *
+     * <p>A second deliberate widening, for a problem that only appears with a second adapter. The
+     * sync mirrors provider state over VisionOne's row on every pass, which is correct when the
+     * provider knows the outcome: Healthie's GraphQL API reports {@code pm_status}, so if a booking
+     * is corrected from attended back to pending there, that correction should land here too.
+     *
+     * <p>The .ics export cannot express attendance at all - iCalendar has CONFIRMED, TENTATIVE and
+     * CANCELLED and nothing else. A provider like that reports every past appointment as BOOKED
+     * forever, so mirroring it would erase an ATTENDED or NO_SHOW that Vision recorded by hand,
+     * every hour, with no trace of what happened. The alternative to this flag was never writing
+     * attendance from a sync at all, which would have broken the richer adapter to accommodate the
+     * poorer one.
+     *
+     * <p>Defaults to true so an adapter that does know says nothing, and only one that does not has
+     * to declare it. {@code AppointmentSyncService} is what honours it.
+     */
+    default boolean reportsAttendance() {
+        return true;
+    }
+
+    /**
      * Appointments in a closed date range, in the organization's own timezone.
      *
      * @throws SchedulingUnavailableException when the upstream cannot be reached, so the caller can

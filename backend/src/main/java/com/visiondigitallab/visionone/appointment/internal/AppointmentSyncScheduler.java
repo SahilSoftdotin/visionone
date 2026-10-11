@@ -73,7 +73,7 @@ public class AppointmentSyncScheduler {
                 LocalDate today = LocalDate.now();
                 List<SchedulingProvider.AppointmentReference> refs = provider.appointments(
                         organizationId, today.minusDays(daysBack), today.plusDays(daysForward));
-                sync.apply(organizationId, provider.providerCode(), refs);
+                sync.apply(organizationId, provider.providerCode(), refs, provider.reportsAttendance());
             } catch (SchedulingProvider.SchedulingUnavailableException e) {
                 // One organization's upstream being down must not stop the others, and must not
                 // look like a quiet week. Logged and left for the next pass.

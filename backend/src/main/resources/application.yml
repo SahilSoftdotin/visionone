@@ -54,6 +54,17 @@ visionone:
     # Empty is allowed: without it webhooks are rejected and the scheduled sync below is the only
     # path. That is a slower system, not a broken one.
     webhook-secret: ${VISIONONE_HEALTHIE_WEBHOOK_SECRET:}
+    # The free route. Healthie's calendar export needs no paid API add-on, and it is what the
+    # HEALTHIE_ICS scheduling provider reads. The whole URL is a bearer credential - the access
+    # token is in its query string - so it belongs in .env.prod and nowhere a log can reach it.
+    # Empty rather than absent, so the application still starts and reports NOT_CONNECTED instead
+    # of failing at boot; unlike api-key, a missing export URL has an honest status to report.
+    ics-url: ${VISIONONE_HEALTHIE_ICS_URL:}
+    # Only used for timestamps the export leaves floating - no Z suffix and no TZID. Anything
+    # already absolute ignores this. Set it to the practice's own timezone.
+    ics-zone: ${VISIONONE_HEALTHIE_ICS_ZONE:America/New_York}
+    # What a booking is assumed to last when the feed gives neither an end nor a duration.
+    default-duration-minutes: ${VISIONONE_HEALTHIE_DEFAULT_DURATION_MINUTES:45}
   appointment:
     sync:
       interval-ms: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:3600000}
