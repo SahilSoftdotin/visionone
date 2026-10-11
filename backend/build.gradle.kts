@@ -46,6 +46,12 @@ dependencies {
     implementation("io.github.resilience4j:resilience4j-spring-boot3:${property("resilience4jVersion")}")
     implementation("org.springframework.boot:spring-boot-starter-aop")
 
+    // Outbound email, for operational alerts only - never patient-facing. Healthie already
+    // emails patients about their own appointments, and Keycloak sends password resets through
+    // its own SMTP config; this exists so a sync that has been failing for half an hour reaches
+    // a human instead of only a log file.
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // Observability
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")

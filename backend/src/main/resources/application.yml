@@ -1,6 +1,17 @@
 spring:
   application:
     name: visionone-api
+  # Outbound mail, for operational alerts only. Without a host no JavaMailSender bean exists at
+  # all, and AlertMailer treats that as a supported state rather than a startup failure - a
+  # development machine should not need an SMTP server to run a sync.
+  mail:
+    host: ${VISIONONE_SMTP_HOST:}
+    port: ${VISIONONE_SMTP_PORT:587}
+    username: ${VISIONONE_SMTP_USERNAME:}
+    password: ${VISIONONE_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
   datasource:
     url: ${VISIONONE_DB_URL:jdbc:postgresql://localhost:5432/visionone}
     username: ${VISIONONE_DB_USER:visionone}
@@ -80,8 +91,19 @@ visionone:
       # never races the seed, and turning a real provider on is two settings rather than one.
       enabled: ${VISIONONE_APPOINTMENT_SYNC_ENABLED:false}
       interval-ms: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:3600000}
+      # How long a sync may keep failing before a human is emailed. A duration rather than a
+      # count of failures, because a count means something different at every interval: three
+      # failures is three hours hourly and fifteen minutes at five-minute polling.
+      alert-after-minutes: ${VISIONONE_SYNC_ALERT_AFTER_MINUTES:30}
       days-back: ${VISIONONE_APPOINTMENT_SYNC_DAYS_BACK:45}
       days-forward: ${VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD:90}
+  alerts:
+    # Where operational alerts go. Empty disables sending - the alert is still logged at WARN,
+    # which is the right behaviour on a laptop. Never used for anything patient-facing: Healthie
+    # emails patients about their own appointments and Keycloak sends password resets, and a
+    # second sender would mean duplicates from the less well-informed system.
+    to: ${VISIONONE_ALERT_EMAIL:}
+    from: ${VISIONONE_ALERT_FROM:alerts@visiondigitallab.com}
   session:
     # How long a CLIENT user may sit idle in the browser before being signed out, and how much
     # warning they get. Vision Admin is never signed out for inactivity. Served to the SPA on /me

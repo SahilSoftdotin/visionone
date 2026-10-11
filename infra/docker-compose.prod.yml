@@ -139,6 +139,21 @@ services:
       VISIONONE_HEALTHIE_ENDPOINT: ${VISIONONE_HEALTHIE_ENDPOINT:-https://api.gethealthie.com/graphql}
       VISIONONE_HEALTHIE_WEBHOOK_SECRET: ${VISIONONE_HEALTHIE_WEBHOOK_SECRET:-}
 
+      # Operational alerting. Both of these are needed for an email to actually arrive: without
+      # an address nothing is sent, and without an SMTP host there is no mail sender at all. With
+      # neither, a failing sync is still recorded on the connection row and logged at WARN - it
+      # just will not come and find you.
+      #
+      # Alerts are operational only, never patient-facing. Healthie emails patients about their
+      # own appointments and Keycloak sends password resets through its own SMTP settings.
+      VISIONONE_ALERT_EMAIL: ${VISIONONE_ALERT_EMAIL:-}
+      VISIONONE_ALERT_FROM: ${VISIONONE_ALERT_FROM:-alerts@visiondigitallab.com}
+      VISIONONE_SYNC_ALERT_AFTER_MINUTES: ${VISIONONE_SYNC_ALERT_AFTER_MINUTES:-30}
+      VISIONONE_SMTP_HOST: ${VISIONONE_SMTP_HOST:-}
+      VISIONONE_SMTP_PORT: ${VISIONONE_SMTP_PORT:-587}
+      VISIONONE_SMTP_USERNAME: ${VISIONONE_SMTP_USERNAME:-}
+      VISIONONE_SMTP_PASSWORD: ${VISIONONE_SMTP_PASSWORD:-}
+
       # Inactivity sign-out for client users. A restart is enough to change these - they are
       # served to the browser on /me rather than built into the web image.
       VISIONONE_SESSION_IDLE_MINUTES: ${VISIONONE_SESSION_IDLE_MINUTES:-15}

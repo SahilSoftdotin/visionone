@@ -75,6 +75,9 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private com.visiondigitallab.visionone.appointment.internal.SyncHealthRecorder healthRecorder;
+
     @BeforeEach
     void setUp() {
         healthie = new WireMockServer(WireMockConfiguration.options().dynamicPort());
@@ -117,7 +120,7 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
         var provider = new HealthieIcsSchedulingProvider(
                 healthie.baseUrl() + "/appointments/ics_export.ics?access_token=test",
                 "America/New_York", 45, 2000, 5000);
-        new AppointmentSyncScheduler(provider, sync, jdbc, 45, 90).sync();
+        new AppointmentSyncScheduler(provider, sync, healthRecorder, jdbc, 45, 90).sync();
     }
 
     /** label -> status, which is the view that matters and carries no identifier. */
@@ -132,6 +135,16 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+    }
+
+    /** Postgres's own row version. Unchanged means the row was genuinely not written. */
+    private List<String> rowVersions() {
+        return jdbc.sql("""
+                select xmin::text from appointment_reference
+                 where provider_code = 'HEALTHIE_ICS' order by scheduled_for
+                """)
+                .query(String.class)
+                .list();
     }
 
     private int rows() {
@@ -282,6 +295,64 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
                         "detail", rs.getString(2) == null ? "" : rs.getString(2),
                         "checked", rs.getBoolean(3)))
                 .single();
+    }
+
+
+    @Test
+    @DisplayName("an unchanged calendar is detected and written to the database not at all")
+    void unchangedCalendarSkipsAllWrites() {
+        feed(calendar(
+                event(when(6, 9, 0), when(6, 9, 15), "In Person"),
+                event(when(6, 10, 0), when(6, 10, 45), "Phone Call")));
+        runSync();
+        assertThat(rows()).isEqualTo(2);
+
+        // Prove the second pass wrote nothing at all, not merely that the result looks the same:
+        // a row touched by an upsert that changes no values is still a write. xmin is Postgres's
+        // own row version and only advances when the row is actually written.
+        var versionsBefore = rowVersions();
+        runSync();
+        runSync();
+
+        assertThat(rowVersions()).isEqualTo(versionsBefore);
+        var health = health();
+        assertThat(health.get("status")).isEqualTo("CONNECTED");
+        assertThat(health.get("detail").toString()).contains("No change since last sync");
+    }
+
+    @Test
+    @DisplayName("a changed calendar is not skipped")
+    void changedCalendarStillSyncs() {
+        feed(calendar(event(when(6, 9, 0), when(6, 9, 15), "In Person")));
+        runSync();
+        var versionsBefore = rowVersions();
+
+        feed(calendar(
+                event(when(6, 9, 0), when(6, 9, 15), "In Person"),
+                event(when(6, 11, 0), when(6, 11, 30), "Phone Call")));
+        runSync();
+
+        assertThat(rows()).isEqualTo(2);
+        assertThat(rowVersions()).isNotEqualTo(versionsBefore);
+    }
+
+    @Test
+    @DisplayName("a failed sync does not poison the digest, so the next good pass still writes")
+    void failureDoesNotAdvanceTheDigest() {
+        feed(calendar(event(when(6, 9, 0), when(6, 9, 15), "In Person")));
+        runSync();
+
+        failWith(500);
+        runSync();
+
+        // Recovered, with a calendar that changed while we could not see it. The digest must
+        // still be the one from the last good pass, or this change would be skipped forever.
+        feed(calendar(
+                event(when(6, 9, 0), when(6, 9, 15), "In Person"),
+                event(when(6, 14, 0), when(6, 14, 45), "Healthie Video Call")));
+        runSync();
+
+        assertThat(rows()).isEqualTo(2);
     }
 
     @Test

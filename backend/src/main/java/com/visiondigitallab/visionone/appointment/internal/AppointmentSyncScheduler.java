@@ -39,6 +39,7 @@ public class AppointmentSyncScheduler {
 
     private final SchedulingProvider provider;
     private final AppointmentSyncService sync;
+    private final SyncHealthRecorder health;
     private final JdbcClient jdbc;
     private final int daysBack;
     private final int daysForward;
@@ -46,11 +47,13 @@ public class AppointmentSyncScheduler {
     public AppointmentSyncScheduler(
             SchedulingProvider provider,
             AppointmentSyncService sync,
+            SyncHealthRecorder health,
             JdbcClient jdbc,
             @Value("${visionone.appointment.sync.days-back:45}") int daysBack,
             @Value("${visionone.appointment.sync.days-forward:90}") int daysForward) {
         this.provider = provider;
         this.sync = sync;
+        this.health = health;
         this.jdbc = jdbc;
         this.daysBack = daysBack;
         this.daysForward = daysForward;
@@ -69,7 +72,8 @@ public class AppointmentSyncScheduler {
                     // Nothing to try: no credential, or one the practice has not authorised.
                     // Retrying changes nothing until a human changes a setting.
                     log.warn("Skipping appointment sync for {}: provider reports {}", organizationId, status);
-                    recordHealth(organizationId, status, "Provider reported " + status + "; sync skipped");
+                    health.recordFailure(organizationId, provider.providerCode(), status,
+                            "Provider reported " + status + "; sync skipped");
                     continue;
                 }
                 // ERROR deliberately does NOT skip. status() now reports the last exchange rather
@@ -84,6 +88,26 @@ public class AppointmentSyncScheduler {
                 LocalDate to = today.plusDays(daysForward);
                 List<SchedulingProvider.AppointmentReference> refs =
                         provider.appointments(organizationId, from, to);
+
+                // Nothing changed since the last pass: no upserts, no reconciliation, no writes
+                // at all. Worth doing because a sync re-states the entire window every time -
+                // 1,128 rows for one clinic - and almost every pass writes values identical to
+                // the ones already there. The digest covers today's date too, so an unchanged
+                // calendar still gets one full pass a day; that is what re-establishes the truth
+                // as the window slides and bounds how long an out-of-band change can persist.
+                String digest = digestOf(today, refs);
+                if (digest.equals(storedDigest(organizationId))) {
+                    // Debug rather than info: at five-minute polling this is 288 lines a day
+                    // saying nothing happened. It exists so that "is the scheduler alive" is
+                    // answerable from the logs and not only from last_checked_at.
+                    log.debug("No calendar change for organization {}; skipping writes", organizationId);
+                    health.recordSuccess(
+                            organizationId,
+                            provider.providerCode(),
+                            "No change since last sync (" + refs.size() + " appointment(s) in window)");
+                    continue;
+                }
+
                 int applied =
                         sync.apply(organizationId, provider.providerCode(), refs, provider.reportsAttendance());
                 int cancelled = 0;
@@ -99,16 +123,18 @@ public class AppointmentSyncScheduler {
                             to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(),
                             refs.stream().map(SchedulingProvider.AppointmentReference::externalRef).toList());
                 }
-                recordHealth(
+                storeDigest(organizationId, digest);
+                health.recordSuccess(
                         organizationId,
-                        ProviderStatus.CONNECTED,
+                        provider.providerCode(),
                         "Synced " + applied + " appointment(s)"
                                 + (cancelled > 0 ? ", cancelled " + cancelled + " no longer listed" : ""));
             } catch (SchedulingProvider.SchedulingUnavailableException e) {
                 // One organization's upstream being down must not stop the others, and must not
                 // look like a quiet week. Logged and left for the next pass.
                 log.warn("Appointment sync failed for {}: {}", organizationId, e.getMessage());
-                recordHealth(organizationId, ProviderStatus.ERROR, e.getMessage());
+                health.recordFailure(
+                        organizationId, provider.providerCode(), ProviderStatus.ERROR, e.getMessage());
             } catch (RuntimeException e) {
                 // Anything the adapter did not anticipate - a shape in the feed nobody expected, a
                 // constraint violation on one row. Without this the exception escapes the loop,
@@ -116,47 +142,73 @@ public class AppointmentSyncScheduler {
                 // them, so the failure is silent on screen as well as unhandled. Logged at error
                 // rather than warn because, unlike an upstream outage, this one is a defect.
                 log.error("Unexpected failure syncing appointments for {}", organizationId, e);
-                recordHealth(organizationId, ProviderStatus.ERROR,
+                health.recordFailure(organizationId, provider.providerCode(), ProviderStatus.ERROR,
                         "Unexpected " + e.getClass().getSimpleName() + " during sync");
             }
         }
     }
 
     /**
-     * Records what this pass actually found, on the connection row the practice is shown.
+     * A fingerprint of everything this pass would write, plus the day it was taken.
      *
-     * <p>Until this existed, {@code integration_connection} was written once by hand and never
-     * again: the row said CONNECTED permanently, including after a month of failed syncs. The
-     * columns for this - {@code status}, {@code last_checked_at}, {@code detail} - have been in
-     * the schema since V7 and nothing ever filled them. That made the one genuinely dangerous
-     * failure here invisible, because it is a silence rather than an error: a regenerated token
-     * stops the calendar updating, and nothing on screen changes to say so.
+     * <p>Covers the mutable fields rather than just the identifiers, because an appointment can
+     * change without changing its key - a provider that reports attendance moves a booking to
+     * ATTENDED under the same reference, and skipping that would freeze the calendar.
      *
-     * <p>{@code last_checked_at} matters as much as the status. "Connected, last checked four
-     * days ago" is a different problem from "connected, last checked a minute ago", and without a
-     * timestamp both render identically.
-     *
-     * <p>Never throws. A failure to write a health row must not be able to fail a sync that
-     * worked, nor mask the original exception in the catch block that calls this.
+     * <p>The date is in the basis on purpose. Without it, a calendar that genuinely never changes
+     * would never be re-written, and the sync window silently slides out from under it: rows age
+     * past the trailing edge, and anything altered in the table by hand stays altered forever.
+     * With it, the worst case is a day.
      */
-    private void recordHealth(UUID organizationId, ProviderStatus status, String detail) {
-        try {
-            jdbc.sql("""
-                    update integration_connection
-                       set status = :status, last_checked_at = now(), detail = :detail
-                     where organization_id = :orgId and provider_code = :providerCode
-                    """)
-                    .param("status", status.name())
-                    .param("orgId", organizationId)
-                    .param("providerCode", provider.providerCode())
-                    // The column is varchar(500). An adapter's message is already redacted of any
-                    // credential before it gets here; this only guards the length.
-                    .param("detail", detail == null ? null
-                            : detail.substring(0, Math.min(detail.length(), 500)))
-                    .update();
-        } catch (RuntimeException e) {
-            log.warn("Could not record sync health for organization {}: {}", organizationId, e.getMessage());
+    private String digestOf(LocalDate day, List<SchedulingProvider.AppointmentReference> refs) {
+        StringBuilder basis = new StringBuilder(day.toString());
+        for (SchedulingProvider.AppointmentReference ref : refs) {
+            basis.append(' ').append(ref.externalRef())
+                    .append('|').append(ref.startsAt())
+                    .append('|').append(ref.durationMinutes())
+                    .append('|').append(ref.status())
+                    .append('|').append(ref.displayLabel())
+                    .append('|').append(ref.serviceCategory());
         }
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(basis.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(64);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
+    }
+
+    /** Null when nothing has been synced yet, which never equals a digest and so never skips. */
+    private String storedDigest(UUID organizationId) {
+        return jdbc.sql("""
+                select content_digest from integration_connection
+                 where organization_id = :orgId and provider_code = :providerCode
+                """)
+                .param("orgId", organizationId)
+                .param("providerCode", provider.providerCode())
+                .query(String.class)
+                .optional()
+                .orElse(null);
+    }
+
+    /**
+     * Written only after the rows are in. If the process dies mid-sync the digest is still the
+     * old one, so the next pass redoes the work rather than assuming it finished.
+     */
+    private void storeDigest(UUID organizationId, String digest) {
+        jdbc.sql("""
+                update integration_connection set content_digest = :digest
+                 where organization_id = :orgId and provider_code = :providerCode
+                """)
+                .param("digest", digest)
+                .param("orgId", organizationId)
+                .param("providerCode", provider.providerCode())
+                .update();
     }
 
     private List<UUID> connectedOrganizations() {
