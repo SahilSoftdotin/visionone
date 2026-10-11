@@ -141,6 +141,25 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         return false;
     }
 
+    /**
+     * True: the export is the practice's whole calendar, so an appointment that is no longer in it
+     * is no longer on it.
+     *
+     * <p>Two things make this necessary rather than merely nice. The feed carries no
+     * {@code STATUS} property at all - not one of the 5,256 events has one - so a cancellation can
+     * only ever show up as a disappearance. And because identity is derived from start, end and
+     * summary, a <em>rescheduled</em> appointment arrives as a new row and leaves the old one
+     * behind. Without reconciliation the calendar would accumulate ghosts of every appointment
+     * ever moved, each still reading as booked.
+     *
+     * <p>Safe only because a short read is refused rather than parsed: see the truncation check in
+     * {@code fetch()}. Absence has to mean absence, not "the download stopped early".
+     */
+    @Override
+    public boolean reconcilesByAbsence() {
+        return true;
+    }
+
     @Override
     public ProviderStatus status(UUID organizationId) {
         if (icsUrl.isEmpty()) {
@@ -178,24 +197,29 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         List<AppointmentReference> out = new ArrayList<>();
         int skippedRecurring = 0;
         int skippedUnusable = 0;
+        // Counted across the whole feed rather than the window, so an appointment's identity does
+        // not change when the window moves past one of its twins.
+        java.util.Map<String, Integer> occurrences = new java.util.HashMap<>();
 
         for (IcsCalendarParser.IcsEvent event : events) {
             if (event.recurring()) {
                 skippedRecurring += 1;
                 continue;
             }
-            if (event.uid() == null || event.uid().isBlank()) {
-                // Without a stable id the upsert has nothing to key on, and inserting would add a
-                // duplicate row on every single sync.
+            if (event.summary() == null || event.summary().isBlank()) {
+                // The summary is two thirds of the identity below. Without it, two appointments in
+                // the same slot would key identically and collapse onto one row.
                 skippedUnusable += 1;
                 continue;
             }
+            int occurrence = occurrences.merge(
+                    occurrenceKey(event), 1, Integer::sum) - 1;
             if (event.startsAt().isBefore(fromInstant) || !event.startsAt().isBefore(toInstant)) {
                 continue;
             }
             Integer minutes = event.durationMinutes();
             out.add(new AppointmentReference(
-                    stableRef(event.uid()),
+                    contentRef(event.startsAt(), event.endsAt(), event.summary(), occurrence),
                     event.startsAt(),
                     minutes == null ? defaultDurationMinutes : minutes,
                     patientLabel(event.summary()),
@@ -219,7 +243,7 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
                     organizationId);
         }
         if (skippedUnusable > 0) {
-            log.warn("Skipped {} Healthie ICS event(s) with no usable UID", skippedUnusable);
+            log.warn("Skipped {} Healthie ICS event(s) with no summary to identify them by", skippedUnusable);
         }
         return out;
     }
@@ -236,11 +260,18 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         if (externalRef == null || externalRef.isBlank()) {
             return null;
         }
+        java.util.Map<String, Integer> occurrences = new java.util.HashMap<>();
         for (IcsCalendarParser.IcsEvent event : IcsCalendarParser.parse(fetch(), zone)) {
-            if (event.uid() != null && externalRef.equals(stableRef(event.uid()))) {
+            if (event.summary() == null || event.summary().isBlank()) {
+                continue;
+            }
+            int occurrence = occurrences.merge(
+                    occurrenceKey(event), 1, Integer::sum) - 1;
+            String ref = contentRef(event.startsAt(), event.endsAt(), event.summary(), occurrence);
+            if (externalRef.equals(ref)) {
                 Integer minutes = event.durationMinutes();
                 return new AppointmentReference(
-                        stableRef(event.uid()),
+                        ref,
                         event.startsAt(),
                         minutes == null ? defaultDurationMinutes : minutes,
                         patientLabel(event.summary()),
@@ -299,9 +330,19 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
         }
         if (!body.contains("BEGIN:VCALENDAR")) {
             // A sign-in page answered with 200 rather than a redirect is the classic shape of an
-            // expired token, and it would otherwise parse to zero events and look like a quiet month.
+            // expired token, and it would otherwise parse to zero events and look like a quiet
+            // month. Checked before the terminator so the message names the real cause.
             throw new SchedulingUnavailableException(
                     "Healthie ICS export at " + redact(icsUrl) + " did not return a calendar", null);
+        }
+        if (!body.stripTrailing().endsWith("END:VCALENDAR")) {
+            // A response cut off mid-document still parses: iCalendar is a flat sequence, so a
+            // truncated feed yields a shorter, entirely valid-looking list of events. That matters
+            // far more than usual here, because reconcileByAbsence treats anything missing from a
+            // sync as cancelled - a half-delivered feed would cancel the other half of the
+            // practice's calendar. Checking the terminator makes truncation loud instead.
+            throw new SchedulingUnavailableException(
+                    "Healthie ICS export at " + redact(icsUrl) + " ended mid-document", null);
         }
         return body;
     }
@@ -359,27 +400,78 @@ public class HealthieIcsSchedulingProvider implements SchedulingProvider {
     }
 
     /**
-     * The UID, or a deterministic stand-in when it will not fit the column.
+     * A stable identity for an appointment, derived from its content rather than its UID.
      *
-     * <p>{@code appointment_reference.external_ref} is {@code varchar(120)}. iCalendar puts no limit
-     * on UID length, and an over-long one would not merely skip an appointment - the insert would
-     * throw and take the whole sync transaction with it, losing every other appointment in the
-     * batch. Hashed rather than truncated, because two truncated UIDs sharing a prefix would
-     * collide onto one row and silently merge two different people's bookings.
+     * <p><b>Healthie's export does not carry a usable UID.</b> It is generated by the Ruby
+     * {@code icalendar} gem, which mints a fresh random UUID for any event that does not already
+     * have one - and Healthie does not set one. Two fetches of the same calendar, seconds apart,
+     * return the same 5,256 appointments under 5,256 completely different UIDs. Measured, not
+     * assumed: the overlap between consecutive fetches is exactly zero.
      *
-     * <p>Stable across runs and across restarts, which is what the upsert needs. The cost is that a
-     * hashed ref cannot be read back to a Healthie record by eye - acceptable for a case that is
-     * not expected to arise at all.
+     * <p>That makes the UID worse than useless as an idempotency key. Keyed on it, every sync
+     * inserts the entire calendar again - a local run reached 10,152 rows for 1,128 real
+     * appointments in nine passes before it was stopped. {@code DTSTAMP} is no better; it is the
+     * moment the document was rendered, identical across every event and different on every fetch.
+     *
+     * <p>So the key is a digest of the three fields that do hold still: start, end and summary.
+     * Properties worth stating plainly:
+     *
+     * <ul>
+     *   <li>An unchanged appointment keys the same on every fetch, which is what the upsert needs.
+     *   <li>A <b>rescheduled</b> appointment produces a new key and orphans the old row. That is
+     *       why {@link #reconcilesByAbsence()} is true - without it, moving an appointment would
+     *       leave the original sitting on the calendar forever.
+     *   <li>A collision needs two appointments with the same patient name starting and ending at
+     *       the same minute, for a single provider. That is a double-booking of one person, and
+     *       collapsing it to one row is the right answer anyway.
+     * </ul>
+     *
+     * <p>The digest covers a patient name, so it is worth being explicit: it is one-way, it is
+     * never shown, and it reveals nothing the row does not already hold in {@code display_label}
+     * and {@code scheduled_for}. It is an identifier, not a record.
      */
-    static String stableRef(String uid) {
-        if (uid == null || uid.length() <= 120) {
-            return uid;
-        }
+    /**
+     * The grouping an occurrence index counts within: the same three fields the digest uses.
+     *
+     * <p>Keyed on the full triple rather than just start and summary, so two genuinely different
+     * appointments do not renumber each other. Only true twins - identical start, end and name -
+     * share a counter, which is the smallest group that can churn when one of them disappears.
+     */
+    private static String occurrenceKey(IcsCalendarParser.IcsEvent event) {
+        return event.startsAt().getEpochSecond()
+                + "|" + (event.endsAt() == null ? "" : Long.toString(event.endsAt().getEpochSecond()))
+                + "|" + event.summary();
+    }
+
+    static String contentRef(Instant startsAt, Instant endsAt, String summary) {
+        return contentRef(startsAt, endsAt, summary, 0);
+    }
+
+    /**
+     * @param occurrence which of several identical events this is, counted in feed order.
+     *     <p>The export really does repeat a triple: 1,052 of them appear twice and some up to
+     *     eight times, and no other field tells them apart, so without this they would collapse
+     *     onto one row and the practice would lose a third of its calendar. The feed's event order
+     *     is identical between fetches - measured, by comparing two downloads byte for byte - so
+     *     the position of a repeat within its own group is something that can be keyed on.
+     *     <p>It is the weakest link here, and worth being honest about: if one of three identical
+     *     appointments is cancelled, the remaining two renumber, their keys change, and the sync
+     *     sees two new appointments and two vanished ones. Reconciliation cancels the stale pair,
+     *     so it converges on the right answer within a pass rather than drifting - but it churns
+     *     where a real identifier would not. The real fix is Healthie emitting a stable UID.
+     */
+    static String contentRef(Instant startsAt, Instant endsAt, String summary, int occurrence) {
+        String basis = startsAt.getEpochSecond()
+                + "|" + (endsAt == null ? "" : Long.toString(endsAt.getEpochSecond()))
+                + "|" + (summary == null ? "" : summary.trim())
+                + (occurrence == 0 ? "" : "|" + occurrence);
         try {
             byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(uid.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder("ics-sha256-");
-            for (int i = 0; i < 16; i += 1) {
+                    .digest(basis.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder("ics-");
+            // 20 bytes of the digest. 160 bits makes an accidental collision impossible at this
+            // scale, and the whole thing is 44 characters against a varchar(120) column.
+            for (int i = 0; i < 20; i += 1) {
                 hex.append(String.format("%02x", digest[i]));
             }
             return hex.toString();

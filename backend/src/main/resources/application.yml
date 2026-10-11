@@ -67,6 +67,9 @@ visionone:
     default-duration-minutes: ${VISIONONE_HEALTHIE_DEFAULT_DURATION_MINUTES:45}
   appointment:
     sync:
+      # Off unless asked for. The scheduler only exists when this is true, so a demo deployment
+      # never races the seed, and turning a real provider on is two settings rather than one.
+      enabled: ${VISIONONE_APPOINTMENT_SYNC_ENABLED:false}
       interval-ms: ${VISIONONE_APPOINTMENT_SYNC_INTERVAL_MS:3600000}
       days-back: ${VISIONONE_APPOINTMENT_SYNC_DAYS_BACK:45}
       days-forward: ${VISIONONE_APPOINTMENT_SYNC_DAYS_FORWARD:90}

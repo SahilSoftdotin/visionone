@@ -62,6 +62,28 @@ public interface SchedulingProvider {
     }
 
     /**
+     * Whether an appointment missing from a sync should be treated as cancelled.
+     *
+     * <p>A third widening, and the counterpart to the one above. Some feeds are a complete
+     * statement of the calendar: the .ics export lists every appointment the practice has, carries
+     * no status field whatsoever, and simply stops listing one that is cancelled. For a feed like
+     * that, disappearance is the <em>only</em> signal a cancellation ever produces, and ignoring it
+     * leaves cancelled appointments reading as booked indefinitely.
+     *
+     * <p>Defaults to false, because for most providers absence means something far less certain -
+     * a paging bug, a filter, a partial response - and acting on it would cancel a practice's
+     * calendar over a transient fault. The Healthie GraphQL adapter leaves it false and relies on
+     * webhooks, which say explicitly what happened.
+     *
+     * <p>An adapter returning true is promising something specific: that a response it accepted is
+     * a complete one. {@code HealthieIcsSchedulingProvider} earns that by refusing a body that does
+     * not end where a calendar should.
+     */
+    default boolean reconcilesByAbsence() {
+        return false;
+    }
+
+    /**
      * Appointments in a closed date range, in the organization's own timezone.
      *
      * @throws SchedulingUnavailableException when the upstream cannot be reached, so the caller can

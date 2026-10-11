@@ -3,6 +3,7 @@ package com.visiondigitallab.visionone.appointment.internal;
 import com.visiondigitallab.visionone.integration.api.ProviderStatus;
 import com.visiondigitallab.visionone.integration.api.SchedulingProvider;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -71,9 +72,23 @@ public class AppointmentSyncScheduler {
                     continue;
                 }
                 LocalDate today = LocalDate.now();
-                List<SchedulingProvider.AppointmentReference> refs = provider.appointments(
-                        organizationId, today.minusDays(daysBack), today.plusDays(daysForward));
+                LocalDate from = today.minusDays(daysBack);
+                LocalDate to = today.plusDays(daysForward);
+                List<SchedulingProvider.AppointmentReference> refs =
+                        provider.appointments(organizationId, from, to);
                 sync.apply(organizationId, provider.providerCode(), refs, provider.reportsAttendance());
+
+                if (provider.reconcilesByAbsence()) {
+                    // Only after a successful read. An exception above skips this entirely, which
+                    // is the point: "we could not ask" must never be allowed to mean "everything
+                    // was cancelled".
+                    sync.cancelMissing(
+                            organizationId,
+                            provider.providerCode(),
+                            from.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                            to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                            refs.stream().map(SchedulingProvider.AppointmentReference::externalRef).toList());
+                }
             } catch (SchedulingProvider.SchedulingUnavailableException e) {
                 // One organization's upstream being down must not stop the others, and must not
                 // look like a quiet week. Logged and left for the next pass.

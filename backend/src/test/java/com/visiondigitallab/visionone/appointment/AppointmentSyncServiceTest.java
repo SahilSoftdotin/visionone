@@ -56,6 +56,13 @@ class AppointmentSyncServiceTest extends PostgresIntegrationTest {
                 status);
     }
 
+    private String statusOf(String ref) {
+        return jdbc.sql("select status from appointment_reference where external_ref = :ref")
+                .param("ref", ref)
+                .query(String.class)
+                .single();
+    }
+
     private String status() {
         return jdbc.sql("select status from appointment_reference where external_ref = :ref")
                 .param("ref", REF)
@@ -205,6 +212,64 @@ class AppointmentSyncServiceTest extends PostgresIntegrationTest {
         sync.apply(THRIVE, "HEALTHIE_ICS", List.of(reference(AppointmentState.BOOKED, "NOT_A_CHANNEL")));
 
         assertThat(channelSourceId()).isEmpty();
+    }
+
+    private static final Instant WINDOW_FROM = Instant.parse("2026-10-01T00:00:00Z");
+    private static final Instant WINDOW_TO = Instant.parse("2026-11-01T00:00:00Z");
+
+    private AppointmentReference at(String ref, String when) {
+        return new AppointmentReference(
+                ref, Instant.parse(when), 45, "Dana W.", null, null, AppointmentState.BOOKED);
+    }
+
+    @Test
+    @DisplayName("cancels an appointment the provider has stopped listing")
+    void cancelsWhatVanished() {
+        sync.apply(THRIVE, "HEALTHIE_ICS",
+                List.of(at("ics-test-a", "2026-10-15T14:30:00Z"), at("ics-test-b", "2026-10-16T14:30:00Z")),
+                false);
+
+        // The .ics feed has no STATUS field, so a cancellation only ever shows up as an absence.
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-a")).isEqualTo("BOOKED");
+        assertThat(statusOf("ics-test-b")).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    @DisplayName("refuses to reconcile against an empty list")
+    void emptyListCancelsNothing() {
+        sync.apply(THRIVE, "HEALTHIE_ICS", List.of(at("ics-test-a", "2026-10-15T14:30:00Z")), false);
+
+        // The adapter throws rather than return nothing, so this should be unreachable. The guard
+        // is here because the failure if it ever were reached is cancelling the entire calendar.
+        assertThat(sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of())).isZero();
+        assertThat(statusOf("ics-test-a")).isEqualTo("BOOKED");
+    }
+
+    @Test
+    @DisplayName("never reconciles outside the window just read")
+    void leavesOtherDatesAlone() {
+        sync.apply(THRIVE, "HEALTHIE_ICS",
+                List.of(at("ics-test-a", "2026-10-15T14:30:00Z"), at("ics-test-old", "2026-05-01T14:30:00Z")),
+                false);
+
+        // A sync looks at a few months. Without the window bound, the first pass would cancel the
+        // practice's entire history.
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-old")).isEqualTo("BOOKED");
+    }
+
+    @Test
+    @DisplayName("never reconciles another provider's appointments")
+    void leavesOtherProvidersAlone() {
+        sync.apply(THRIVE, "HEALTHIE_ICS", List.of(at("ics-test-a", "2026-10-15T14:30:00Z")), false);
+        sync.apply(THRIVE, "DEMO_SCHEDULING", List.of(at("ics-test-demo", "2026-10-15T14:30:00Z")), true);
+
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-demo")).isEqualTo("BOOKED");
     }
 
     @Test

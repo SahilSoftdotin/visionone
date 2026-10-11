@@ -1,6 +1,9 @@
 package com.visiondigitallab.visionone.appointment.internal;
 
 import com.visiondigitallab.visionone.integration.api.SchedulingProvider.AppointmentReference;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -123,7 +126,7 @@ public class AppointmentSyncService {
                 .param("orgId", organizationId)
                 .param("externalRef", ref.externalRef())
                 .param("scheduledFor", ref.startsAt() == null ? null
-                        : java.sql.Timestamp.from(ref.startsAt()))
+                        : Timestamp.from(ref.startsAt()))
                 .param("status", ref.status() == null ? "BOOKED" : ref.status().name())
                 .param("providerCode", providerCode == null ? "UNKNOWN" : providerCode)
                 .param("displayLabel", ref.displayLabel())
@@ -134,6 +137,67 @@ public class AppointmentSyncService {
                 // which is the right outcome: an unknown channel is unattributed, not a new one.
                 .param("channelCode", ref.channelCode())
                 .update();
+    }
+
+    /**
+     * Cancels appointments in the window that the provider no longer lists.
+     *
+     * <p>Only for providers whose feed is a complete statement of the calendar - see {@link
+     * com.visiondigitallab.visionone.integration.api.SchedulingProvider#reconcilesByAbsence()}.
+     * The .ics export carries no status field, so a cancellation shows up only as a disappearance,
+     * and identity there is derived from the appointment's own details, so a reschedule leaves the
+     * old row behind. Both would otherwise sit on the Calendar as live bookings forever.
+     *
+     * <p>Scoped three ways on purpose: to this organization, to this provider, and to the window
+     * just read. Without the provider scope it would cancel rows another adapter owns; without the
+     * window it would cancel the entire history on the first run, because a sync only ever looks at
+     * a few months.
+     *
+     * <p>Refuses to run on an empty list. The caller should never reach here with one - the adapter
+     * throws rather than return nothing - but the failure mode if it ever did is cancelling every
+     * appointment the practice has, which is worth a second guard rather than a comment.
+     *
+     * @return how many were cancelled
+     */
+    @Transactional
+    public int cancelMissing(
+            UUID organizationId,
+            String providerCode,
+            Instant from,
+            Instant to,
+            Collection<String> stillPresent) {
+        if (stillPresent == null || stillPresent.isEmpty()) {
+            log.warn(
+                    "Refusing to reconcile {} for organization {}: the provider returned nothing, "
+                            + "which cancels everything rather than meaning everything is gone",
+                    providerCode,
+                    organizationId);
+            return 0;
+        }
+        int cancelled = jdbc.sql("""
+                update appointment_reference set status = 'CANCELLED'
+                 where organization_id = :orgId
+                   and provider_code = :providerCode
+                   and scheduled_for >= :from
+                   and scheduled_for < :to
+                   and status <> 'CANCELLED'
+                   and external_ref is not null
+                   and external_ref not in (:stillPresent)
+                """)
+                .param("orgId", organizationId)
+                .param("providerCode", providerCode)
+                .param("from", Timestamp.from(from))
+                .param("to", Timestamp.from(to))
+                .param("stillPresent", stillPresent)
+                .update();
+        if (cancelled > 0) {
+            log.info(
+                    "Cancelled {} appointment(s) no longer listed by {} for organization {}",
+                    cancelled,
+                    providerCode,
+                    organizationId);
+        }
+        return cancelled;
     }
 
     /** Deletes nothing. See {@link #forget}. */

@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.visiondigitallab.visionone.integration.api.ProviderStatus;
 import com.visiondigitallab.visionone.integration.api.SchedulingProvider;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -92,7 +93,8 @@ class HealthieIcsSchedulingProviderTest {
 
         assertThat(appointments).hasSize(1);
         var appointment = appointments.get(0);
-        assertThat(appointment.externalRef()).isEqualTo("appt-1");
+        // Not the UID: Healthie regenerates that on every fetch. See contentRef.
+        assertThat(appointment.externalRef()).startsWith("ics-").hasSize(44);
         assertThat(appointment.durationMinutes()).isEqualTo(45);
         assertThat(appointment.displayLabel()).isEqualTo("Dana W.");
         assertThat(appointment.serviceCategory()).isEqualTo("HORMONE_OPTIMIZATION");
@@ -111,8 +113,8 @@ class HealthieIcsSchedulingProviderTest {
                 event("after", "20270115T143000Z", null, "Consult with E F", null)));
 
         assertThat(provider.appointments(ORG, FROM, TO))
-                .extracting(SchedulingProvider.AppointmentReference::externalRef)
-                .containsExactly("inside");
+                .extracting(SchedulingProvider.AppointmentReference::displayLabel)
+                .containsExactly("C D.");
     }
 
     @Test
@@ -157,20 +159,22 @@ class HealthieIcsSchedulingProviderTest {
         // Showing one of eight occurrences would be a wrong calendar presented as a right one. The
         // adapter logs loudly and leaves it out until there is real RRULE support.
         assertThat(provider.appointments(ORG, FROM, TO))
-                .extracting(SchedulingProvider.AppointmentReference::externalRef)
-                .containsExactly("single");
+                .extracting(SchedulingProvider.AppointmentReference::displayLabel)
+                .containsExactly("Dana W.");
     }
 
     @Test
-    @DisplayName("skips an event with no UID, because the upsert has nothing to key on")
-    void skipsMissingUid() {
-        String noUid = "BEGIN:VEVENT\r\nDTSTART:20261015T143000Z\r\nSUMMARY:Consult with A B\r\nEND:VEVENT\r\n";
-        var provider = stub(calendar(noUid, event("good", "20261016T143000Z", null, "Consult with C D", null)));
+    @DisplayName("skips an event with no summary, because identity is derived from it")
+    void skipsMissingSummary() {
+        String noSummary = "BEGIN:VEVENT\r\nUID:x\r\nDTSTART:20261015T143000Z\r\nEND:VEVENT\r\n";
+        var provider = stub(calendar(
+                noSummary, event("good", "20261016T143000Z", null, "Consult with C D", null)));
 
-        // Without a stable id, every sync would insert another copy.
+        // Two summary-less appointments in the same slot would key identically and collapse onto
+        // one row. The UID cannot save them - Healthie regenerates it on every fetch.
         assertThat(provider.appointments(ORG, FROM, TO))
-                .extracting(SchedulingProvider.AppointmentReference::externalRef)
-                .containsExactly("good");
+                .extracting(SchedulingProvider.AppointmentReference::displayLabel)
+                .containsExactly("C D.");
     }
 
     @Test
@@ -267,7 +271,10 @@ class HealthieIcsSchedulingProviderTest {
                 event("a", "20261015T143000Z", null, "Consult with Dana W", null),
                 event("b", "20261016T143000Z", null, "Weight Management with Ray Q", null)));
 
-        assertThat(provider.appointment(ORG, "b").serviceCategory()).isEqualTo("WEIGHT_MANAGEMENT");
+        String ref = provider.appointments(ORG, FROM, TO).stream()
+                .filter(a -> "Ray Q.".equals(a.displayLabel())).findFirst().orElseThrow()
+                .externalRef();
+        assertThat(provider.appointment(ORG, ref).serviceCategory()).isEqualTo("WEIGHT_MANAGEMENT");
         assertThat(provider.appointment(ORG, "missing")).isNull();
     }
 
@@ -316,17 +323,54 @@ class HealthieIcsSchedulingProviderTest {
     }
 
     @Test
-    @DisplayName("hashes a UID too long for the column instead of truncating it")
-    void hashesOverlongUid() {
-        String shortUid = "appt-1@gethealthie.com";
-        assertThat(HealthieIcsSchedulingProvider.stableRef(shortUid)).isEqualTo(shortUid);
+    @DisplayName("identity survives Healthie regenerating every UID on every fetch")
+    void identityIsDerivedFromContent() {
+        // The bug this exists for, reproduced: the same calendar fetched twice returns the same
+        // appointments under entirely different UIDs. Keyed on the UID, a sync re-inserted the
+        // whole calendar every pass - 10,152 rows for 1,128 appointments before it was stopped.
+        String first = calendar(event("uid-aaa", "20261015T143000Z", "20261015T151500Z", "Megan Carr", null));
+        String second = calendar(event("uid-zzz", "20261015T143000Z", "20261015T151500Z", "Megan Carr", null));
 
-        String longUid = "u".repeat(200);
-        String hashed = HealthieIcsSchedulingProvider.stableRef(longUid);
-        // Must fit varchar(120), and must be the same on every sync or the upsert duplicates.
-        assertThat(hashed).hasSizeLessThanOrEqualTo(120).startsWith("ics-sha256-");
-        assertThat(HealthieIcsSchedulingProvider.stableRef(longUid)).isEqualTo(hashed);
-        // Truncating would have collided these two onto one row, merging two people's bookings.
-        assertThat(HealthieIcsSchedulingProvider.stableRef(longUid + "x")).isNotEqualTo(hashed);
+        var one = stub(first).appointments(ORG, FROM, TO).get(0).externalRef();
+        healthie.resetAll();
+        var two = stub(second).appointments(ORG, FROM, TO).get(0).externalRef();
+
+        assertThat(one).isEqualTo(two).startsWith("ics-").hasSize(44);
+    }
+
+    @Test
+    @DisplayName("a rescheduled appointment gets a new identity, so the old row can be reconciled")
+    void reschedulingChangesTheKey() {
+        Instant at = Instant.parse("2026-10-15T14:30:00Z");
+        String original = HealthieIcsSchedulingProvider.contentRef(at, at.plusSeconds(2700), "Megan Carr");
+        String moved = HealthieIcsSchedulingProvider.contentRef(
+                at.plusSeconds(3600), at.plusSeconds(6300), "Megan Carr");
+        String otherPatient = HealthieIcsSchedulingProvider.contentRef(at, at.plusSeconds(2700), "Megan Carr Jr");
+
+        // A move orphans the old row. That is precisely why reconcilesByAbsence is true.
+        assertThat(moved).isNotEqualTo(original);
+        assertThat(otherPatient).isNotEqualTo(original);
+        assertThat(HealthieIcsSchedulingProvider.contentRef(at, at.plusSeconds(2700), "Megan Carr"))
+                .isEqualTo(original);
+    }
+
+    @Test
+    @DisplayName("treats a feed that ends mid-document as unavailable")
+    void refusesTruncatedFeed() {
+        // Critical because absence drives cancellation: half a feed would cancel the other half of
+        // the practice's calendar. iCalendar is a flat sequence, so a truncated body parses as a
+        // shorter but perfectly valid list.
+        String full = calendar(event("a", "20261015T143000Z", null, "Megan Carr", null));
+        var provider = stub(full.substring(0, full.length() - 20));
+
+        assertThatThrownBy(() -> provider.appointments(ORG, FROM, TO))
+                .isInstanceOf(SchedulingProvider.SchedulingUnavailableException.class)
+                .hasMessageContaining("ended mid-document");
+    }
+
+    @Test
+    @DisplayName("declares that a missing appointment means a cancelled one")
+    void reconcilesByAbsence() {
+        assertThat(providerFor("https://example.test/x.ics").reconcilesByAbsence()).isTrue();
     }
 }
