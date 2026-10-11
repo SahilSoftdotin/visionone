@@ -11,10 +11,23 @@ import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCalendar } from './useCalendar';
 import { DayPanel } from './DayPanel';
+import { DayGrid } from './DayGrid';
 
 /** Local, because it is a date formatting concern rather than a data one. */
 function isoDate(year: number, monthIndex: number, day: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/**
+ * Moves an ISO date by whole days.
+ *
+ * Built from the date parts rather than by adding milliseconds, because adding 86,400,000 to a
+ * local Date lands on the same clock time on the wrong day twice a year, when the offset shifts.
+ */
+function shiftDay(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const moved = new Date(y, m - 1, d + days);
+  return isoDate(moved.getFullYear(), moved.getMonth(), moved.getDate());
 }
 import { formatCount, formatMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -69,6 +82,11 @@ export function CalendarScreen() {
 
   const calendar = useCalendar(orgId, monthKey);
   const [openDay, setOpenDay] = useState<string | null>(null);
+  // Month and Day answer different questions, so this is a toggle rather than a replacement:
+  // the month grid carries the attribution story, the day grid answers "what does Thursday
+  // look like" at a density the month cells cannot show.
+  const [view, setView] = useState<'month' | 'day'>('month');
+  const [focusDay, setFocusDay] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const { appointmentsOn, summary, dataSource } = calendar;
 
   const counts = {
@@ -103,6 +121,24 @@ export function CalendarScreen() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex rounded-lg border border-border p-0.5" role="group" aria-label="Calendar view">
+            {(['month', 'day'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setView(mode)}
+                aria-pressed={view === mode}
+                className={cn(
+                  'min-h-8 rounded-md px-3 text-xs font-semibold capitalize transition-colors',
+                  view === mode
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
           <MonthPicker />
           <Badge tone={dataSource === 'LIVE' ? 'positive' : 'pending'}>
             {dataSource === 'LIVE'
@@ -136,6 +172,15 @@ export function CalendarScreen() {
 
       <Card className="reveal" style={{ '--i': 4 } as CSSProperties}>
         <CardBody className="space-y-4">
+          {view === 'day' ? (
+            <DayGrid
+              date={focusDay}
+              appointments={appointmentsOn(focusDay)}
+              onPrev={() => setFocusDay(shiftDay(focusDay, -1))}
+              onNext={() => setFocusDay(shiftDay(focusDay, 1))}
+              onToday={() => setFocusDay(new Date().toISOString().slice(0, 10))}
+            />
+          ) : (
           <div className="grid grid-cols-7 gap-2">
             {WEEKDAYS.map((w) => (
               <div
@@ -278,8 +323,9 @@ export function CalendarScreen() {
               );
             })}
           </div>
+          )}
 
-          {calendar.appointments.length === 0 && (
+          {view === 'month' && calendar.appointments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No appointments booked in this month.
             </p>
