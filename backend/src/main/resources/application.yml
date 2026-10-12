@@ -136,6 +136,15 @@ visionone:
       batch-size: 50
 
 management:
+  health:
+    # Mail must never decide whether the API is healthy. spring-boot-starter-mail registers a
+    # health indicator that opens an SMTP connection, so adding alerting quietly made /health
+    # report DOWN on any machine without credentials - and, worse, made a Resend outage enough
+    # to mark the API unhealthy and have the orchestrator restart or withdraw a service that was
+    # working perfectly. Alerts are an operational convenience; the API serving a practice is not
+    # contingent on them.
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
