@@ -4,7 +4,6 @@ import { CalendarCheck, CalendarX, Clock, Repeat } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KpiTile, TILE_TONES } from '@/components/KpiTile';
-import { StatusPill } from '@/components/ui/Chips';
 import { MonthPicker, currentMonthKey } from '@/components/ui/MonthPicker';
 import { useParams } from 'react-router-dom';
 import { DataStateBoundary } from '@/components/ui/DataStateBoundary';
@@ -43,22 +42,6 @@ import { cn } from '@/lib/utils';
  * booking happened and where it came from, not what it was for.
  */
 
-const statusTone: Record<string, 'primary' | 'positive' | 'caution' | 'critical'> = {
-  BOOKED: 'primary',
-  ATTENDED: 'positive',
-  RESCHEDULED: 'caution',
-  CANCELLED: 'critical',
-};
-
-/**
- * How many appointments the hover card previews before deferring to the day panel.
- *
- * Five rather than all of them. The demo data this screen was built against had one or two
- * appointments a day; a real Healthie calendar averages eighteen and peaks at thirty-four, which
- * made the card taller than the viewport with no way to reach the rest - it is pointer-events-none
- * on purpose, so it cannot be scrolled even when it overflows.
- */
-const HOVER_PREVIEW = 5;
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -297,54 +280,50 @@ export function CalendarScreen() {
                     </ul>
                   )}
 
-                  {/* Hover card: who, when, what category, and which channel produced it. */}
+                  {/* Hover card: when this day is busy, and nothing else.
+                      It used to carry four lines per appointment - time, status, contact type,
+                      duration, channel - which at five appointments already filled the card and
+                      still hid the other twenty on a day like 2 October. Times alone fit the
+                      whole day in a few rows, which is the question a hover is actually asking.
+                      Everything else is one click away in the day panel. */}
                   {has && (
                     <div
                       className={cn(
-                        'pointer-events-none absolute left-1/2 z-30 hidden w-64 -translate-x-1/2 rounded-lg border border-border bg-card p-3 elev-lg group-hover:block',
+                        'pointer-events-none absolute left-1/2 z-30 hidden w-72 -translate-x-1/2 rounded-lg border border-border bg-card p-3 elev-lg group-hover:block',
                         flipUp ? 'bottom-full mb-1' : 'top-full mt-1',
                       )}
                     >
-                      <p className="text-xs font-bold">
-                        {new Date(year, monthIndex, day).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                        })}
-                      </p>
-                      {/* Capped. A real practice day here runs to 34 appointments, and an
-                          uncapped list made a card taller than the window that cannot be
-                          scrolled, because it is deliberately pointer-events-none. The day
-                          panel behind a click is the thing that holds the full list. */}
-                      <ul className="mt-2 space-y-2">
-                        {items.slice(0, HOVER_PREVIEW).map((a) => (
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-xs font-bold">
+                          {new Date(year, monthIndex, day).toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                          })}
+                        </p>
+                        <span className="text-[11px] text-muted-foreground">
+                          {items.length} appt{items.length === 1 ? '' : 's'}
+                        </span>
+                      </div>
+
+                      <ul className="mt-2 flex flex-wrap gap-1">
+                        {items.map((a) => (
                           <li
                             key={a.id}
-                            className="border-t border-border pt-2 first:border-0 first:pt-0"
+                            className={cn(
+                              'rounded px-1.5 py-0.5 text-[11px] tabular-nums',
+                              a.status === 'CANCELLED' || a.status === 'NO_SHOW'
+                                ? 'bg-muted text-muted-foreground line-through'
+                                : 'bg-primary-soft font-semibold text-primary-text',
+                            )}
                           >
-                            <div className="flex items-baseline justify-between gap-2">
-                              <span className="text-xs font-semibold tabular-nums">{a.time}</span>
-                              <StatusPill tone={statusTone[a.status]}>
-                                {a.status.toLowerCase()}
-                              </StatusPill>
-                            </div>
-                            <p className="mt-0.5 text-xs font-semibold">{a.patient}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {a.serviceInterest} · {a.duration} min
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">via {a.source}</p>
+                            {a.time}
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 border-t border-border pt-2 text-[11px] font-semibold text-primary-text">
-                        {items.length > HOVER_PREVIEW
-                          ? `+${items.length - HOVER_PREVIEW} more · click the day to see all ${items.length}`
-                          : 'Click the day to open it'}
-                      </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {calendar.editable
-                          ? 'Credit a channel in the day panel · times are managed in the scheduling system'
-                          : 'Managed in the scheduling system'}
+
+                      <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                        Click the day for who, how long and which channel.
                       </p>
                     </div>
                   )}
