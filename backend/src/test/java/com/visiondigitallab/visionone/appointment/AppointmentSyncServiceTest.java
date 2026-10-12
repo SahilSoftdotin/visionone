@@ -237,6 +237,51 @@ class AppointmentSyncServiceTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("an attended appointment is never cancelled just for leaving the feed")
+    void absenceDoesNotEraseAttendance() {
+        sync.apply(THRIVE, "HEALTHIE_ICS",
+                List.of(at("ics-test-a", "2026-10-15T14:30:00Z"), at("ics-test-seen", "2026-10-16T14:30:00Z")),
+                false);
+        jdbc.sql("update appointment_reference set status = 'ATTENDED' where external_ref = 'ics-test-seen'")
+                .update();
+
+        // The practice tidies the appointment out of their own book after it happened. Attendance
+        // is something a human observed; deleting the record upstream does not un-happen it, and
+        // the row is the only place that fact lives.
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-seen")).isEqualTo("ATTENDED");
+    }
+
+    @Test
+    @DisplayName("and a no-show is not cancelled by absence either")
+    void absenceDoesNotEraseNoShow() {
+        sync.apply(THRIVE, "HEALTHIE_ICS",
+                List.of(at("ics-test-a", "2026-10-15T14:30:00Z"), at("ics-test-ns", "2026-10-16T14:30:00Z")),
+                false);
+        jdbc.sql("update appointment_reference set status = 'NO_SHOW' where external_ref = 'ics-test-ns'")
+                .update();
+
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-ns")).isEqualTo("NO_SHOW");
+    }
+
+    @Test
+    @DisplayName("a plain booking that leaves the feed is still cancelled")
+    void absenceStillCancelsABooking() {
+        // The guard above must not turn reconciliation off. A booked appointment disappearing is
+        // the only cancellation signal this feed has.
+        sync.apply(THRIVE, "HEALTHIE_ICS",
+                List.of(at("ics-test-a", "2026-10-15T14:30:00Z"), at("ics-test-b", "2026-10-16T14:30:00Z")),
+                false);
+
+        sync.cancelMissing(THRIVE, "HEALTHIE_ICS", WINDOW_FROM, WINDOW_TO, List.of("ics-test-a"));
+
+        assertThat(statusOf("ics-test-b")).isEqualTo("CANCELLED");
+    }
+
+    @Test
     @DisplayName("refuses to reconcile against an empty list")
     void emptyListCancelsNothing() {
         sync.apply(THRIVE, "HEALTHIE_ICS", List.of(at("ics-test-a", "2026-10-15T14:30:00Z")), false);

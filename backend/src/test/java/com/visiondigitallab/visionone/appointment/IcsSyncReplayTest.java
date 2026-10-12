@@ -247,6 +247,28 @@ class IcsSyncReplayTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("an attended appointment survives being deleted from Healthie")
+    void attendanceSurvivesDisappearing() {
+        feed(calendar(
+                event(when(-4, 9, 0), when(-4, 9, 15), "Ada Keeper"),
+                event(when(-4, 10, 0), when(-4, 10, 45), "Mo Mover")));
+        runSync();
+        jdbc.sql("""
+                update appointment_reference set status = 'ATTENDED'
+                 where provider_code = 'HEALTHIE_ICS' and display_label = 'Mo Mover'
+                """).update();
+
+        // The appointment happened and Vision recorded it. Then the practice removes it from
+        // their own book. Reconciliation treats absence as cancellation, and for a booking that
+        // is right - but an outcome a human observed is not something a deletion can revoke.
+        feed(calendar(event(when(-4, 9, 0), when(-4, 9, 15), "Ada Keeper")));
+        runSync();
+
+        assertThat(byLabel().get("Mo Mover")).containsExactly("ATTENDED");
+        assertThat(byLabel().get("Ada Keeper")).containsExactly("BOOKED");
+    }
+
+    @Test
     @DisplayName("a failed fetch cancels nothing at all")
     void outageCancelsNothing() {
         feed(calendar(

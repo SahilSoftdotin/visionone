@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { StatusPill } from '@/components/ui/Chips';
 import { cn } from '@/lib/utils';
-import { layoutDay } from './layoutDay';
+import { layoutDay, PX_PER_MIN } from './layoutDay';
 import type { CalendarAppointment } from './useCalendar';
 
 /**
@@ -41,7 +41,8 @@ export interface DayGridProps {
   appointments: CalendarAppointment[];
   onPrev: () => void;
   onNext: () => void;
-  onToday: () => void;
+  /** Omitted when today is not in the month being shown, where the button would be a lie. */
+  onToday?: () => void;
   /** The practice's own timezone, shown because the question always gets asked. */
   timezoneLabel?: string;
 }
@@ -74,13 +75,15 @@ export function DayGrid({
           >
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </button>
-          <button
-            type="button"
-            onClick={onToday}
-            className="min-h-8 rounded-md border border-border px-3 text-xs font-semibold transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-          >
-            Today
-          </button>
+          {onToday && (
+            <button
+              type="button"
+              onClick={onToday}
+              className="min-h-8 rounded-md border border-border px-3 text-xs font-semibold transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              Today
+            </button>
+          )}
           <button
             type="button"
             onClick={onNext}
@@ -106,12 +109,20 @@ export function DayGrid({
         // the page already has a summary row above it.
         <div className="max-h-[560px] overflow-y-auto rounded-lg border border-border">
           <div className="relative flex">
-            <div className="w-20 shrink-0 border-r border-border bg-muted/30">
-              {layout.hours.map((hour) => (
+            {/* Labels are positioned the same way as the lines they mark, from the same
+                constant. Stacking fixed-height rows instead made the column one hour taller
+                than the grid - the hour list includes both ends, so 8 to 18 is eleven rows
+                against ten hours - and wrote the pixel scale out by hand, so changing
+                PX_PER_MIN would have moved the blocks and left the labels behind. */}
+            <div
+              className="relative w-20 shrink-0 border-r border-border bg-muted/30"
+              style={{ height: layout.height }}
+            >
+              {layout.hours.map((hour, index) => (
                 <div
                   key={hour}
-                  style={{ height: 60 * 1.1 }}
-                  className="relative -top-2 pr-2 text-right text-[11px] tabular-nums text-muted-foreground"
+                  style={{ top: index * 60 * PX_PER_MIN }}
+                  className="absolute right-0 pr-2 text-right text-[11px] tabular-nums text-muted-foreground"
                 >
                   {hourLabel(hour)}
                 </div>
@@ -123,7 +134,7 @@ export function DayGrid({
                 <div
                   key={hour}
                   className="absolute inset-x-0 border-t border-border/60"
-                  style={{ top: index * 60 * 1.1 }}
+                  style={{ top: index * 60 * PX_PER_MIN }}
                   aria-hidden
                 />
               ))}

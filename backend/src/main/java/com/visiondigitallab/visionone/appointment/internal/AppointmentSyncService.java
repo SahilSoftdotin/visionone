@@ -153,6 +153,17 @@ public class AppointmentSyncService {
      * window it would cancel the entire history on the first run, because a sync only ever looks at
      * a few months.
      *
+     * <p><b>An attended appointment is never cancelled by absence.</b> Attendance is a fact
+     * somebody observed, and deleting the record upstream does not un-happen it. Without this,
+     * every bit of care taken over attendance in {@link #apply} was undone here through the other
+     * door: mark an appointment ATTENDED, let the practice tidy it out of their own book, and the
+     * next sync quietly rewrote it to CANCELLED with nothing left to say it had happened.
+     *
+     * <p>Stated as a general rule rather than tied to {@code providerOwnsAttendance}, because it
+     * is about the strength of the evidence rather than the richness of the feed: absence is
+     * weaker than a statement. A provider that really means an attended appointment is cancelled
+     * can say so, and {@link #apply} will write it.
+     *
      * <p>Refuses to run on an empty list. The caller should never reach here with one - the adapter
      * throws rather than return nothing - but the failure mode if it ever did is cancelling every
      * appointment the practice has, which is worth a second guard rather than a comment.
@@ -180,7 +191,7 @@ public class AppointmentSyncService {
                    and provider_code = :providerCode
                    and scheduled_for >= :from
                    and scheduled_for < :to
-                   and status <> 'CANCELLED'
+                   and status not in ('CANCELLED', 'ATTENDED', 'NO_SHOW')
                    and external_ref is not null
                    and external_ref not in (:stillPresent)
                 """)

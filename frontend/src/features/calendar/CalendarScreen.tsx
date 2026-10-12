@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useCalendar } from './useCalendar';
 import { DayPanel } from './DayPanel';
 import { DayGrid } from './DayGrid';
+import { activeDayFor } from './activeDay';
 
 /** Local, because it is a date formatting concern rather than a data one. */
 function isoDate(year: number, monthIndex: number, day: number): string {
@@ -88,8 +89,35 @@ export function CalendarScreen() {
   // the month grid carries the attribution story, the day grid answers "what does Thursday
   // look like" at a density the month cells cannot show.
   const [view, setView] = useState<'month' | 'day'>('month');
-  const [focusDay, setFocusDay] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  // The day the grid shows, or null for "whatever this month's default is".
+  //
+  // Derived against monthKey rather than stored outright, because the Calendar loads one month
+  // at a time. Holding today's date here meant that browsing to September and pressing Day
+  // showed "Nothing booked on this day" - the day was in October and only September was loaded.
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
+  // Local date parts, not toISOString(). That returns UTC, so for a practice in New York every
+  // evening after 8pm "today" was already tomorrow - which used to only mis-place the ring on
+  // the month grid and now also decides which day the Day view opens on.
+  const now = new Date();
+  const todayIso = isoDate(now.getFullYear(), now.getMonth(), now.getDate());
+
   const { appointmentsOn, summary, dataSource } = calendar;
+
+  // Always a day inside the month on screen: today when it falls there, otherwise the first.
+  // A day picked by the arrows survives only while it still belongs to this month, so changing
+  // month cannot leave the grid pointing at a day whose data was never loaded.
+  const todayInMonth = todayIso.startsWith(monthKey);
+  const activeDay = activeDayFor(monthKey, todayIso, pickedDay);
+
+  // Navigation stops at the month's edges. Stepping past them would show an empty day that the
+  // practice has no way to read as "not loaded" rather than "nothing booked"; the month picker
+  // is how you leave the month.
+  const stepDay = (delta: number) => {
+    const next = shiftDay(activeDay, delta);
+    if (next.startsWith(monthKey)) {
+      setPickedDay(next);
+    }
+  };
 
   const counts = {
     booked: summary?.booked ?? 0,
@@ -98,7 +126,6 @@ export function CalendarScreen() {
     cancelled: summary?.cancelled ?? 0,
   };
 
-  const todayIso = new Date().toISOString().slice(0, 10);
 
   if (calendar.isLoading || calendar.error) {
     return (
@@ -176,11 +203,11 @@ export function CalendarScreen() {
         <CardBody className="space-y-4">
           {view === 'day' ? (
             <DayGrid
-              date={focusDay}
-              appointments={appointmentsOn(focusDay)}
-              onPrev={() => setFocusDay(shiftDay(focusDay, -1))}
-              onNext={() => setFocusDay(shiftDay(focusDay, 1))}
-              onToday={() => setFocusDay(new Date().toISOString().slice(0, 10))}
+              date={activeDay}
+              appointments={appointmentsOn(activeDay)}
+              onPrev={() => stepDay(-1)}
+              onNext={() => stepDay(1)}
+              onToday={todayInMonth ? () => setPickedDay(todayIso) : undefined}
             />
           ) : (
           <div className="grid grid-cols-7 gap-2">
